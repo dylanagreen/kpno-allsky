@@ -61,52 +61,101 @@ def download_all_date(date):
             
             # While testing I don't want to save a billion images so here's a print line
             #print('yes')
-    #print('Success')
+    
+    print('All photos downloaded for ' + date)
 
-#download_all_date('20170711')
+def median_all_date(date):
+    
+    # I've hard coded the files for now, this can be changed later.
+    directory = 'Images/' + date + '/'
+    
+    # Gotta make sure those images exist.
+    try:
+        files = os.listdir(directory)
+    except:
+        print('Images directory not found for that date!')
+        print('Are you sure you downloaded images?')
+        exit()
+    
+    # Create the final image array first.
+    finalimg = np.zeros((512,512))
 
+    # Boolean for if we have our temp image array yet.
+    superimg = np.zeros((1,1,1))
+    exists = False
+    for file in files:
+        # Make sure we look in the directory lol.
+        file = dir + file
+    
+        # We have to reshape the images so that the lowest level single value is a 1D array rather than just a number.
+        # This is so when you concat the arrays it actually turns the lowest value into a multivalue array.
+        img = ndimage.imread(file, mode = 'L')
+        temp = img.reshape(512, 512, 1)
+    
+        # Make the super image have the correct dimensions and starting values.
+        if exists:
+            # Concatenates along the color axis
+            superimg = np.concatenate((superimg,temp), axis=2)
+        else:
+            # Since we run this only once this shortcut will save us fractions of a second!
+            superimg = temp
+            exists = True
+        
+
+
+    # i and j are counters here for positions in the final array.
+    # i = row
+    # j = column
+    i = 0
+    j = 0
+
+    for row in superimg:
+        for column in row:
+            # Need to sort before taking the median.
+            # Median is just the middle item in the array so find the length, then integer divide by 2.
+            # This keeps it an integer but still rounds up if the length was odd. (i.e. median in 5 items is item 3 => index 2 => 5 // 2)
+            sorted = np.sort(column)
+            pos = sorted.shape[0] // 2 
+            finalimg[i,j] = sorted[pos]
+            #print(sorted[pos])
+            j += 1
+        i += 1
+        j = 0
+
+
+
+    # Generate Figure and Axes objects.
+    figure = plot.figure()
+    figure.set_size_inches(4,4) # 4 inches by 4 inches
+    axes = plot.Axes(figure,[0.,0.,1.,1.]) # 0 - 100% size of figure
+
+
+    # Turn off the actual visual axes for visual niceness.
+    # Then add axes to figure
+    axes.set_axis_off()
+    figure.add_axes(axes)
+
+    # Adds the image into the axes and displays it
+    axes.imshow(finalimg, cmap = 'gray')
+
+    filename = 'Images/' + date + '-median.png'
+    # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
+    plot.savefig(filename, dpi = 128)
+    
+    print('Median image complete for ' + date)
+    
+    # Show the plot
+    plot.show()
+    
+
+
+date = '20170710'
+download_all_date(date)
+median_all_date(date)
 
 
 
 
 # Converts the PIL image to a numpy array image.
 # i2 = np.array(i)
-
-
-# Below this is the original difference file I'll prolly need later.
-
-# Reads the two images into ndarrays.
-# Importing in RGB mode makes it ignore the A layer. 
-# If we suddenly have transparency I might have a problem.
-#img1 = ndimage.imread('unnamed.png', mode = 'RGB')
-#img2 = ndimage.imread('unnamed-2.png', mode = 'RGB')
-
-# Difference image. Assumed literal mathematical difference for now.
-# I encountered a problem previously, in that I assumed the type of the array would dynamically change.
-# This is python, so that's not wrong per se. Anyway turns out it's wrong so I have to cast these to numpy ints.
-# I then have to cast back to uints because imshow works differently on uint8 and int16.
-#diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
-
-#print(diffimg) # Debug line
-
-# Generate Figure and Axes objects.
-#figure = plot.figure()
-#figure.set_size_inches(4,4) # 4 inches by 4 inches
-#axes = plot.Axes(figure,[0.,0.,1.,1.]) # 0 - 100% size of figure
-
-
-# Turn off the actual visual axes for visual niceness.
-# Then add axes to figure
-#axes.set_axis_off()
-#figure.add_axes(axes)
-
-# Adds the image into the axes and displays it
-#axes.imshow(diffimg)
-
-
-# DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
-#plot.savefig("blah.png", dpi = 128)
-
-# Show the plot
-#plot.show()
 
