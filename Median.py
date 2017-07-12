@@ -7,6 +7,7 @@ import requests
 from PIL import Image
 from io import BytesIO
 from html.parser import HTMLParser
+import os
 
 # Html parser for looping through html tags
 class DateHTMLParser(HTMLParser):
@@ -23,31 +24,47 @@ class DateHTMLParser(HTMLParser):
                         #print("attr:", attr[1])
                         self.data.append(attr[1])
 
-# Gets the html for a date page, then parses it to find the image names on that page.
-rdate = requests.get('http://kpasca-archives.tuc.noao.edu/20170530/index.html')
-htmldate = rdate.text
-parser = DateHTMLParser()
-parser.feed(htmldate)
-parser.close()
-imagenames = parser.data
-
-# Runs through the array of image names and downloads them
-for image in imagenames:
-    # We want to ignore the all image animations
-    if image == 'allblue.gif' or image ==  'allred.gif':
-        continue
-    # Otherwise request the html data of the page for that image and save the image
-    else:
-        imageloc = 'http://kpasca-archives.tuc.noao.edu/20170530/' + image
-        imagename = 'Images/' + image
-        rimage = requests.get(imageloc)
+def download_all_date(date):
+    # Creates the link
+    link = 'http://kpasca-archives.tuc.noao.edu/' + date
+    
+    directory = 'Images/' + date
+    # Verifies that an Images folder exists, creates one if it does not.
+    if not os.path.exists(directory):
+        os.makedirs(directory)
         
-        # Converts the image data to a python image
-        i = Image.open(BytesIO(rimage.content)).convert('RGB')
-        # Saves the image
-        i.save(imagename)
+    
+    # Gets the html for a date page, then parses it to find the image names on that page.
+    htmllink = link + '/index.html'
+    rdate = requests.get(htmllink)
+    htmldate = rdate.text
+    parser = DateHTMLParser()
+    parser.feed(htmldate)
+    parser.close()
+    imagenames = parser.data
 
-print('Success')
+    # Runs through the array of image names and downloads them
+    for image in imagenames:
+        # We want to ignore the all image animations
+        if image == 'allblue.gif' or image ==  'allred.gif':
+            continue
+        # Otherwise request the html data of the page for that image and save the image
+        else:
+            imageloc = link + '/' + image
+            imagename = directory + '/' + image
+            rimage = requests.get(imageloc)
+        
+            # Converts the image data to a python image
+            i = Image.open(BytesIO(rimage.content)).convert('RGB')
+            # Saves the image
+            i.save(imagename)
+            
+            # While testing I don't want to save a billion images so here's a print line
+            #print('yes')
+    #print('Success')
+
+#download_all_date('20170711')
+
 
 
 
@@ -84,11 +101,11 @@ print('Success')
 #figure.add_axes(axes)
 
 # Adds the image into the axes and displays it
-#axes.imshow(i2)
+#axes.imshow(diffimg)
 
 
 # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
-#plot.savefig("blah2.png", dpi = 128)
+#plot.savefig("blah.png", dpi = 128)
 
 # Show the plot
 #plot.show()
