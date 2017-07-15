@@ -136,6 +136,7 @@ def median_all_date(date):
     figure.add_axes(axes)
 
     # Adds the image into the axes and displays it
+    # cmap is required here since I did the images in grayscale and imshow needs to know that.
     axes.imshow(finalimg, cmap = 'gray')
 
     filename = 'Images/' + date + '-median.png'
