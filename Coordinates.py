@@ -15,7 +15,7 @@ cameraearth = EarthLocation(lat = cameraloc[0] * u.deg, lon = cameraloc[1] * u.d
 center = (256, 252)
 
 # The point for which we're doing this mathmagic.
-point = (296, 212)
+point = (255, 252)
 
 # Point adjusted based on the center being at... well... the center. And not the top left. In case you were confused.
 pointadjust = (point[0] - center[0], point[1] - center[1])
@@ -40,14 +40,22 @@ elif pointadjust[0] > 0 and pointadjust[1] < 0:
     az += 380
 
 # Pythagorean thereom boys.
-r = math.sqrt(pointadjust[0]*pointadjust[0] + pointadjust[1]*pointadjust[1])
-#r = 239 # Debug line
-r = r * 0.0483264 # Magic pixel to mm conversion rate
+r = math.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
+
+# For now if r is on the edge of the circle or beyond we'll have it just be 90 degrees.
+if r >= 239:
+    alt = 90
+else:
+    #r = 238 # Debug line
+    r = r * 0.0483264 # Magic pixel to mm conversion rate
 
 
-# This is probably very not accurate right now. 
-# I used a table of r -> theta values for this lens and then found a regression for it
-alt =  - 309.7930342198971 + 310.1190311630313 * math.exp(0.021947630111875834 * r)
+    # This is probably very not accurate right now. 
+    # I used a table of r -> theta values for this lens and then found a regression for it
+    a = 7.138255950800197
+    b = 0.021488582426739067
+    c = 0.0002825039064767284
+    alt =  a*r + b*math.pow(r,2) + c*math.pow(r,4)
 
 print('Azimuthal angle = ' + str(az))
 print('Altitude angle = ' + str(alt))

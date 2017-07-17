@@ -107,11 +107,8 @@ def median_all_date(date):
     superimg6 = np.zeros((1,1,1))
     exists6 = False
     
-    # I don't want to construct a new one every loop later on.
-    zeroes = np.zeros((1,1,1))
-    
     for file in files:
-        # Make sure we look in the directory lol.
+        # Make sure we look in the directory to load the image lol.
         file = directory + file
     
         # We have to reshape the images so that the lowest level single value is a 1D array rather than just a number.
@@ -184,7 +181,8 @@ def median_all_date(date):
     #plot.show()
 
 
-date = '20170710'
+
+date = '20170715'
 #download_all_date(date)
 median_all_date(date)
 
