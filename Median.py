@@ -68,9 +68,9 @@ def download_all_date(date):
 # The pixel chosen is yellow for .3s and "not yellow" for 6s.
 def get_exposure(image):
     if image[19][174] == 225:
-        return .3
+        return '.03'
     else:
-        return 6
+        return '6'
 
 
 def median_all_date(date):
@@ -92,20 +92,11 @@ def median_all_date(date):
     if not os.path.exists(filedir):
         os.makedirs(filedir)
     
-    # Create the final image arrays first.
-    finalimgall = np.zeros((512,512))
-    finalimg03 = np.zeros((512,512))
-    finalimg6 = np.zeros((512,512))
-
-    # Boolean for if we have our temp image array yet.
-    superimgall = np.zeros((1,1,1))
-    existsall = False
-    
-    superimg03 = np.zeros((1,1,1))
-    exists03 = False
-    
-    superimg6 = np.zeros((1,1,1))
-    exists6 = False
+    # These dictionaries hold the images and existence booleans.
+    finalimg = {'All': np.zeros((512,512)), '.03': np.zeros((512,512)), '6': np.zeros((512,512))}
+    superimg = {'All': np.zeros((1,1,1)), '.03': np.zeros((1,1,1)), '6': np.zeros((1,1,1))}
+    exists = {'All': False, '.03': False, '6': False}
+    keys = superimg.keys()
     
     for file in files:
         # Make sure we look in the directory to load the image lol.
@@ -118,37 +109,22 @@ def median_all_date(date):
         
         exposure = get_exposure(img)
         
+        # All Median
         # Make the super image have the correct dimensions and starting values. Concats if it already does.
-        if existsall:
+        if exists['All']:
             # Concatenates along the color axis
-            superimgall = np.concatenate((superimgall,temp), axis=2)
+            superimg['All'] = np.concatenate((superimg['All'],temp), axis=2)
         else:
             # Since we run this only once this shortcut will save us fractions of a second!
-            superimgall = temp
-            existsall = True
+            superimg['All'] = temp
+            exists['All'] = True
         
-        # Exposure specific medians.
-        if exposure == 6:
-            if exists6:
-                superimg6 = np.concatenate((superimg6,temp), axis=2)
-            else:
-                superimg6 = temp
-                exists6 = True
+       # Exposure specific medians
+        if exists[exposure]:
+           superimg[exposure] = np.concatenate((superimg[exposure],temp), axis=2)
         else:
-            if exists03:
-                superimg03 = np.concatenate((superimg03,temp), axis=2)
-            else:
-                superimg03 = temp
-                exists03 = True
-
-
-    # Axis 2 is the color axis. Axis 0 is y, axis 1 is x iirc.
-    # Can you believe that this is basically the crux of this method?
-    # 100 lines of code to set up and save. 3 lines that actually make the images.
-    finalimgall = np.median(superimgall, axis = 2)
-    finalimg03 = np.median(superimg03, axis = 2)
-    finalimg6 = np.median(superimg6, axis = 2)
-
+           superimg[exposure] = temp
+           exists[exposure] = True
 
     # Generate Figure and Axes objects.
     figure = plot.figure()
@@ -162,19 +138,21 @@ def median_all_date(date):
     figure.add_axes(axes)
     
 
-    filename = filedir + '/All'
-    # cmap is required here since I did the images in grayscale and imshow needs to know that.
-    axes.imshow(finalimgall, cmap = 'gray')
-    plot.savefig(filename, dpi = 128)
-    
-    filename = filedir + '/03s'
-    axes.imshow(finalimg03, cmap = 'gray')
-    plot.savefig(filename, dpi = 128)
-    
-    filename = filedir + '/6s'
-    axes.imshow(finalimg6, cmap = 'gray')
-    plot.savefig(filename, dpi = 128)
-    
+    # Axis 2 is the color axis. Axis 0 is y, axis 1 is x iirc.
+    # Can you believe that this is basically the crux of this method?
+    # 100 lines of code to set up and save. 3 lines that actually make the images.
+    for key in keys:
+        finalimg[key] = np.median(superimg[key], axis = 2)
+        
+        # cmap is required here since I did the images in grayscale and imshow needs to know that.
+        axes.imshow(finalimg[key], cmap = 'gray')
+        
+        # Saves the pic
+        key = key.replace('.', '')
+        filename = filedir + '/' + key
+        plot.savefig(filename, dpi = 128)
+
+
     print('Median images complete for ' + date)
     
     # Show the plot

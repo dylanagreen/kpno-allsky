@@ -42,9 +42,9 @@ elif pointadjust[0] > 0 and pointadjust[1] < 0:
 # Pythagorean thereom boys.
 r = math.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
 
-# For now if r is on the edge of the circle or beyond we'll have it just be 90 degrees.
+# For now if r is on the edge of the circle or beyond we'll have it just be 0 degrees. (Up from horizontal)
 if r >= 239:
-    alt = 90
+    alt = 0
 else:
     #r = 238 # Debug line
     r = r * 11.6 / 289# Magic pixel to mm conversion rate
