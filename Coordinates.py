@@ -57,6 +57,9 @@ else:
     c = 0.0002825039064767284
     alt =  a*r + b*math.pow(r,2) + c*math.pow(r,4)
 
+# The alt computed is down from the vertical, rather than up from the horizontal. Easy fix.
+alt = 90 - alt
+
 print('Azimuthal angle = ' + str(az))
 print('Altitude angle = ' + str(alt))
 
