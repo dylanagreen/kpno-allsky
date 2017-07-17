@@ -145,45 +145,12 @@ def median_all_date(date):
                 exists03 = True
 
 
-    # i and j are counters here for positions in the final array.
-    # i = row
-    # j = column
-    i = 0
-    j = 0
-
-    # I've condensed the 3 images into 1 loop, since they all have the same dimensions in x and y.
-    for row in superimgall:
-        for column in row:
-            # Need to sort before taking the median.
-            # Median is just the middle item in the array so find the length, then integer divide by 2.
-            # This keeps it an integer but still rounds up if the length was odd. (i.e. median in 5 items is item 3 => index 2 => 5 // 2)
-            sorted = np.sort(column)
-            pos = sorted.shape[0] // 2 
-            finalimgall[i,j] = sorted[pos]
-            #print(sorted[pos])
-            
-            # This if block is required if there are no images of that exposure time.
-            # It'll explode if we don't verify that we've actually added an image to the super array.
-            if np.array_equal(superimg03, zeroes):
-                j += 1 # I need this to actually increment every loop after performing math lol.
-                continue
-            else:
-                sorted = np.sort(superimg03[i,j])
-            pos = sorted.shape[0] // 2 
-            finalimg03[i,j] = sorted[pos]
-            
-            if np.array_equal(superimg6, zeroes):
-                j += 1
-                continue
-            else:
-                sorted = np.sort(superimg6[i,j])
-            pos = sorted.shape[0] // 2
-            finalimg6[i,j] = sorted[pos]
-            
-            j += 1
-        i += 1
-        j = 0
-
+    # Axis 2 is the color axis. Axis 0 is y, axis 1 is x iirc.
+    # Can you believe that this is basically the crux of this method?
+    # 100 lines of code to set up and save. 3 lines that actually make the images.
+    finalimgall = np.median(superimgall, axis = 2)
+    finalimg03 = np.median(superimg03, axis = 2)
+    finalimg6 = np.median(superimg6, axis = 2)
 
 
     # Generate Figure and Axes objects.
@@ -215,10 +182,7 @@ def median_all_date(date):
     
     # Show the plot
     #plot.show()
-    
 
-    
-    
 
 date = '20170710'
 #download_all_date(date)
