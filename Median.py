@@ -65,10 +65,13 @@ def download_all_date(date):
     print('All photos downloaded for ' + date)
 
 # Gets the expousre time of an image. 225 is the greyscale value for the yellow in the image.
-# The pixel chosen is yellow for .3s and "not yellow" for 6s.
+# The pixel chosen is yellow for .03s and "not yellow" for 6s.
+# The second pixel is yellow in .03 and .002 but due to magic of if blocks that's ok.
 def get_exposure(image):
     if image[19][174] == 225:
-        return '.03'
+        return '0.3'
+    if image[17][119] == 225:
+        return '0.02'
     else:
         return '6'
 
@@ -93,10 +96,17 @@ def median_all_date(date):
         os.makedirs(filedir)
     
     # These dictionaries hold the images and existence booleans.
-    finalimg = {'All': np.zeros((512,512)), '.03': np.zeros((512,512)), '6': np.zeros((512,512))}
-    superimg = {'All': np.zeros((1,1,1)), '.03': np.zeros((1,1,1)), '6': np.zeros((1,1,1))}
-    exists = {'All': False, '.03': False, '6': False}
-    keys = superimg.keys()
+    keys = ['All', '0.02', '0.3', '6']
+    
+    finalimg = {}
+    superimg = {}
+    exists = {}
+    
+    # By doing this with an array you can add more medains just by adding them to the array. 
+    for key in keys:
+        finalimg[key] = np.zeros((512,512))
+        superimg[key] = np.zeros((1,1,1))
+        exists[key] = False
     
     for file in files:
         # Make sure we look in the directory to load the image lol.
@@ -144,13 +154,19 @@ def median_all_date(date):
     for key in keys:
         finalimg[key] = np.median(superimg[key], axis = 2)
         
+        # For brevity
+        final = finalimg[key]
+        
         # cmap is required here since I did the images in grayscale and imshow needs to know that.
-        axes.imshow(finalimg[key], cmap = 'gray')
+        axes.imshow(final, cmap = 'gray')
         
         # Saves the pic
         key = key.replace('.', '')
         filename = filedir + '/' + key
-        plot.savefig(filename, dpi = 128)
+        
+        # I'm tired of saving blank black images lol.
+        if not np.array_equal(final,np.zeros((1,1))):
+            plot.savefig(filename, dpi = 128)
 
 
     print('Median images complete for ' + date)
@@ -160,9 +176,11 @@ def median_all_date(date):
 
 
 
-date = '20170715'
+#date = '20170718'
 #download_all_date(date)
-median_all_date(date)
+
+for i in range (20170710,20170719):
+    median_all_date(str(i))
 
 #get_exposure(date)
 
