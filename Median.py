@@ -115,7 +115,7 @@ def median_all_date(date):
         # We have to reshape the images so that the lowest level single value is a 1D array rather than just a number.
         # This is so when you concat the arrays it actually turns the lowest value into a multivalue array.
         img = ndimage.imread(file, mode = 'L')
-        temp = img.reshape(512, 512, 1)
+        temp = img.reshape(img.shape[0], img.shape[1], 1)
         
         exposure = get_exposure(img)
         
@@ -136,9 +136,16 @@ def median_all_date(date):
            superimg[exposure] = temp
            exists[exposure] = True
 
+    # Sets the size of the image x,y in inches to be the same as the original
+    dpi = 128
+    y = superimg['All'].shape[0] // dpi
+    x = superimg['All'].shape[1] // dpi
+    
+    print(x)
+    print(y)
     # Generate Figure and Axes objects.
     figure = plot.figure()
-    figure.set_size_inches(4,4) # 4 inches by 4 inches
+    figure.set_size_inches(x,y) # x inches by y inches
     axes = plot.Axes(figure,[0.,0.,1.,1.]) # 0 - 100% size of figure
 
 
@@ -166,7 +173,7 @@ def median_all_date(date):
         
         # I'm tired of saving blank black images lol.
         if not np.array_equal(final,np.zeros((1,1))):
-            plot.savefig(filename, dpi = 128)
+            plot.savefig(filename, dpi = dpi)
 
 
     print('Median images complete for ' + date)
@@ -176,11 +183,9 @@ def median_all_date(date):
 
 
 
-#date = '20170718'
+date = '1'
 #download_all_date(date)
-
-for i in range (20170710,20170719):
-    median_all_date(str(i))
+median_all_date(date)
 
 #get_exposure(date)
 
