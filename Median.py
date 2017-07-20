@@ -14,7 +14,7 @@ class DateHTMLParser(HTMLParser):
     def __init__(self):
         HTMLParser.__init__(self)
         self.data = []
-    
+
     def handle_starttag(self, tag, attrs):
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
@@ -27,13 +27,13 @@ class DateHTMLParser(HTMLParser):
 def download_all_date(date):
     # Creates the link
     link = 'http://kpasca-archives.tuc.noao.edu/' + date
-    
+
     directory = 'Images/' + date
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
         os.makedirs(directory)
-        
-    
+
+
     # Gets the html for a date page, then parses it to find the image names on that page.
     htmllink = link + '/index.html'
     rdate = requests.get(htmllink)
@@ -53,15 +53,15 @@ def download_all_date(date):
             imageloc = link + '/' + image
             imagename = directory + '/' + image
             rimage = requests.get(imageloc)
-        
+
             # Converts the image data to a python image
             i = Image.open(BytesIO(rimage.content)).convert('RGB')
             # Saves the image
             i.save(imagename)
-            
+
             # While testing I don't want to save a billion images so here's a print line
             #print('yes')
-    
+
     print('All photos downloaded for ' + date)
 
 # Gets the expousre time of an image. 225 is the greyscale value for the yellow in the image.
@@ -77,10 +77,10 @@ def get_exposure(image):
 
 
 def median_all_date(date):
-    
+
     # I've hard coded the files for now, this can be changed later.
     directory = 'Images/' + date + '/'
-    
+
     # Gotta make sure those images exist.
     try:
         files = os.listdir(directory)
@@ -88,37 +88,37 @@ def median_all_date(date):
         print('Images directory not found for that date!')
         print('Are you sure you downloaded images?')
         exit()
-    
+
     # Directory for the files to save to later
     filedir = 'Images/Median/' + date
-    
+
     if not os.path.exists(filedir):
         os.makedirs(filedir)
-    
+
     # These dictionaries hold the images and existence booleans.
     keys = ['All', '0.02', '0.3', '6']
-    
+
     finalimg = {}
     superimg = {}
     exists = {}
-    
-    # By doing this with an array you can add more medains just by adding them to the array. 
+
+    # By doing this with an array you can add more medains just by adding them to the array.
     for key in keys:
         finalimg[key] = np.zeros((512,512))
         superimg[key] = np.zeros((1,1,1))
         exists[key] = False
-    
+
     for file in files:
         # Make sure we look in the directory to load the image lol.
         file = directory + file
-    
+
         # We have to reshape the images so that the lowest level single value is a 1D array rather than just a number.
         # This is so when you concat the arrays it actually turns the lowest value into a multivalue array.
         img = ndimage.imread(file, mode = 'L')
         temp = img.reshape(img.shape[0], img.shape[1], 1)
-        
+
         exposure = get_exposure(img)
-        
+
         # All Median
         # Make the super image have the correct dimensions and starting values. Concats if it already does.
         if exists['All']:
@@ -128,8 +128,8 @@ def median_all_date(date):
             # Since we run this only once this shortcut will save us fractions of a second!
             superimg['All'] = temp
             exists['All'] = True
-        
-       # Exposure specific medians
+
+        # Exposure specific medians
         if exists[exposure]:
            superimg[exposure] = np.concatenate((superimg[exposure],temp), axis=2)
         else:
@@ -138,11 +138,9 @@ def median_all_date(date):
 
     # Sets the size of the image x,y in inches to be the same as the original
     dpi = 128
-    y = superimg['All'].shape[0] // dpi
-    x = superimg['All'].shape[1] // dpi
-    
-    print(x)
-    print(y)
+    y = superimg['All'].shape[0] / dpi
+    x = superimg['All'].shape[1] / dpi
+
     # Generate Figure and Axes objects.
     figure = plot.figure()
     figure.set_size_inches(x,y) # x inches by y inches
@@ -153,38 +151,38 @@ def median_all_date(date):
     # Then add axes to figure
     axes.set_axis_off()
     figure.add_axes(axes)
-    
+
 
     # Axis 2 is the color axis. Axis 0 is y, axis 1 is x iirc.
     # Can you believe that this is basically the crux of this method?
     # 100 lines of code to set up and save. 3 lines that actually make the images.
     for key in keys:
         finalimg[key] = np.median(superimg[key], axis = 2)
-        
+
         # For brevity
         final = finalimg[key]
-        
+
         # cmap is required here since I did the images in grayscale and imshow needs to know that.
         axes.imshow(final, cmap = 'gray')
-        
+
         # Saves the pic
         key = key.replace('.', '')
         filename = filedir + '/' + key
-        
+
         # I'm tired of saving blank black images lol.
         if not np.array_equal(final,np.zeros((1,1))):
             plot.savefig(filename, dpi = dpi)
 
 
     print('Median images complete for ' + date)
-    
+
     # Show the plot
     #plot.show()
 
 
 
-date = '1'
-#download_all_date(date)
+date = '20170717'
+download_all_date(date)
 median_all_date(date)
 
 #get_exposure(date)

@@ -6,7 +6,7 @@ import matplotlib.pyplot as plot
 
 
 # Reads the two images into ndarrays.
-# Importing in RGB mode makes it ignore the A layer. 
+# Importing in RGB mode makes it ignore the A layer.
 # If we suddenly have transparency I might have a problem.
 img1 = ndimage.imread('unnamed.png', mode = 'RGB')
 img2 = ndimage.imread('unnamed-2.png', mode = 'RGB')
