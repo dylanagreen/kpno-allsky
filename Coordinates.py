@@ -91,7 +91,11 @@ def altaz_to_xy(alt, az):
     r = np.interp(90 - alt, xp = thetapoints, fp = rpoints)
 
     r = r * 239 / 11.6 # mm to pixel rate
-
+    
+    
+    az = az - 1
+    
+    
     # Remember angle measured from vertical so sin and cos are swapped from usual polar.
     # These are x,y's with respect to a zero.
     x = -1 * r * math.sin(math.radians(az))

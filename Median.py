@@ -90,7 +90,7 @@ def median_all_date(date):
         exit()
 
     # Directory for the files to save to later
-    filedir = 'Images/Median/' + date
+    filedir = 'Images/Mean/' + date
 
     if not os.path.exists(filedir):
         os.makedirs(filedir)
@@ -105,36 +105,43 @@ def median_all_date(date):
     # By doing this with an array you can add more medains just by adding them to the array.
     for key in keys:
         finalimg[key] = np.zeros((512,512))
-        superimg[key] = np.zeros((1,1,1))
+        superimg[key] = np.zeros((1,1,1,1))
         exists[key] = False
 
     for file in files:
         # Make sure we look in the directory to load the image lol.
         file = directory + file
 
-        # We have to reshape the images so that the lowest level single value is a 1D array rather than just a number.
-        # This is so when you concat the arrays it actually turns the lowest value into a multivalue array.
-        img = ndimage.imread(file, mode = 'L')
-        temp = img.reshape(img.shape[0], img.shape[1], 1)
 
-        exposure = get_exposure(img)
+        img = ndimage.imread(file, mode = 'RGB')
+        img2 = ndimage.imread(file, mode = 'L')
+        
+        # Reshape to concat
+        img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
+        img = np.concatenate((img2,img), axis = 2)
+        
+        # Reshape to concat
+        temp = img.reshape(img.shape[0], img.shape[1], 4, 1)
+        print(temp)
+        
+        #exposure = get_exposure(img)
 
         # All Median
         # Make the super image have the correct dimensions and starting values. Concats if it already does.
         if exists['All']:
             # Concatenates along the color axis
-            superimg['All'] = np.concatenate((superimg['All'],temp), axis=2)
+            superimg['All'] = np.concatenate((superimg['All'],temp), axis=3)
         else:
             # Since we run this only once this shortcut will save us fractions of a second!
             superimg['All'] = temp
             exists['All'] = True
 
         # Exposure specific medians
-        if exists[exposure]:
-           superimg[exposure] = np.concatenate((superimg[exposure],temp), axis=2)
-        else:
-           superimg[exposure] = temp
-           exists[exposure] = True
+        #if exists[exposure]:
+         #  superimg[exposure] = np.concatenate((superimg[exposure],temp), axis=3)
+        #else:
+         #  superimg[exposure] = temp
+          # exists[exposure] = True
 
     # Sets the size of the image x,y in inches to be the same as the original
     dpi = 128
@@ -157,22 +164,20 @@ def median_all_date(date):
     # Can you believe that this is basically the crux of this method?
     # 100 lines of code to set up and save. 3 lines that actually make the images.
     for key in keys:
-        finalimg[key] = np.median(superimg[key], axis = 2)
-
+        finalimg[key] = np.mean(superimg[key], axis = 3)
+        
         # For brevity
         final = finalimg[key]
 
-        # cmap is required here since I did the images in grayscale and imshow needs to know that.
-        axes.imshow(final, cmap = 'gray')
 
         # Saves the pic
         key = key.replace('.', '')
         filename = filedir + '/' + key
-
-        # I'm tired of saving blank black images lol.
-        if not np.array_equal(final,np.zeros((1,1))):
+        
+        
+        if not np.array_equal(final,np.zeros((1,1,1))):
+            axes.imshow(final)#, cmap = 'gray')
             plot.savefig(filename, dpi = dpi)
-
 
     print('Median images complete for ' + date)
 
@@ -180,15 +185,52 @@ def median_all_date(date):
     #plot.show()
 
 
+def median_of_medians(arr, i):
+
+    # Divide the array into sublists of length 5 and find the medians.
+    sublists = []
+    medians = []
+    
+    for j in range (0, len(arr), 5):
+        temp = arr[j:j+5]
+        sublists.append(temp)
+        
+      
+    print(sublists)
+    for sublist in sublists:
+        medians.append(sorted(sublist)[len(sublist)//2])
+    
+    
+    
+    if len(medians) <= 5:
+        pivot = sorted(medians)[len(medians)//2]
+    else:
+        pivot = median_of_medians(medians,len(medians)//2) # Find the median of the medians array using this method lol.
+        
+    low = [j for j in arr if j < pivot]
+    high = [j for j in arr if j > pivot]
+    identicals = [j for j in arr if j == pivot]
+    
+    lownum = len(low)
+    
+    # This edit is required to make sure this is valid for lists with dupes.
+    identnum = len(identicals)
+    if i < lownum and i < identnum + lownum:
+        return median_of_medians(low, i)
+    elif i > lownum and i > identnum + lownum:
+        return median_of_medians(high,i-lownum-1)
+    else:
+        return pivot
 
 date = '20170721'
-download_all_date(date)
-median_all_date(date)
+#download_all_date(date)
+#median_all_date(date)
 
 #get_exposure(date)
 
-
-
+arr = np.random.rand(5)
+print(median_of_medians(arr,len(arr)//2))
+print(np.median(arr))
 
 # Converts the PIL image to a numpy array image.
 # i2 = np.array(i)
