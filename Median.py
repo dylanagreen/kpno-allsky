@@ -181,7 +181,7 @@ def median_all_date(date):
 
 
 
-date = '20170717'
+date = '20170721'
 download_all_date(date)
 median_all_date(date)
 
