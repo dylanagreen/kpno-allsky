@@ -104,7 +104,7 @@ def median_all_date(date):
 
     # By doing this with an array you can add more medains just by adding them to the array.
     for key in keys:
-        finalimg[key] = np.zeros((512,512))
+        finalimg[key] = np.zeros((512,512,3))
         superimg[key] = np.zeros((1,1,1,1))
         exists[key] = False
 
@@ -122,7 +122,6 @@ def median_all_date(date):
         
         # Reshape to concat
         temp = img.reshape(img.shape[0], img.shape[1], 4, 1)
-        print(temp)
         
         #exposure = get_exposure(img)
 
@@ -160,22 +159,35 @@ def median_all_date(date):
     figure.add_axes(axes)
 
 
-    # Axis 2 is the color axis. Axis 0 is y, axis 1 is x iirc.
+    # Axis 2 is the color axis (In RGB space 3 is the color axis). Axis 0 is y, axis 1 is x iirc.
     # Can you believe that this is basically the crux of this method?
-    # 100 lines of code to set up and save. 3 lines that actually make the images.
     for key in keys:
-        finalimg[key] = np.mean(superimg[key], axis = 3)
-        
         # For brevity
         final = finalimg[key]
+        
+        if not np.array_equal(superimg[key],np.zeros((1,1,1,1))): # Let's run this loop as little as possible thanks.
+            supe = superimg[key]
+            final = np.zeros((supe.shape[0], supe.shape[1], 3))
+            supe = supe.reshape(supe.shape[0],supe.shape[1],supe.shape[-1],4)
+
+            x = 0
+            y = 0
+            for row in supe:
+                for column in row:
+                    tuples = ndarray_to_tuplelist(column)
+                    median = median_of_medians(tuples,len(tuples) // 2)
+                    final[y][x] = [median[1], median[2], median[3]]
+                
+                    x +=1
+                y += 1
+                x = 0
 
 
         # Saves the pic
         key = key.replace('.', '')
         filename = filedir + '/' + key
         
-        
-        if not np.array_equal(final,np.zeros((1,1,1))):
+        if not np.array_equal(final,np.zeros((512,512,3))):
             axes.imshow(final)#, cmap = 'gray')
             plot.savefig(filename, dpi = dpi)
 
@@ -184,24 +196,27 @@ def median_all_date(date):
     # Show the plot
     #plot.show()
 
+# This is necessary.
+def ndarray_to_tuplelist(arr):
+    templist = []
+    for line in arr:
+        templist.append(tuple(line))
+    return templist
 
+# This works as wanted for tuples yay!
 def median_of_medians(arr, i):
 
     # Divide the array into sublists of length 5 and find the medians.
     sublists = []
     medians = []
-    
+
     for j in range (0, len(arr), 5):
         temp = arr[j:j+5]
         sublists.append(temp)
-        
-      
-    print(sublists)
+     
     for sublist in sublists:
         medians.append(sorted(sublist)[len(sublist)//2])
-    
-    
-    
+
     if len(medians) <= 5:
         pivot = sorted(medians)[len(medians)//2]
     else:
@@ -212,25 +227,23 @@ def median_of_medians(arr, i):
     identicals = [j for j in arr if j == pivot]
     
     lownum = len(low)
-    
     # This edit is required to make sure this is valid for lists with dupes.
     identnum = len(identicals)
-    if i < lownum and i < identnum + lownum:
-        return median_of_medians(low, i)
-    elif i > lownum and i > identnum + lownum:
-        return median_of_medians(high,i-lownum-1)
-    else:
-        return pivot
+    
 
-date = '20170721'
+    if i < lownum:
+        return median_of_medians(low, i)
+    elif i < identnum + lownum:
+        return pivot
+    else:
+        return median_of_medians(high, i - (lownum + identnum))
+
+date = '1'
 #download_all_date(date)
-#median_all_date(date)
+median_all_date(date)
 
 #get_exposure(date)
 
-arr = np.random.rand(5)
-print(median_of_medians(arr,len(arr)//2))
-print(np.median(arr))
 
 # Converts the PIL image to a numpy array image.
 # i2 = np.array(i)
