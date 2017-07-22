@@ -168,27 +168,29 @@ def median_all_date(date):
         if not np.array_equal(superimg[key],np.zeros((1,1,1,1))): # Let's run this loop as little as possible thanks.
             supe = superimg[key]
             final = np.zeros((supe.shape[0], supe.shape[1], 3))
-            supe = supe.reshape(supe.shape[0],supe.shape[1],supe.shape[-1],4)
-
+            #supe = supe.reshape(supe.shape[0],supe.shape[1],supe.shape[-1],4) # This doesn't work as expected.
+ 
             x = 0
             y = 0
             for row in supe:
                 for column in row:
+                    #print(column)
                     tuples = ndarray_to_tuplelist(column)
                     median = median_of_medians(tuples,len(tuples) // 2)
+                    #print(median) # Debug line
                     final[y][x] = [median[1], median[2], median[3]]
                 
                     x +=1
                 y += 1
                 x = 0
 
-
+        #np.set_printoptions(threshold=np.nan)
+        #print(final)
         # Saves the pic
         key = key.replace('.', '')
         filename = filedir + '/' + key
-        
         if not np.array_equal(final,np.zeros((512,512,3))):
-            axes.imshow(final)#, cmap = 'gray')
+            axes.imshow(np.uint8(final))
             plot.savefig(filename, dpi = dpi)
 
     print('Median images complete for ' + date)
@@ -199,8 +201,13 @@ def median_all_date(date):
 # This is necessary.
 def ndarray_to_tuplelist(arr):
     templist = []
-    for line in arr:
-        templist.append(tuple(line))
+    
+    # Runs over the second dimension (the longer one lol)
+    for i in range(0, arr.shape[1]):
+        tup = (arr[0,i], arr[1,i], arr[2,i], arr[3,i])
+        #print(tup) #Debug line
+        templist.append(tup)
+    
     return templist
 
 # This works as wanted for tuples yay!
@@ -238,7 +245,7 @@ def median_of_medians(arr, i):
     else:
         return median_of_medians(high, i - (lownum + identnum))
 
-date = '1'
+date = '20170721'
 #download_all_date(date)
 median_all_date(date)
 
