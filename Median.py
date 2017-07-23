@@ -75,6 +75,74 @@ def get_exposure(image):
     else:
         return '6'
 
+# Loads all the images for a certain date
+def load_all_date(date):
+    
+    # I've hard coded the files for now, this can be changed later.
+    directory = 'Images/' + date + '/'
+
+    # In theory this is only ever called from median_all_date where this is already done.
+    # Just in case though.
+    try:
+        files = os.listdir(directory)
+    except:
+        print('Images directory not found for that date!')
+        print('Are you sure you downloaded images?')
+        exit()
+    
+    dic = {}
+    imgs = len(files)
+    n = 0
+    
+    # Runs while the number of 100 blocks doesn't encompass all the images yet.
+    while n <= (imgs // 100):
+        if (n+1)*100 < imgs:
+            final = 100  
+        else:
+            final = (imgs - n*100)
+        
+        file = directory + files[n * 100]
+        temp = gray_and_color_image(file)
+        
+        # Creates the array of images.
+        for i in range(1,final):
+            # Loads in the image and creates that imgtemp
+            file = directory + files[i + n * 100]
+
+            imgtemp = gray_and_color_image(file)
+            
+            # i + n * 100 required for > 100 images
+            temp = np.concatenate((temp,imgtemp), axis = 3)
+        
+        n += 1
+        if final > 0:
+            dic[n] = temp
+    
+    # Return is the super image for later.
+    # This just makes it random and in the correct shape for later, in case key == 1 fails.
+    toreturn = np.random.rand(512,512,4,1)
+    
+    for key, val in dic.items():
+        # toreturn doesn't exist yet so set it to val for the first key.
+        if key == 1:
+            toreturn = val
+        else:
+            toreturn = np.concatenate((toreturn,val), axis = 3)
+    
+    return toreturn
+
+# Loads in an image and returns it as an array where each pixel has 4 values associated with it:
+# Grayscale (L), R, G and B
+def gray_and_color_image(file):
+    img = ndimage.imread(file, mode = 'RGB')
+    img2 = ndimage.imread(file, mode = 'L')
+
+    # Reshape to concat
+    img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
+    img = np.concatenate((img2,img), axis = 2)
+
+    # Return the reshaped image
+    return img.reshape(img.shape[0], img.shape[1], 4, 1)
 
 def median_all_date(date):
 
@@ -90,7 +158,7 @@ def median_all_date(date):
         exit()
 
     # Directory for the files to save to later
-    filedir = 'Images/Mean/' + date
+    filedir = 'Images/Median-Color/' + date
 
     if not os.path.exists(filedir):
         os.makedirs(filedir)
@@ -100,47 +168,13 @@ def median_all_date(date):
 
     finalimg = {}
     superimg = {}
-    exists = {}
 
-    # By doing this with an array you can add more medains just by adding them to the array.
+    # By doing this with an array you can add more medains just by adding them to the keys array.
     for key in keys:
         finalimg[key] = np.zeros((512,512,3))
         superimg[key] = np.zeros((1,1,1,1))
-        exists[key] = False
 
-    for file in files:
-        # Make sure we look in the directory to load the image lol.
-        file = directory + file
-
-
-        img = ndimage.imread(file, mode = 'RGB')
-        img2 = ndimage.imread(file, mode = 'L')
-        
-        # Reshape to concat
-        img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
-        img = np.concatenate((img2,img), axis = 2)
-        
-        # Reshape to concat
-        temp = img.reshape(img.shape[0], img.shape[1], 4, 1)
-        
-        #exposure = get_exposure(img)
-
-        # All Median
-        # Make the super image have the correct dimensions and starting values. Concats if it already does.
-        if exists['All']:
-            # Concatenates along the color axis
-            superimg['All'] = np.concatenate((superimg['All'],temp), axis=3)
-        else:
-            # Since we run this only once this shortcut will save us fractions of a second!
-            superimg['All'] = temp
-            exists['All'] = True
-
-        # Exposure specific medians
-        #if exists[exposure]:
-         #  superimg[exposure] = np.concatenate((superimg[exposure],temp), axis=3)
-        #else:
-         #  superimg[exposure] = temp
-          # exists[exposure] = True
+    superimg['All'] = load_all_date(date)
 
     # Sets the size of the image x,y in inches to be the same as the original
     dpi = 128
@@ -158,7 +192,7 @@ def median_all_date(date):
     axes.set_axis_off()
     figure.add_axes(axes)
 
-
+    print("Loaded images")
     # Axis 2 is the color axis (In RGB space 3 is the color axis). Axis 0 is y, axis 1 is x iirc.
     # Can you believe that this is basically the crux of this method?
     for key in keys:
