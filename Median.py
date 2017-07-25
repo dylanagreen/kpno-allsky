@@ -279,7 +279,7 @@ def median_of_medians(arr, i):
     else:
         return median_of_medians(high, i - (lownum + identnum))
 
-date = '20170721'
+date = '1'
 #download_all_date(date)
 median_all_date(date)
 
