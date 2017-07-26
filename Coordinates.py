@@ -19,10 +19,12 @@ def xy_to_altaz(x,y):
     # Y is measured from the top stop messing it up.
     pointadjust = (x - center[0], center[1] - y)
 
-    az = math.atan2((pointadjust[0]),(pointadjust[1]))
+    # We use -x here because the E and W portions of the image are flipped
+    az = math.atan2(-(pointadjust[0]),(pointadjust[1]))
 
+    # For same reason as -x, we use > 0 here
     # atan2 ranges from -pi to pi so we have to shift the -pi to 0 parts up 2 pi.
-    if pointadjust[0] < 0:
+    if pointadjust[0] > 0:
         az += 2 * math.pi
 
 
@@ -37,7 +39,7 @@ def xy_to_altaz(x,y):
         alt = 0
     else:
         #r = 238 # Debug line
-        r = r * 11.6 / 239 # Magic pixel to mm conversion rate
+        r = r * 11.6 / 240 # Magic pixel to mm conversion rate
 
         rpoints = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 11.6]
         thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27, 28.95, 32.66, 36.40, 40.17, 43.98, 47.83, 51.73, 55.67, 59.67, 63.72, 67.84, 72.03, 76.31, 80.69, 85.21, 89.97,90]
@@ -71,12 +73,9 @@ def radec_to_altaz(ra, dec, time):
 
     cameraearth = EarthLocation(lat = cameraloc[0] * u.deg, lon = cameraloc[1] * u.deg, height = 2120 * u.meter)
 
-        
+
     # Creates the SkyCoord object
     radeccoord = SkyCoord(ra = ra, dec = dec, unit = 'deg', obstime = time, location = cameraearth, frame = 'icrs', temperature = 5 * u.deg_C, pressure = 78318 * u.Pa)
-
-    # Handy
-    #polaris = SkyCoord.from_name('polaris', 'icrs')
 
     # Transforms
     altazcoord = radeccoord.transform_to('altaz')
@@ -85,19 +84,23 @@ def radec_to_altaz(ra, dec, time):
 
 # Returns a tuple of form (x,y)
 def altaz_to_xy(alt, az):
+    # Approximate correction (due to rotation of image?)
+    #az = az-.95
+    print(az)
     rpoints = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 11.6]
     thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27, 28.95, 32.66, 36.40, 40.17, 43.98, 47.83, 51.73, 55.67, 59.67, 63.72, 67.84, 72.03, 76.31, 80.69, 85.21, 89.97,90]
-    
+
+    # Reverse of r interpolation
     r = np.interp(90 - alt, xp = thetapoints, fp = rpoints)
 
-    r = r * 239 / 11.6 # mm to pixel rate
+    r = r * 240 / 11.6 # mm to pixel rate
 
     # Remember angle measured from vertical so sin and cos are swapped from usual polar.
-    # These are x,y's with respect to a zero.
+    # These are x,ys with respect to a zero.
     x = -1 * r * math.sin(math.radians(az))
     y = r * math.cos(math.radians(az))
-    
-    
+
+
     # Center of the circle found using super acccurate photoshop layering techniques.
     center = (256, 252)
 
@@ -109,7 +112,7 @@ def altaz_to_xy(alt, az):
 def radec_to_xy(ra, dec, time):
     altaz = radec_to_altaz(ra, dec, time)
     return altaz_to_xy(altaz[0], altaz[1])
-    
+
 # Time must be an astropy Time object.
 # Please.
 def timestring_to_obj(date, filename):
@@ -127,35 +130,43 @@ def timestring_to_obj(date, filename):
 
 def celestialhorizon(date, file):
     time = timestring_to_obj(date, file)
-    
+
     file = 'Images/' + date + '/' + file + '.png'
     img = ndimage.imread(file, mode = 'RGB')
-    
 
-    
+
+
     dec = 0
     ra = 0
     while ra <= 360:
         xy = radec_to_xy(ra, dec, time)
         xy = (round(xy[0]), round(xy[1]))
-               
+
         # Remember y is first, then x
         # Also make sure it's on the image at all.
         if xy[1] < 512 and xy[0] < 512:
             img[xy[1], xy[0]] = (244, 66, 229)
-        
+
         ra += 0.5
 
     return img
+
+
+def loadimage(date, file):
+    time = timestring_to_obj(date, file)
+
+    file = 'Images/' + date + '/' + file + '.png'
+    img = ndimage.imread(file, mode = 'RGB')
+
+    return img
+
     
-    
-# Draws a circle at the x y coord with radius 5.
+
+# Draws a circle at the x y coord list with radius 5.
 # I've appropriated this as a save image method for now.
 def circle(x,y,img):
 
-    x = round(x)
-    y = round(y)
-    
+
     # Generate Figure and Axes objects.
     figure = plot.figure()
     figure.set_size_inches(4,4) # 4 inches by 4 inches
@@ -168,11 +179,12 @@ def circle(x,y,img):
 
     # Adds the image into the axes and displays it
     axes.imshow(img)
-    
+
     axes.set_aspect('equal')
-    circ = Circle((x, y), 5, fill = False)
-    circ.set_edgecolor('c')
-    axes.add_patch(circ)
+    for i in range(0,len(x)):
+        circ = Circle((x[i], y[i]), 5, fill = False)
+        circ.set_edgecolor('c')
+        axes.add_patch(circ)
 
     # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
     plot.savefig("blah.png", dpi = 128)
@@ -193,13 +205,32 @@ date = '20170721'
 
 #print(altaz_to_radec(altaz[0],altaz[1],timestring_to_obj('20170719', tempfile)))
 
-#star = SkyCoord.from_name('Polaris', 'icrs')
+#star = SkyCoord.from_name('Siruis', 'icrs')
 #print(star)
 
-point = radec_to_xy(37.9461429,  89.2641378, timestring_to_obj(date, tempfile))
+# Polaris = 37.9461429,  89.2641378
+# Sirius = 101.2875, -16.7161
+# Vega = 279.235, 38.7837
+# Altair = 297.696, 8.86832
+# Arcturus = 213.915, 19.1822
+# Alioth = 193.507, 55.9598
 
-#print(point)
+#stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Altair' : (297.696, 8.86832), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598)}
+stars = {'Polaris' : (257,  87), 'Vega'  : (204, 223), 'Altair' : (140, 290), 'Arcturus' : (366, 270), 'Alioth' : (348, 149)}
+xlist = []
+ylist = []
 
-img = celestialhorizon(date, tempfile)
-circle(point[0],point[1],img)
+# Assemble a list of the points to circle.
+for star in stars.keys():
+    print(star)
+    #point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
+    point = xy_to_altaz(stars[star][0],stars[star][1])
+    print(str(point) + '\n')
+    xlist.append(point[0])
+    ylist.append(point[1])
+
+
+
+#img = loadimage(date, tempfile)
+#circle(xlist,ylist,img)
 

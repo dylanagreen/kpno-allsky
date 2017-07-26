@@ -136,6 +136,7 @@ def median_all_date(date):
            superimg[exposure] = temp
            exists[exposure] = True
 
+    print('Loaded images')
     # Sets the size of the image x,y in inches to be the same as the original
     dpi = 128
     y = superimg['All'].shape[0] / dpi
@@ -181,8 +182,8 @@ def median_all_date(date):
 
 
 
-date = '20170721'
-download_all_date(date)
+date = '1'
+#download_all_date(date)
 median_all_date(date)
 
 #get_exposure(date)
