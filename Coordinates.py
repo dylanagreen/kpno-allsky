@@ -84,8 +84,16 @@ def radec_to_altaz(ra, dec, time):
 
 # Returns a tuple of form (x,y)
 def altaz_to_xy(alt, az):
-    # Approximate correction (due to rotation of image?)
-    #az = az-.95
+    # Approximate correction (due to distortion of lens?)
+    
+    # Found using 6 stars in the sky on July 21, UT 4:35:26
+    #azlist = [0.427899936, 63.47260687, 111.664316,  239.9405568, 261.7355111, 318.6296893, 360]
+    #azcorrection = [-0.347242897, 60.85192815, 108.1380822, 238.7173463, 260.7066914, 318.2286479, 359.6527571]
+    #az = np.interp(az, xp = azlist, fp = azcorrection)
+    # Commented out incase we need to use this later.
+    
+    az = az - .94444
+    
     print(az)
     rpoints = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 11.6]
     thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27, 28.95, 32.66, 36.40, 40.17, 43.98, 47.83, 51.73, 55.67, 59.67, 63.72, 67.84, 72.03, 76.31, 80.69, 85.21, 89.97,90]
@@ -106,15 +114,17 @@ def altaz_to_xy(alt, az):
 
     # y is measured from the top!
     pointadjust = (x + center[0], center[1] - y)
+    
     return pointadjust
 
 # Returns a tuple of form (x,y)
+# Time must be an astropy Time object.
+# Please.
 def radec_to_xy(ra, dec, time):
     altaz = radec_to_altaz(ra, dec, time)
     return altaz_to_xy(altaz[0], altaz[1])
 
-# Time must be an astropy Time object.
-# Please.
+
 def timestring_to_obj(date, filename):
     # Add the dashes
     formatted = date[:4] + '-' + date[4:6] + '-' + date[6:]
@@ -127,14 +137,9 @@ def timestring_to_obj(date, filename):
 
     return Time(formatted)
 
-
+# Draws a celestial horizon
 def celestialhorizon(date, file):
-    time = timestring_to_obj(date, file)
-
-    file = 'Images/' + date + '/' + file + '.png'
-    img = ndimage.imread(file, mode = 'RGB')
-
-
+    loadimage(date,file)
 
     dec = 0
     ra = 0
@@ -151,7 +156,7 @@ def celestialhorizon(date, file):
 
     return img
 
-
+# Loads in an image.
 def loadimage(date, file):
     time = timestring_to_obj(date, file)
 
@@ -187,7 +192,7 @@ def circle(x,y,img):
         axes.add_patch(circ)
 
     # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
-    plot.savefig("blah.png", dpi = 128)
+    plot.savefig("blah2.png", dpi = 128)
 
     # Show the plot
     #plot.show()
@@ -200,8 +205,11 @@ altaz = xy_to_altaz(250,300)
 #print('Altitude angle = ' + str(altaz[0]))
 
 
-tempfile = 'r_ut043526s01920'
-date = '20170721'
+#tempfile = 'r_ut043526s01920' #7/21
+#tempfile = 'r_ut113451s29520' #7/31
+#tempfile = 'r_ut035501s83760' #7/12
+tempfile = 'r_ut054308s05520' #7/19
+date = '20170719'
 
 #print(altaz_to_radec(altaz[0],altaz[1],timestring_to_obj('20170719', tempfile)))
 
@@ -215,22 +223,25 @@ date = '20170721'
 # Arcturus = 213.915, 19.1822
 # Alioth = 193.507, 55.9598
 
-#stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Altair' : (297.696, 8.86832), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598)}
-stars = {'Polaris' : (257,  87), 'Vega'  : (204, 223), 'Altair' : (140, 290), 'Arcturus' : (366, 270), 'Alioth' : (348, 149)}
+# Radec
+stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Altair' : (297.696, 8.86832), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598), 'Spica' : (201.298, -11.1613)}
+
+# X-Y
+#stars = {'Polaris' : (257,  87), 'Vega'  : (204, 223), 'Altair' : (139, 291), 'Arcturus' : (366, 270), 'Alioth' : (348, 149), 'Spica' : (414, 348)}
 xlist = []
 ylist = []
 
 # Assemble a list of the points to circle.
 for star in stars.keys():
     print(star)
-    #point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
-    point = xy_to_altaz(stars[star][0],stars[star][1])
+    point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
+    #point = xy_to_altaz(stars[star][0],stars[star][1])
     print(str(point) + '\n')
     xlist.append(point[0])
     ylist.append(point[1])
 
 
 
-#img = loadimage(date, tempfile)
-#circle(xlist,ylist,img)
+img = celestialhorizon(date, tempfile)
+circle(xlist,ylist,img)
 

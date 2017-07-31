@@ -182,8 +182,8 @@ def median_all_date(date):
 
 
 
-date = '1'
-#download_all_date(date)
+date = '20170731'
+download_all_date(date)
 median_all_date(date)
 
 #get_exposure(date)
