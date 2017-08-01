@@ -6,6 +6,7 @@ from astropy import units as u
 import numpy as np
 
 from matplotlib.patches import Circle
+from matplotlib.patches import Rectangle
 import matplotlib.image as image
 import matplotlib.pyplot as plot
 from scipy import ndimage
@@ -140,7 +141,8 @@ def timestring_to_obj(date, filename):
 # Draws a celestial horizon
 def celestialhorizon(date, file):
     loadimage(date,file)
-
+    time = timestring_to_obj(date,file)
+    
     dec = 0
     ra = 0
     while ra <= 360:
@@ -161,7 +163,7 @@ def loadimage(date, file):
     time = timestring_to_obj(date, file)
 
     file = 'Images/' + date + '/' + file + '.png'
-    img = ndimage.imread(file, mode = 'RGB')
+    img = ndimage.imread(file, mode = 'L')
 
     return img
 
@@ -169,7 +171,7 @@ def loadimage(date, file):
 
 # Draws a circle at the x y coord list with radius 5.
 # I've appropriated this as a save image method for now.
-def circle(x,y,img):
+def circle(x,y,img, color = 'c', name = 'blah.png'):
 
 
     # Generate Figure and Axes objects.
@@ -183,20 +185,57 @@ def circle(x,y,img):
     figure.add_axes(axes)
 
     # Adds the image into the axes and displays it
-    axes.imshow(img)
+    axes.imshow(img, cmap = 'gray')
 
     axes.set_aspect('equal')
     for i in range(0,len(x)):
-        circ = Circle((x[i], y[i]), 5, fill = False)
-        circ.set_edgecolor('c')
+        #circ = Circle((x[i], y[i]), 5, fill = False)
+        circ = Rectangle((x[i]-5, y[i]-5), 10, 10, fill = False)
+        circ.set_edgecolor(color)
         axes.add_patch(circ)
 
     # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
-    plot.savefig("blah2.png", dpi = 128)
+    plot.savefig(name, dpi = 128)
 
     # Show the plot
     #plot.show()
 
+# Looks for a star in a variable size pixel box centered at x,y
+# This just finds the "center of mass" for the square patch, with mass = greyscale value. With some modifications
+def findstar(img, centerx, centery):
+    
+    # We need to round these to get the center pixel as an int.
+    centerx = round(centerx)
+    centery = round(centery)
+    
+    # Just setting up some variables.
+    R = (0, 0)
+    M = 0
+    
+    # Half a side length. i.e. range from x-sqare to x+square
+    square = 4
+    
+    # Fudge factor exists because I made a math mistake and somehow it worked better than the correct mean. Oops.
+    fudge = ((2 * square + 1)/(2 * square)) ** 2
+    averagem = np.mean(img[centery - square : centery + square + 1, centerx - square : centerx + square + 1]) * fudge
+    
+    M = 0
+    # This is a box from -square to square in both directions, range is open on the upper bound remember?
+    for x in range(-square, square + 1):
+        for y in range(-square, square + 1):
+            m = img[(centery + y), (centerx + x)]
+            
+            # Ignore the "mass" of that pixel if it's less than the average of the stamp
+            if m < averagem:
+                m = 0
+            
+            R = (m * x + R[0], m * y + R[1])
+            M += m
+    
+    R = (R[0] / M, R[1] / M)
+    
+    #print(R) # Debug
+    return (centerx + R[0], centery + R[1])
 
 altaz = xy_to_altaz(250,300)
 
@@ -206,10 +245,10 @@ altaz = xy_to_altaz(250,300)
 
 
 #tempfile = 'r_ut043526s01920' #7/21
-#tempfile = 'r_ut113451s29520' #7/31
+tempfile = 'r_ut113451s29520' #7/31
 #tempfile = 'r_ut035501s83760' #7/12
-tempfile = 'r_ut054308s05520' #7/19
-date = '20170719'
+#tempfile = 'r_ut054308s05520' #7/19
+date = '20170731'
 
 #print(altaz_to_radec(altaz[0],altaz[1],timestring_to_obj('20170719', tempfile)))
 
@@ -242,6 +281,15 @@ for star in stars.keys():
 
 
 
-img = celestialhorizon(date, tempfile)
+img = loadimage(date, tempfile)
+
+xlist2 = []
+ylist2 = []
+for i in range(0,len(xlist)):
+    point = findstar(img, xlist[i],ylist[i])
+    xlist2.append(point[0])
+    ylist2.append(point[1])
+
 circle(xlist,ylist,img)
+circle(xlist2,ylist2,img,color = 'y', name = 'blah2.png')
 

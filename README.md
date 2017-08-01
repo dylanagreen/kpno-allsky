@@ -20,3 +20,4 @@ At present:
 
 #Coordinates.py
 - Converts the x,y pixel coordinates of an image to the ra,dec for that pixel.
+- Converts ra,dec to x,y pixel coordinates.
