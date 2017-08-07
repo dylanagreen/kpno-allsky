@@ -94,15 +94,15 @@ def radec_to_altaz(ra, dec, time):
 # Returns a tuple of form (x,y)
 def altaz_to_xy(alt, az):
     # Approximate correction (due to distortion of lens?)
-    
+
     # Found using 6 stars in the sky on July 21, UT 4:35:26
     #azlist = [0.427899936, 63.47260687, 111.664316,  239.9405568, 261.7355111, 318.6296893, 360]
     #azcorrection = [-0.347242897, 60.85192815, 108.1380822, 238.7173463, 260.7066914, 318.2286479, 359.6527571]
     #az = np.interp(az, xp = azlist, fp = azcorrection)
     # Commented out incase we need to use this later.
-    
+
     az = az - .94444
-    
+
     #print(az)
 
     # Reverse of r interpolation
@@ -117,7 +117,7 @@ def altaz_to_xy(alt, az):
 
     # y is measured from the top!
     pointadjust = (x + center[0], center[1] - y)
-    
+
     return pointadjust
 
 # Returns a tuple of form (x,y)
@@ -143,7 +143,7 @@ def timestring_to_obj(date, filename):
 def celestialhorizon(date, file):
     loadimage(date,file)
     time = timestring_to_obj(date,file)
-    
+
     dec = 0
     ra = 0
     while ra <= 360:
@@ -189,76 +189,93 @@ def circle(x,y,img, color = 'c', name = 'blah.png'):
     axes.set_aspect('equal')
     for i in range(0,len(x)):
         #circ = Circle((x[i], y[i]), 5, fill = False)
-        circ = Rectangle((x[i]-5, y[i]-5), 10, 10, fill = False)
+        circ = Rectangle((x[i]-5, y[i]-5), 11, 11, fill = False)
         circ.set_edgecolor(color)
         axes.add_patch(circ)
 
     # DPI chosen to have resultant image be the same size as the originals. 128*4 = 512
     plot.savefig(name, dpi = 128)
-    
+
     plot.close()
     # Show the plot
     #plot.show()
 
 # Looks for a star in a variable size pixel box centered at x,y
 # This just finds the "center of mass" for the square patch, with mass = greyscale value. With some modifications
-def findstar(img, centerx, centery):
-    
+# Mass is converted to exp(mass/10)
+def findstar(img, centerx, centery, square = 6):
+
     # We need to round these to get the center pixel as an int.
-    centerx = round(centerx)
-    centery = round(centery)
-    
+    centerx = np.int(round(centerx))
+    centery = np.int(round(centery))
     # Just setting up some variables.
     R = (0, 0)
     M = 0
-    
+
     # Half a (side length-1). i.e. range from x-sqare to x+square
-    square = 6
-    
-    # Fudge factor exists because I made a math mistake and somehow it worked better than the correct mean. 
+    #square = 6
+
+    # Fudge factor exists because I made a math mistake and somehow it worked better than the correct mean.
     # Er, I mean, this is totally legit math here.
-    fudge = ((2 * square + 1.5)/(2 * square)) ** 2
-    averagem = np.mean(img[centery - square : centery + square + 1, centerx - square : centerx + square + 1]) * fudge
-    
+    fudge = ((2 * square + 1)/(2 * square)) ** 2
+    temp = np.array(img[centery - square : centery + square + 1, centerx - square : centerx + square + 1], copy = True)
+    temp = temp.astype(np.float32)
+
+    for x in range(0, len(temp[0])):
+        for y in range(0, len(temp[0])):
+            temp[y,x] = math.exp(temp[y,x]/10)
+
+    averagem = np.mean(temp) * fudge
+    #print(temp)
     # This is a box from -square to square in both directions, range is open on the upper bound remember?
     for x in range(-square, square + 1):
         for y in range(-square, square + 1):
             m = img[(centery + y), (centerx + x)]
             
+            m = math.exp(m/10)
             # Ignore the "mass" of that pixel if it's less than the average of the stamp
             if m < averagem:
                 m = 0
-            
+            #print(str(m) + ' ' + str(x) + ' ' + str(y))
             R = (m * x + R[0], m * y + R[1])
             M += m
-    
-    if M == 0: 
-        M = 1 
-    
+
+    # Avoids divide by 0 errors.
+    if M == 0:
+        M = 1
+
     R = (R[0] / M, R[1] / M)
+    star = (centerx + R[0], centery + R[1])
     
+    # For some reason incrementing by 2 is more accurate than 1. Don't ask me why, I don't understand it either.
+    if square > 2:
+        return findstar(img, star[0], star[1], square-2)
+    else:
+        return star
+
     #print(R) # Debug
-    return (centerx + R[0], centery + R[1])
+    #return (centerx + R[0], centery + R[1])
 
 # Returns a tuple of the form (rexpected, ractual, deltar)
+# Deltar = ractual - rexpected
 def deltar(img, centerx, centery):
-    
+
     adjust1 = (centerx - center[0], center[1] - centery)
 
     rexpected = math.sqrt(adjust1[0]**2 + adjust1[1] ** 2)
-    
+
     # If we think it's outside the circle then screw this lol.
     # R of circle is 240, but sometimes the r comes out as 239.9999999 so just do > 239
     if rexpected > 239:
         return (-1,-1,-1)
-    
+
     # Put this after the bail out to save some function calls.
     star = findstar(img, centerx, centery)
     adjust2 = (star[0] - center[0], center[1] - star[1])
-    
+
     ractual = math.sqrt(adjust2[0]**2 + adjust2[1] ** 2)
     deltar = ractual - rexpected
-    
+
     return (rexpected, ractual, deltar)
 
 altaz = xy_to_altaz(250,300)
@@ -266,9 +283,10 @@ altaz = xy_to_altaz(250,300)
 #tempfile = 'r_ut043526s01920' #7/21
 #tempfile = 'r_ut113451s29520' #7/31
 #tempfile = 'r_ut035501s83760' #7/12
-tempfile = 'r_ut054308s05520' #7/19
+#tempfile = 'r_ut054308s05520' #7/19
 #tempfile = 'r_ut063128s26700' #10/4 2016
-date = '20170719'
+date = '20170712'
+tempfile = 'r_ut035501s83760'
 
 #print(altaz_to_radec(altaz[0],altaz[1],timestring_to_obj('20170719', tempfile)))
 
@@ -281,12 +299,13 @@ date = '20170719'
 # Altair = 297.696, 8.86832
 # Arcturus = 213.915, 19.1822
 # Alioth = 193.507, 55.9598
-
+#'Altair' : (297.696, 8.86832),
 # Radec
-stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Altair' : (297.696, 8.86832), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598), 'Spica' : (201.298, -11.1613), 'Sirius' : (101.2875, -16.7161)}
+stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598), 'Spica' : (201.298, -11.1613), 'Sirius' : (101.2875, -16.7161)}
 
 # X-Y
 #stars = {'Polaris' : (257,  87), 'Vega'  : (204, 223), 'Altair' : (139, 291), 'Arcturus' : (366, 270), 'Alioth' : (348, 149), 'Spica' : (414, 348)}
+
 xlist = []
 ylist = []
 
@@ -299,54 +318,94 @@ for star in stars.keys():
     xlist.append(point[0])
     ylist.append(point[1])
 
+def func():
+    f = open('radii.txt', 'w')
 
-f = open('radii.txt', 'w')
+    fileloc = 'Images/Radius/'
+    files = os.listdir(fileloc)
 
-fileloc = 'Images/Radius/'
-files = os.listdir(fileloc)
+    loc = 'Images/Find-Star/'
+    j = 1
+    mask = Mask.findmask()
+    for file in files:
+        f.write('\n' + file + '\n')
+        split = file.split('-')
+        
+        date = split[0]
+        tempfile = split[1][:-4]
+        
+        img = loadimage(date, tempfile)
+        img = Mask.applymask(mask, img)
+        xlist = []
+        ylist = []
+        
+        
+        xlist2 = []
+        ylist2 = []
+        
+        # Assemble the list of star points
+        for star in stars.keys():
+            point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
+            xlist.append(point[0])
+            ylist.append(point[1])
 
-j = 1
-mask = Mask.findmask()
-for file in files:
-    #f.write('\n' + file + '\n')
-    split = file.split('-')
-    
-    date = split[0]
-    tempfile = split[1][:-4]
-    
-    img = loadimage(date, tempfile)
-    img = Mask.applymask(mask, img)
-    xlist = []
-    ylist = []
-    
-    
-    xlist2 = []
-    ylist2 = []
-    
-    # Assemble the list of star points
-    for star in stars.keys():
-        point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
-        xlist.append(point[0])
-        ylist.append(point[1])
-    
+        for i in range(0,len(xlist)):
+            #point = findstar(img, xlist[i],ylist[i])
+            #xlist2.append(point[0])
+            #ylist2.append(point[1])
+            delta = deltar(img, xlist[i],ylist[i])
+            if delta != (-1,-1,-1):
+                s = str(delta)[1:-1]
+
+
+                point = findstar(img, xlist[i],ylist[i])
+                xlist2.append(point[0])
+                ylist2.append(point[1])
+
+                # Actual
+                altaz2 = xy_to_altaz(point[0], point[1])
+
+                #Expected
+                altaz1 = xy_to_altaz(xlist[i],ylist[i])
+
+                deltaaz = altaz2[1]-altaz1[1]
+
+                s = s + ', ' + str(altaz1[1]) + ', ' + str(altaz2[1]) + ', ' + str(deltaaz)
+
+                f.write(s + '\n')
+
+        circle(xlist,ylist,img, name = loc + date + '-1.png')
+        circle(xlist2,ylist2,img,color = 'y', name = loc + date + '-2.png')
+        j += 1
+
+    f.close()
+
+
+
+img = loadimage(date, tempfile)
+xlist2 = []
+ylist2 = []
+
+xlist3 = []
+ylist3 = []
+
+def func2():
     for i in range(0,len(xlist)):
-        #point = findstar(img, xlist[i],ylist[i])
-        #xlist2.append(point[0])
-        #ylist2.append(point[1])
+    
         delta = deltar(img, xlist[i],ylist[i])
         if delta != (-1,-1,-1):
             s = str(delta)[1:-1]
-            f.write(s + '\n')
-            
+        
             point = findstar(img, xlist[i],ylist[i])
+            point2 = findstar(img, xlist[i],ylist[i])
             xlist2.append(point[0])
             ylist2.append(point[1])
-    #circle(xlist,ylist,img, name = 'blah' + str(j) + '-1.png')
-    #circle(xlist2,ylist2,img,color = 'y', name = 'blah' + str(j) + '-2.png')
-    j += 1
-    
-f.close()
+        
+            xlist3.append(point2[0])
+            ylist3.append(point2[1])
 
-circle(xlist,ylist,img)
-#circle(xlist2,ylist2,img,color = 'y', name = 'blah2.png')
+    circle(xlist,ylist,img)
+    circle(xlist2,ylist2,img,color = 'y', name = 'blah2.png')
+    circle(xlist3,ylist3,img,color = 'y', name = 'blah3.png')
 
+func()
