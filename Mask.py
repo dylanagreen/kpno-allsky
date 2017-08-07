@@ -71,7 +71,8 @@ def savemask(mask):
 # Applies the mask to the image
 def applymask(mask, img):
     
+    # For masked pixel copy the pixel to the left of it.
     for loc in mask:
-        img[loc[1],loc[0]] = 0
+        img[loc[1],loc[0]] = img[loc[1]-1,loc[0]-1]
         
     return img
