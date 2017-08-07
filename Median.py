@@ -181,16 +181,7 @@ def median_all_date(date):
     #plot.show()
 
 
+date = '20170807'
 
-date = '20170801'
 download_all_date(date)
 median_all_date(date)
-
-#get_exposure(date)
-
-
-
-
-# Converts the PIL image to a numpy array image.
-# i2 = np.array(i)
-
