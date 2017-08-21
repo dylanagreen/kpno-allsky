@@ -39,15 +39,13 @@ def xy_to_altaz(x,y):
     if pointadjust[0] > 0:
         az += 2 * math.pi
 
-
     az = math.degrees(az)
-
 
     # Pythagorean thereom boys.
     r = math.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
 
     # For now if r is on the edge of the circle or beyond we'll have it just be 0 degrees. (Up from horizontal)
-    if r >= 239:
+    if r > 240:
         alt = 0
     else:
         #r = 238 # Debug line
@@ -57,6 +55,9 @@ def xy_to_altaz(x,y):
         # This interpolates the value from the two on either side of it.
         alt = 90 - np.interp(r, xp = rpoints, fp = thetapoints)
 
+    # Az correction
+    az = az + .94444
+    
     return (alt,az)
 
 # Returns a tuple of form (ra, dec)
@@ -71,7 +72,7 @@ def altaz_to_radec(alt, az, time):
     altazcoord = SkyCoord(alt = alt * u.deg, az = az * u.deg, frame = 'altaz', obstime = time, location = cameraearth)
     radeccoord = altazcoord.icrs
 
-    return radeccoord
+    return (radeccoord.ra.degree, radeccoord.dec.degree)
 
 # Returns a tuple of form (alt, az)
 def radec_to_altaz(ra, dec, time):
@@ -94,13 +95,6 @@ def radec_to_altaz(ra, dec, time):
 # Returns a tuple of form (x,y)
 def altaz_to_xy(alt, az):
     # Approximate correction (due to distortion of lens?)
-
-    # Found using 6 stars in the sky on July 21, UT 4:35:26
-    #azlist = [0.427899936, 63.47260687, 111.664316,  239.9405568, 261.7355111, 318.6296893, 360]
-    #azcorrection = [-0.347242897, 60.85192815, 108.1380822, 238.7173463, 260.7066914, 318.2286479, 359.6527571]
-    #az = np.interp(az, xp = azlist, fp = azcorrection)
-    # Commented out incase we need to use this later.
-
     az = az - .94444
 
     #print(az)
@@ -125,7 +119,18 @@ def altaz_to_xy(alt, az):
 # Please.
 def radec_to_xy(ra, dec, time):
     altaz = radec_to_altaz(ra, dec, time)
-    return altaz_to_xy(altaz[0], altaz[1])
+    x,y = altaz_to_xy(altaz[0], altaz[1])
+    return galactic_conv(x,y,altaz[1])
+
+# Returns a tuple of form (ra,dec)
+# Time must be an astropy Time object.
+# Please.
+def xy_to_radec(x,y,time):
+    altaz = xy_to_altaz(x,y)
+    x,y = camera_conv(x,y,altaz[1])
+    
+    altaz = xy_to_altaz(x,y)
+    return altaz_to_radec(altaz[0], altaz[1], time)
 
 def timestring_to_obj(date, filename):
     # Add the dashes
@@ -138,6 +143,37 @@ def timestring_to_obj(date, filename):
     formatted = formatted + ' ' + time
 
     return Time(formatted)
+
+# Converts from galactic x,y, expected az to camera x,y, actual az
+def galactic_conv(x,y,az):
+
+    r = math.sqrt(x**2 + y**2)
+    az = az - .94444
+    #print(r)
+    # These magic numbers found using the genius method of "lots of trial and error."
+    # Just kidding, I did a chi-squared analysis with a bunch of different models and this was the best I came up with.
+    r = r + 2.369 * math.cos(math.radians(0.997 * (az - 42.088))) + 0.699
+    az = az + 0.716 * math.cos(math.radians(1.015 * (az + 31.358))) - 0.181
+    
+    x = -1 * r * math.sin(math.radians(az))
+    y = r * math.cos(math.radians(az))
+    
+    return (x,y)
+
+# Converts from camera r,az to galactic r,az
+def camera_conv(x,y,az):
+    r = math.sqrt(x**2 + y**2)
+    
+    # You might think that this should be + but actually no. See next comment.
+    az = az - .94444 #- 0.286375
+    
+    az = az - 0.731 * math.cos(math.radians(0.993 * (az + 34.5))) + 0.181
+    r = r - 2.358 * math.cos(math.radians(0.99 * (az - 40.8))) - 0.729
+    
+    x = -1 * r * math.sin(math.radians(az))
+    y = r * math.cos(math.radians(az))
+    
+    return (x,y)
 
 # Draws a celestial horizon
 def celestialhorizon(date, file):
@@ -296,15 +332,12 @@ tempfile = 'r_ut035501s83760'
 # Polaris = 37.9461429,  89.2641378
 # Sirius = 101.2875, -16.7161
 # Vega = 279.235, 38.7837
-# Altair = 297.696, 8.86832
 # Arcturus = 213.915, 19.1822
 # Alioth = 193.507, 55.9598
 #'Altair' : (297.696, 8.86832),
 # Radec
-stars = {'Polaris' : (37.9461429,  89.2641378), 'Vega'  : (279.235, 38.7837), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598), 'Spica' : (201.298, -11.1613), 'Sirius' : (101.2875, -16.7161)}
+stars = {'Polaris' : (37.9461429,  89.2641378), 'Altair' : (297.696, 8.86832), 'Vega'  : (279.235, 38.7837), 'Arcturus' : (213.915, 19.1822), 'Alioth' : (193.507, 55.9598), 'Spica' : (201.298, -11.1613), 'Sirius' : (101.2875, -16.7161)}
 
-# X-Y
-#stars = {'Polaris' : (257,  87), 'Vega'  : (204, 223), 'Altair' : (139, 291), 'Arcturus' : (366, 270), 'Alioth' : (348, 149), 'Spica' : (414, 348)}
 
 xlist = []
 ylist = []
@@ -318,8 +351,11 @@ for star in stars.keys():
     xlist.append(point[0])
     ylist.append(point[1])
 
-def func():
-    f = open('radii.txt', 'w')
+
+# Designed to test the conversion as well as the find_star method. 
+# Essentially all but useless now, but I may need to do so again in the future.
+def conv_test():
+    f = open('xy.txt', 'w')
 
     fileloc = 'Images/Radius/'
     files = os.listdir(fileloc)
@@ -328,7 +364,7 @@ def func():
     j = 1
     mask = Mask.findmask()
     for file in files:
-        f.write('\n' + file + '\n')
+        f.write(file + '\n')
         split = file.split('-')
         
         date = split[0]
@@ -343,69 +379,47 @@ def func():
         xlist2 = []
         ylist2 = []
         
-        # Assemble the list of star points
+        # Assemble the list of expected star points
         for star in stars.keys():
             point = radec_to_xy(stars[star][0], stars[star][1], timestring_to_obj(date, tempfile))
             xlist.append(point[0])
             ylist.append(point[1])
 
         for i in range(0,len(xlist)):
-            #point = findstar(img, xlist[i],ylist[i])
-            #xlist2.append(point[0])
-            #ylist2.append(point[1])
             delta = deltar(img, xlist[i],ylist[i])
             if delta != (-1,-1,-1):
                 s = str(delta)[1:-1]
 
-
-                point = findstar(img, xlist[i],ylist[i])
+                # Expected
+                altaz1 = xy_to_altaz(xlist[i],ylist[i])
+                
+                #point = findstar(img, xlist[i],ylist[i])
+                
+                x = xlist[i] - center[0]
+                y = center[1] - ylist[i]
+                point = galactic_conv(x, y, altaz1[1])
+                
+                point = (point[0] + center[0], center[1] - point[1])
                 xlist2.append(point[0])
                 ylist2.append(point[1])
 
                 # Actual
                 altaz2 = xy_to_altaz(point[0], point[1])
 
-                #Expected
-                altaz1 = xy_to_altaz(xlist[i],ylist[i])
+                
 
                 deltaaz = altaz2[1]-altaz1[1]
-
-                s = s + ', ' + str(altaz1[1]) + ', ' + str(altaz2[1]) + ', ' + str(deltaaz)
-
+                
+                # Radius stuff
+                #s = s + ', ' + str(altaz1[1]) + ', ' + str(altaz2[1]) + ', ' + str(deltaaz)
+                
+                # X-Y / Alt-Az stuff
+                s = str(point[0]) + ', ' + str(point[1]) + ', ' + str(altaz2[0]) + ', ' + str(altaz2[1]) + ', ' + str(xlist[i]) + ', '+ str(ylist[i]) + ', ' + str(altaz1[0]) + ', ' + str(altaz1[1])
+                
                 f.write(s + '\n')
-
+        f.write('\n')
         circle(xlist,ylist,img, name = loc + date + '-1.png')
         circle(xlist2,ylist2,img,color = 'y', name = loc + date + '-2.png')
         j += 1
 
     f.close()
-
-
-
-img = loadimage(date, tempfile)
-xlist2 = []
-ylist2 = []
-
-xlist3 = []
-ylist3 = []
-
-def func2():
-    for i in range(0,len(xlist)):
-    
-        delta = deltar(img, xlist[i],ylist[i])
-        if delta != (-1,-1,-1):
-            s = str(delta)[1:-1]
-        
-            point = findstar(img, xlist[i],ylist[i])
-            point2 = findstar(img, xlist[i],ylist[i])
-            xlist2.append(point[0])
-            ylist2.append(point[1])
-        
-            xlist3.append(point2[0])
-            ylist3.append(point2[1])
-
-    circle(xlist,ylist,img)
-    circle(xlist2,ylist2,img,color = 'y', name = 'blah2.png')
-    circle(xlist3,ylist3,img,color = 'y', name = 'blah3.png')
-
-func()
