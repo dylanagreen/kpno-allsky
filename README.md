@@ -1,4 +1,4 @@
-# kitt-peak
+# kpno-allsky
 
 This is some scripts/software I’m developing based on all-sky images from the kitt-peak observatory. It should probably have version control so I set this up.
 
@@ -11,13 +11,19 @@ Requests
 
 At present:
 
-#Difference.py
+# Difference.py
 - Finds the difference between two images.
 
-#Median.py
+# Median.py
 - Downloads all the images from a given day
 - Finds a median image for all images from a given day.
 
-#Coordinates.py
+# Coordinates.py
 - Converts the x,y pixel coordinates of an image to the ra,dec for that pixel.
 - Converts ra,dec to x,y pixel coordinates.
+- Can find a star near a given pixel
+- Makes corrections to az/r coords to increase conversioni accuracy.
+
+# Mask.py
+- Takes a few medians and finds the hot/stuck pixels.
+- Outputs as an image or a list of pixels.
