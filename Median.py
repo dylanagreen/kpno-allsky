@@ -101,8 +101,11 @@ def load_all_date(date):
         else:
             final = (imgs - n*100)
         
-        file = directory + files[n * 100]
-        temp = gray_and_color_image(file)
+        if final == 0:
+            break
+        else:
+            file = directory + files[n * 100]
+            temp = gray_and_color_image(file)
         
         # Creates the array of images.
         for i in range(1,final):
