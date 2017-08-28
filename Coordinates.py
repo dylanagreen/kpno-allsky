@@ -146,6 +146,9 @@ def timestring_to_obj(date, filename):
 
 # Converts from galactic x,y, expected az to camera x,y, actual az
 def galactic_conv(x,y,az):
+    # Convert to center relative coords.
+    x = x - center[0]
+    y = center[1] - y
 
     r = math.sqrt(x**2 + y**2)
     az = az - .94444
@@ -158,10 +161,18 @@ def galactic_conv(x,y,az):
     x = -1 * r * math.sin(math.radians(az))
     y = r * math.cos(math.radians(az))
     
+    # Convert to top left relative coords.
+    x = x + center[0]
+    y = center[1] - y
+    
     return (x,y)
 
 # Converts from camera r,az to galactic r,az
 def camera_conv(x,y,az):
+    # Convert to center relative coords.
+    x = x - center[0]
+    y = center[1] - y
+    
     r = math.sqrt(x**2 + y**2)
     
     # You might think that this should be + but actually no. See next comment.
@@ -172,6 +183,10 @@ def camera_conv(x,y,az):
     
     x = -1 * r * math.sin(math.radians(az))
     y = r * math.cos(math.radians(az))
+    
+    # Convert to top left relative coords.
+    x = x + center[0]
+    y = center[1] - y
     
     return (x,y)
 
