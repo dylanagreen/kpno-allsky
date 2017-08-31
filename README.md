@@ -1,12 +1,12 @@
 # kpno-allsky
 
-This is some scripts/software I’m developing based on all-sky images from the kitt-peak observatory. It should probably have version control so I set this up.
+This is some scripts/software I’m developing based on all-sky images from the Kitt Peak National Observatory. It should probably have version control so I set this up.
 
 Current dependencies:
 AstroPy
 SciPy
 NumPy
-mayplotlib
+matplotlib
 Requests
 
 At present:
@@ -28,8 +28,10 @@ At present:
 - Takes a few medians and finds the hot/stuck pixels.
 - Outputs as an image or a list of pixels.
 
-# Convert.py
+# Transform.py
 - Converts a circular all-sky image into an ra-dec image that shows the ra-dec visible portions of the sky for that image.
+- Ra-dec image is projected as an Eckert-IV projection.
+- Methods are provided to transform arrays of ra and dec into x,y for Mollweide and Eckert-IV projections.
 - Ignores horizon objects, as defined in Ignore.png
 
 # Notebooks
