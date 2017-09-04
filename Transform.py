@@ -1,4 +1,3 @@
-import math
 from scipy import ndimage
 import numpy as np
 import matplotlib.image as image
@@ -17,14 +16,13 @@ center = (256, 252)
 # from the circle into an eckert-iv projected ra-dec map.
 # TODO Refactor this to take in a numpy image and read in the image elsewhere.
 def transform(file, date):
-
     # Read in the file on given date.
     img = ndimage.imread('Images/' + date + '/' + file, mode='L')
     time = Coordinates.timestring_to_obj(date, file)
 
     # Find the mask and black out those pixels.
-    mask = Mask.findmask()
-    img = Mask.applymask(mask, img)
+    mask = Mask.find_mask()
+    img = Mask.apply_mask(mask, img)
 
     # Read in the ignore image.
     ignore = 'Images/Ignore.png'
@@ -71,17 +69,16 @@ def transform(file, date):
 
             x = column - center[0]
             y = center[1] - row
-            r = math.sqrt(x ** 2 + y ** 2)
+            r = math.sqrt(x**2 + y**2)
 
             # Zeros out ignorable objects first
             if(r < 250):
-                if (np.array_equal(img2[column, row], [244, 66, 235])):
+                if np.array_equal(img2[column, row], [244, 66, 235]):
                     img[column, row] = 0
                 elif (r > 240):
                     img[column, row] = 0
 
             if(r < 241):
-
                 # We need to add 0.5 to the r,c coords to get the center
                 # of the pixel rather than the top left corner.
                 # I've also had to split the xy-radec conversion.
@@ -143,7 +140,6 @@ def transform(file, date):
 
 # Newton's method for the mollweide projection.
 def mollweide_findtheta(phi, n):
-
     # First short circuit
     if n == 0:
         return np.arcsin(2*phi/math.pi)
@@ -190,7 +186,6 @@ def mollweide(ra, dec):
 
 # Newton's method for eckert-iv proection.
 def eckertiv_findtheta(phi, n):
-
     # First short circuit
     if n == 0:
         return phi/2
@@ -246,9 +241,6 @@ directory = 'Images/' + date + '/'
 files = os.listdir(directory)
 
 transform('r_ut033749s07680.png', date)
-
-#points()
-
 
 images = []
 # Loop for transforming a whole day.

@@ -8,7 +8,7 @@ from collections import Counter
 
 
 # Looks through the images to make the mask and returns a mask array.
-def findmask():
+def find_mask():
     fileloc = 'Images/Mask/'
     files = os.listdir(fileloc)
 
@@ -24,10 +24,9 @@ def findmask():
         x = 0
         while y < img.shape[1]:
             while x < img.shape[0]:
-
                 # 255 is pure white so accept pixels between
                 # white-tolerance and white
-                # Y is first value as its the row value
+                # Y is first value as it's the row value
                 if img[y, x] >= (255 - tolerance):
                     hots.append((x, y))
 
@@ -45,7 +44,7 @@ def findmask():
 
 
 # Saves a given mask as in image in the Images folder.
-def savemask(mask):
+def save_mask(mask):
     dest = 'Images/Mask.png'
 
     newimg = np.zeros((512, 512))
@@ -70,10 +69,9 @@ def savemask(mask):
 
 
 # Applies the mask to the image
-def applymask(mask, img):
-
-    # For masked pixel copy the pixel to the left of it.
+def apply_mask(mask, img):
+    # For masked pixel set the pixel to 0
     for loc in mask:
-        img[loc[1], loc[0]] = img[loc[1]-1, loc[0]-1]
+        img[loc[1], loc[0]] = 0
 
     return img

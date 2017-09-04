@@ -1,13 +1,14 @@
-from scipy import ndimage
 import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
 import requests
-
+import os
+from html.parser import HTMLParser
+from scipy import ndimage
 from PIL import Image
 from io import BytesIO
-from html.parser import HTMLParser
-import os
+
+
 
 
 # Html parser for looping through html tags
@@ -19,10 +20,10 @@ class DateHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
-            for attr in attrs:
-                # If the first attribute is href we need to ignore it
-                    if attr[0] == 'href':
-                        self.data.append(attr[1])
+        for attr in attrs:
+            # If the first attribute is href we need to ignore it
+            if attr[0] == 'href':
+                self.data.append(attr[1])
 
 
 def download_all_date(date):
@@ -64,7 +65,7 @@ def download_all_date(date):
     print('All photos downloaded for ' + date)
 
 
-# Gets the expousre time of an image.
+# Gets the exposure time of an image.
 # 225 is the greyscale value for the yellow in the image.
 # The pixel chosen is yellow for .03s and "not yellow" for 6s.
 # The second pixel is yellow in .03 and .002
@@ -127,16 +128,16 @@ def load_all_date(date):
     # Return is the super image for later.
     # This just makes it random and in the correct shape for later
     # In case key == 1 fails.
-    toreturn = np.random.rand(512, 512, 4, 1)
+    result = np.random.rand(512, 512, 4, 1)
 
     for key, val in dic.items():
-        # toreturn doesn't exist yet so set it to val for the first key.
+        # result doesn't exist yet so set it to val for the first key.
         if key == 1:
-            toreturn = val
+            result = val
         else:
-            toreturn = np.concatenate((toreturn, val), axis=3)
+            result = np.concatenate((result, val), axis=3)
 
-    return toreturn
+    return result
 
 
 # Loads in an image and returns it as an array where
@@ -155,10 +156,12 @@ def gray_and_color_image(file):
 
 
 # This is necessary.
+# Python works on tuples as required for color medians, which means we need to
+# turn the numpy color array of length 3 into a tuple.
 def ndarray_to_tuplelist(arr):
     templist = []
 
-    # Runs over the second dimension (the longer one lol)
+    # Runs over the second dimension (the longer one)
     for i in range(0, arr.shape[1]):
         tup = (arr[0, i], arr[1, i], arr[2, i], arr[3, i])
         templist.append(tup)
@@ -203,7 +206,6 @@ def median_of_medians(arr, i):
 
 
 def median_all_date(date, color=False):
-
     # I've hard coded the files for now, this can be changed later.
     directory = 'Images/' + date + '/'
 
@@ -244,10 +246,10 @@ def median_all_date(date, color=False):
             superimg[key] = np.zeros((1, 1, 1, 1))
 
     # If not color load all the ones and seperate by exposure time
-    # If color, then just load all of them ignoring exposure.
+    # If color, then just load all of them ignoring exposure, for now.
     if not color:
         for file in files:
-            # Make sure we look in the directory to load the image lol.
+            # Make sure we look in the directory to load the image.
             file = directory + file
 
             # We have to reshape the images so that the lowest level
@@ -346,9 +348,6 @@ def median_all_date(date, color=False):
     # Show the plot
     #plot.show()
 
-
-#date = '20170807'
-
-date = '20170829'
-download_all_date(date)
-#median_all_date(date, True)
+date = '1'
+#download_all_date(date)
+median_all_date(date, True)

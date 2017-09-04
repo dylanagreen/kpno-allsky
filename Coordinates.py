@@ -1,23 +1,21 @@
 import math
+import os
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.time import Time
 import astropy.time.core as aptime
 from astropy import units as u
 import numpy as np
 
-from matplotlib.patches import Circle
-from matplotlib.patches import Rectangle
+from matplotlib.patches import Circle, Rectangle
 import matplotlib.image as image
 import matplotlib.pyplot as plot
 from scipy import ndimage
-
-import os
 
 import Mask
 
 # Globals
 
-# Center of the circle found using super acccurate photoshop layering technique
+# Center of the circle found using super accurate photoshop layering technique
 center = (256, 252)
 
 # r - theta table.
@@ -39,7 +37,7 @@ def xy_to_altaz(x, y):
     pointadjust = (x - center[0], center[1] - y)
 
     # We use -x here because the E and W portions of the image are flipped
-    az = math.atan2(-(pointadjust[0]), (pointadjust[1]))
+    az = math.atan2(-pointadjust[0], pointadjust[1])
 
     # For same reason as -x, we use > 0 here
     # atan2 ranges from -pi to pi but we need 0 to 2 pi.
@@ -73,7 +71,7 @@ def xy_to_altaz(x, y):
 def altaz_to_radec(alt, az, time):
     assert type(time) is aptime.Time, "Time should be an astropy Time Object."
 
-    # This is the latitutde/longitude of the camera
+    # This is the latitude/longitude of the camera
     camera = (31.959417 * u.deg, -111.598583 * u.deg)
 
     cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
@@ -92,7 +90,7 @@ def altaz_to_radec(alt, az, time):
 def radec_to_altaz(ra, dec, time):
     assert type(time) is aptime.Time, "Time should be an astropy Time Object."
 
-    # This is the latitutde/longitude of the camera
+    # This is the latitude/longitude of the camera
     camera = (31.959417 * u.deg, -111.598583 * u.deg)
 
     cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
@@ -132,7 +130,6 @@ def altaz_to_xy(alt, az):
 
 # Returns a tuple of form (x,y)
 # Time must be an astropy Time object.
-# Please.
 def radec_to_xy(ra, dec, time):
     altaz = radec_to_altaz(ra, dec, time)
     x, y = altaz_to_xy(altaz[0], altaz[1])
@@ -141,7 +138,6 @@ def radec_to_xy(ra, dec, time):
 
 # Returns a tuple of form (ra,dec)
 # Time must be an astropy Time object.
-# Please.
 def xy_to_radec(x, y, time):
     altaz = xy_to_altaz(x, y)
     x, y = camera_conv(x, y, altaz[1])
@@ -197,6 +193,7 @@ def camera_conv(x, y, az):
     r = math.sqrt(x**2 + y**2)
 
     # You might think that this should be + but actually no.
+    # Mostly due to math down below in the model this works better as -.
     az = az - .94444  # - 0.286375
 
     az = az - 0.731 * math.cos(math.radians(0.993 * (az + 34.5))) + 0.181
@@ -213,8 +210,8 @@ def camera_conv(x, y, az):
 
 
 # Draws a celestial horizon
-def celestialhorizon(date, file):
-    loadimage(date, file)
+def celestial_horizon(date, file):
+    load_image(date, file)
     time = timestring_to_obj(date, file)
 
     dec = 0
@@ -234,7 +231,7 @@ def celestialhorizon(date, file):
 
 
 # Loads in an image.
-def loadimage(date, file):
+def load_image(date, file):
     time = timestring_to_obj(date, file)
 
     file = 'Images/Radius/' + date + '-' + file + '.png'
@@ -245,7 +242,8 @@ def loadimage(date, file):
 
 
 # Draws a circle at the x y coord list with radius 5.
-def circle(x, y, img, color='c', name='blah.png'):
+# Should probably note that right now it draws a square.
+def draw_circle(x, y, img, color='c', name='blah.png'):
     # Generate Figure and Axes objects.
     figure = plot.figure()
     figure.set_size_inches(4, 4)  # 4 inches by 4 inches
@@ -279,7 +277,7 @@ def circle(x, y, img, color='c', name='blah.png'):
 # This just finds the "center of mass" for the square patch,
 # with mass = greyscale value. With some modifications
 # Mass is converted to exp(mass/10)
-def findstar(img, centerx, centery, square=6):
+def find_star(img, centerx, centery, square=6):
 
     # We need to round these to get the center pixel as an int.
     centerx = np.int(round(centerx))
@@ -288,7 +286,7 @@ def findstar(img, centerx, centery, square=6):
     R = (0, 0)
     M = 0
 
-    # Half a (side length-1). i.e. range from x-sqare to x+square
+    # Half a (side length-1). i.e. range from x-square to x+square
     #square = 6
 
     # Fudge factor exists because I made a math mistake and somehow
@@ -334,7 +332,7 @@ def findstar(img, centerx, centery, square=6):
     # For some reason de-incrementing by 2 is more accurate than 1.
     # Don't ask me why, I don't understand it either.
     if square > 2:
-        return findstar(img, star[0], star[1], square - 2)
+        return find_star(img, star[0], star[1], square - 2)
     else:
         return star
 
@@ -344,19 +342,19 @@ def findstar(img, centerx, centery, square=6):
 
 # Returns a tuple of the form (rexpected, ractual, deltar)
 # Deltar = ractual - rexpected
-def deltar(img, centerx, centery):
+def delta_r(img, centerx, centery):
 
     adjust1 = (centerx - center[0], center[1] - centery)
 
     rexpected = math.sqrt(adjust1[0] ** 2 + adjust1[1] ** 2)
 
-    # If we think it's outside the circle then screw this lol.
+    # If we think it's outside the circle then bail on all the math.
     # R of circle is 240, but sometimes the r comes out as 239.9999999
     if rexpected > 239:
         return (-1, -1, -1)
 
     # Put this after the bail out to save some function calls.
-    star = findstar(img, centerx, centery)
+    star = find_star(img, centerx, centery)
     adjust2 = (star[0] - center[0], center[1] - star[1])
 
     ractual = math.sqrt(adjust2[0] ** 2 + adjust2[1] ** 2)
@@ -418,8 +416,8 @@ def conv_test():
     files = os.listdir(fileloc)
 
     loc = 'Images/Find-Star/'
-    j = 1
-    mask = Mask.findmask()
+
+    mask = Mask.find_mask()
     for file in files:
         f.write(file + '\n')
         split = file.split('-')
@@ -427,8 +425,8 @@ def conv_test():
         date = split[0]
         tempfile = split[1][:-4]
 
-        img = loadimage(date, tempfile)
-        img = Mask.applymask(mask, img)
+        img = load_image(date, tempfile)
+        img = Mask.apply_mask(mask, img)
         xlist = []
         ylist = []
 
@@ -443,14 +441,14 @@ def conv_test():
             ylist.append(point[1])
 
         for i in range(0, len(xlist)):
-            delta = deltar(img, xlist[i], ylist[i])
+            delta = delta_r(img, xlist[i], ylist[i])
             if delta != (-1, -1, -1):
                 s = str(delta)[1:-1]
 
                 # Expected
                 altaz1 = xy_to_altaz(xlist[i], ylist[i])
 
-                #point = findstar(img, xlist[i],ylist[i])
+                #point = find_star(img, xlist[i],ylist[i])
 
                 x = xlist[i] - center[0]
                 y = center[1] - ylist[i]
@@ -477,10 +475,10 @@ def conv_test():
 
                 f.write(s + '\n')
         f.write('\n')
-        circle(xlist, ylist, img, name=loc + date + '-1.png')
-        circle(xlist2, ylist2, img, color='y', name=loc + date + '-2.png')
-        j += 1
+        draw_circle(xlist, ylist, img, name=loc + date + '-1.png')
+        draw_circle(xlist2, ylist2, img, color='y', name=loc + date + '-2.png')
+
 
     f.close()
 
-conv_test()
+#conv_test()
