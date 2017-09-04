@@ -20,10 +20,10 @@ class DateHTMLParser(HTMLParser):
     def handle_starttag(self, tag, attrs):
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
-        for attr in attrs:
-            # If the first attribute is href we need to ignore it
-            if attr[0] == 'href':
-                self.data.append(attr[1])
+            for attr in attrs:
+                # If the first attribute is href we need to ignore it
+                if attr[0] == 'href':
+                    self.data.append(attr[1])
 
 
 def download_all_date(date):
