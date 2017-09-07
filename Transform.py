@@ -2,8 +2,10 @@ from scipy import ndimage
 import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
+from matplotlib.patches import Polygon
 import math
 import os
+import ast
 
 import Coordinates
 import Mask
@@ -101,6 +103,17 @@ def transform(file, date):
 
     # Finds colors for dots.
     for i in range(0, len(rapoints)):
+        
+        # This block changes the ra so that the projection is centered at 
+        # ra = 360-rot.
+        # The reason for this is so the outline survey area is 2 rather than 3
+        # polygons.
+        rot = 60
+        if rapoints[i] > (360-rot):
+            rapoints[i] = rapoints[i] + rot - 360
+        else:
+            rapoints[i] = rapoints[i] + rot
+        
         x = xpoints[i]
         y = ypoints[i]
 
@@ -110,7 +123,11 @@ def transform(file, date):
 
     # Scatter for the image conversion
     scatter = ax1.scatter(x, y, s=1, c=colors, cmap='gray')
-
+    
+    patches = hull_patch()
+    for patch in patches:
+        ax1.add_patch(patch)
+    
     # Date formatting for lower left corner text.
     formatted = date[:4] + '-' + date[4:6] + '-' + date[6:]
     time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
@@ -124,13 +141,16 @@ def transform(file, date):
     fig.add_axes(ax1)
 
     # Make sure the folder location exists
-    directory = 'Images/Scatter/' + date + '/'
+    directory = 'Images/Transform/' + date + '/'
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     # Save name.
     conv = directory + file
-    plot.savefig(conv, dpi=256)
+    
+    # Want it to be 1920 wide.
+    dpi = 1920/(fig.get_size_inches()[0])
+    plot.savefig(conv, dpi=dpi)
 
     print('Saved: ' + conv)
 
@@ -233,16 +253,33 @@ def eckertiv(ra, dec):
     # Eckert IV conversion functions.
     x = 2 * R * coeff * np.subtract(np.radians(ra), center) * (1 + np.cos(theta))
     y = 2 * R * math.pi * coeff * np.sin(theta)
+    
 
     return(x, y)
 
-date = '20170829'
+# Returns a matplotlib patch for each of the two DESI view polygons.
+def hull_patch():
+    f = open('hull.txt', 'r')
+    left = f.readline()
+    # Converts the string representation of the list to a list of points.
+    left = ast.literal_eval(left)
+    
+    right = f.readline()
+    right = ast.literal_eval(right)
+    
+    patch1 = Polygon(left, closed = True, fill = False, edgecolor='red',lw=2)
+    patch2 = Polygon(right, closed = True, fill = False, edgecolor='red',lw=2)
+    
+    f.close()
+    
+    return [patch1, patch2]
+
+date = '20170822'
 directory = 'Images/' + date + '/'
 files = os.listdir(directory)
 
-transform('r_ut033749s07680.png', date)
+#transform('r_ut111245s35760.png', date)
 
-images = []
 # Loop for transforming a whole day.
-#for file in files:
-    #transform(file)
+for file in files:
+    transform(file, date)
