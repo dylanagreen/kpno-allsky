@@ -369,13 +369,9 @@ altaz = xy_to_altaz(250, 300)
 #tempfile = 'r_ut035501s83760' #7/12
 #tempfile = 'r_ut054308s05520' #7/19
 #tempfile = 'r_ut063128s26700' #10/4 2016
-date = '20170712'
-tempfile = 'r_ut035501s83760'
+date = '20170911'
+tempfile = 'r_ut120511s41280'
 
-#print(altaz_to_radec(altaz[0],altaz[1],timestring_to_obj('20170719', tempfile)))
-
-#star = SkyCoord.from_name('Siruis', 'icrs')
-#print(star)
 
 # Polaris = 37.9461429,  89.2641378
 # Sirius = 101.2875, -16.7161
@@ -392,20 +388,39 @@ stars = {'Polaris': (37.9461429,  89.2641378),
          'Spica': (201.298, -11.1613),
          'Sirius': (101.2875, -16.7161)}
 
+def contours(date, file):
+    
+    file = 'Images/' + date + '/' + file + '.png'
 
-xlist = []
-ylist = []
+    img = ndimage.imread(file, mode='L')
+    
+    # Generate Figure and Axes objects.
+    figure = plot.figure()
+    figure.set_size_inches(4, 4)  # 4 inches by 4 inches
+    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
-# Assemble a list of the points to circle.
-for star in stars.keys():
-    #print(star)
-    time = timestring_to_obj(date, tempfile)
-    point = radec_to_xy(stars[star][0], stars[star][1], time)
-    #point = xy_to_altaz(stars[star][0],stars[star][1])
-    #print(str(point) + '\n')
-    xlist.append(point[0])
-    ylist.append(point[1])
+    # Turn off the actual visual axes for visual niceness.
+    # Then add axes to figure
+    axes.set_axis_off()
+    figure.add_axes(axes)
 
+    # Adds the image into the axes and displays it
+    axes.imshow(img, cmap='gray')
+
+    axes.set_aspect('equal')
+    
+    for alt in range(0,100,30):
+        r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
+        r = r * 240 / 11.6  # mm to pixel rate
+        
+        circ = Circle(center, radius=r, fill=False, edgecolor='green')
+        axes.add_patch(circ)
+        
+        
+    name = "Images/test.png"
+    plot.savefig(name, dpi=128)
+
+    plot.close()
 
 # Designed to test the conversion as well as the find_star method.
 # Essentially all but useless now, but I may need to do so again in the future.
@@ -482,3 +497,5 @@ def conv_test():
     f.close()
 
 #conv_test()
+
+contours(date, tempfile)
