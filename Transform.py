@@ -137,8 +137,8 @@ def transform(file, date):
     ax1.text(-290, -143, formatted + '  ut' + time, style='italic')
 
     patches = hull_patch()
-    for patch in patches:
-        ax1.add_patch(patch)
+    #for patch in patches:
+        #ax1.add_patch(patch)
     
     # Add the axes to the fig so it gets saved.
     fig.add_axes(ax1)
@@ -195,10 +195,42 @@ def contours(axis, time):
             # Condensing lines using magic python list comprehension.
             rapoints = [point[0] for point in points]
             decpoints = [point[1] for point in points]
-        
-        x, y = eckertiv(rapoints, decpoints)
-        scatter = axis.plot(x,y,c='#42f44e')
-    
+            
+            x, y = eckertiv(rapoints, decpoints)
+            scatter = axis.plot(x,y,c='#42f44e')
+            
+        # The 60 contour needs to be two plots if it gets seperated by the edge.
+        else:
+            temp = sorted(rapoints)
+            # Basically if the difference in the least and most is almost the
+            # entire image then seperate
+            if temp[-1] - temp[0] > 350:
+                lowerra = []
+                lowerdec = []
+                upperra = []
+                upperdec = []
+                for i in range(0,len(rapoints)):
+                    if rapoints[i] < 180:
+                        lowerra.append(rapoints[i])
+                        lowerdec.append(decpoints[i])
+                    else:
+                        upperra.append(rapoints[i])
+                        upperdec.append(decpoints[i])
+            
+                # Clockwise sorting is necessary here to prevent the top and 
+                # Bottom ends on either edge from joining.
+                lowerra, lowerdec = clockwise_sort(lowerra, lowerdec)
+                x, y = eckertiv(lowerra, lowerdec)
+                scatter = axis.plot(x,y,c='#42f44e')
+                
+                upperra, upperdec = clockwise_sort(upperra, upperdec, True)
+                x, y = eckertiv(upperra, upperdec)
+                scatter = axis.plot(x,y,c='#42f44e')
+                
+            else:
+                x, y = eckertiv(rapoints, decpoints)
+                scatter = axis.plot(x,y,c='#42f44e')
+            
     return axis
     
 
@@ -312,6 +344,7 @@ def hull_patch():
     right = f.readline()
     right = ast.literal_eval(right)
     
+    # Zorder parameter ensures the patches are on top of everything.
     patch1 = Polygon(left, closed = True, fill = False,
                      edgecolor='red',lw=2, zorder=4)
     patch2 = Polygon(right, closed = True, fill = False,
@@ -321,12 +354,61 @@ def hull_patch():
     
     return [patch1, patch2]
 
+
+# This function sorts a set of values clockwise from the center.
+# Pos defines whether or not the sort sorts anticlockwise from the positive x
+# Or clockwise from the negative x.
+def clockwise_sort(ra, dec, positive = False):
+    x = sorted(ra)
+    y = sorted(dec)
+    
+    # Finds the center of the circle ish object
+    centerx = (x[0] + x[-1])/2
+    centery = (y[0] + y[-1])/2
+    
+    x = np.subtract(ra, centerx)
+    y = np.subtract(dec, centery)
+    
+    # Creates polar nonsense
+    r = np.sqrt(x**2 + y**2)
+    theta = np.arctan2(y, x)
+    
+    # Reshape to stack
+    r = np.reshape(r, (len(r), 1))
+    theta = np.reshape(theta, (len(theta), 1))
+    
+    # If we want ti sort from pos x, we need to ensure that the negative angles
+    # Are actually big positive angles.
+    if positive:
+        cond = np.less(theta, 0)
+        theta = np.where(cond, theta + 2 * np.pi, theta)
+    
+    # Stack into list of form (theta,r) (we want to sort theta first)
+    stack = np.hstack((theta,r))
+    
+    stack2 = []
+    for i in stack:
+        stack2.append(tuple(i))
+        
+    # Standard python sort by theta
+    stack2 = sorted(stack2)
+    
+    # Now we just have to convert back!
+    # Slice out theta and r
+    stack2 = np.array(stack2)
+    theta = stack2[:,0]
+    r = stack2[:,1]
+    
+    x = r * np.cos(theta) + centerx
+    y = r * np.sin(theta) + centery
+    return (x,y)
+
 date = '20170911'
 directory = 'Images/' + date + '/'
 files = os.listdir(directory)
 
-transform('r_ut120511s41280.png', date)
+#transform('r_ut032636s10080.png', date)
 
 # Loop for transforming a whole day.
-#for file in files:
- #   transform(file, date)
+for file in files:
+    transform(file, date)
