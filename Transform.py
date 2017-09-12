@@ -137,8 +137,8 @@ def transform(file, date):
     ax1.text(-290, -143, formatted + '  ut' + time, style='italic')
 
     patches = hull_patch()
-    #for patch in patches:
-        #ax1.add_patch(patch)
+    for patch in patches:
+        ax1.add_patch(patch)
     
     # Add the axes to the fig so it gets saved.
     fig.add_axes(ax1)
@@ -377,7 +377,7 @@ def clockwise_sort(ra, dec, positive = False):
     r = np.reshape(r, (len(r), 1))
     theta = np.reshape(theta, (len(theta), 1))
     
-    # If we want ti sort from pos x, we need to ensure that the negative angles
+    # If we want to sort from pos x, we need to ensure that the negative angles
     # Are actually big positive angles.
     if positive:
         cond = np.less(theta, 0)
@@ -403,7 +403,7 @@ def clockwise_sort(ra, dec, positive = False):
     y = r * np.sin(theta) + centery
     return (x,y)
 
-date = '20170911'
+date = '20170820'
 directory = 'Images/' + date + '/'
 files = os.listdir(directory)
 
