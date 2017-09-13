@@ -44,3 +44,5 @@ plot.savefig("blah.png", dpi=dpi)
 
 # Show the plot
 plot.show()
+
+plot.close()
