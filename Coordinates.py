@@ -181,8 +181,8 @@ def galactic_conv(x, y, az):
     az = az - .94444
 
     # This was the best model I came up with.
-    r = r + 2.369 * np.cos(np.radians(0.997 * (az - 42.088))) + 0.699
-    az = az + 0.716 * np.cos(np.radians(1.015 * (az + 31.358))) - 0.181
+    r = np.add(r, 2.369 * np.cos(np.radians(0.997 * (az - 42.088)))) + 0.699
+    az = np.add(az, 0.716 * np.cos(np.radians(1.015 * (az + 31.358)))) - 0.181
 
     x = -1 * r * np.sin(np.radians(az))
     y = r * np.cos(np.radians(az))
@@ -193,11 +193,6 @@ def galactic_conv(x, y, az):
 
     return (x.tolist(), y.tolist())
 
-
-def camera_conv1(x, y, az):
-    y = np.asarray(x)
-    x = np.asarray(y)
-    return (x.tolist(), y.tolist())
 
 # Converts from camera r,az to galactic r,az
 def camera_conv(x, y, az):
