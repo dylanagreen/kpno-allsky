@@ -4,13 +4,14 @@ import matplotlib.image as image
 import matplotlib.pyplot as plot
 
 # Saves an input image with the given name in the folder denoted by location.
-# If the image is grescale, cmap should be 'gray'
+# If the image is greyscale, cmap should be 'gray'
 def save_image(img, name, location, cmap=None):
     # DPI chosen to have resultant image be the same size as the originals.
     # 128*4 = 512
     dpi = 128
     y = img.shape[0] / dpi
     x = img.shape[1] / dpi
+    
     # Generate Figure and Axes objects.
     figure = plot.figure()
     figure.set_size_inches(x, y)  # 4 inches by 4 inches

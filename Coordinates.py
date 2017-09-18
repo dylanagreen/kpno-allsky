@@ -30,41 +30,42 @@ thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
 
 # Returns a tuple of form (alt, az)
 def xy_to_altaz(x, y):
-
+    # Converts lists/numbers to np ndarrays for vectorwise math.
+    x = np.asarray(x)
+    y = np.asarray(y)
+    
     # Point adjusted based on the center being at... well... the center.
     # And not the top left. In case you were confused.
     # Y is measured from the top stop messing it up.
     pointadjust = (x - center[0], center[1] - y)
 
     # We use -x here because the E and W portions of the image are flipped
-    az = math.atan2(-pointadjust[0], pointadjust[1])
+    az = np.arctan2(-pointadjust[0], pointadjust[1])
 
-    # For same reason as -x, we use > 0 here
     # atan2 ranges from -pi to pi but we need 0 to 2 pi.
-    if pointadjust[0] > 0:
-        az += 2 * math.pi
-
-    az = math.degrees(az)
+    # So values with alt < 0 need to actually be the range from pi to 2 pi
+    cond = np.less(pointadjust[0], 0)
+    az = np.where(cond, az + 2 * np.pi, az)
+    az = np.degrees(az)
 
     # Pythagorean thereom boys.
-    r = math.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
+    r = np.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
 
+    # 90- turns the angle from measured from the vertical
+    # to measured from the horizontal.
+    # This interpolates the value from the two on either side of it.
+    r = r * 11.6 / 240  # Magic pixel to mm conversion rate
+    alt = 90 - np.interp(r, xp=rpoints, fp=thetapoints)
+    
     # For now if r is on the edge of the circle or beyond
     # we'll have it just be 0 degrees. (Up from horizontal)
-    if r > 240:
-        alt = 0
-    else:
-        r = r * 11.6 / 240  # Magic pixel to mm conversion rate
-
-        # 90- turns the angle from measured from the vertical
-        # to measured from the horizontal.
-        # This interpolates the value from the two on either side of it.
-        alt = 90 - np.interp(r, xp=rpoints, fp=thetapoints)
+    cond = np.greater(r, 240)
+    alt = np.where(cond, 0, alt)
 
     # Az correction
     az = az + .94444
-
-    return (alt, az)
+    
+    return (alt.tolist(), az.tolist())
 
 
 # Returns a tuple of form (ra, dec)
@@ -109,6 +110,9 @@ def radec_to_altaz(ra, dec, time):
 
 # Returns a tuple of form (x,y)
 def altaz_to_xy(alt, az):
+    alt = np.asarray(alt)
+    az = np.asarray(az)
+    
     # Approximate correction (due to distortion of lens?)
     az = az - .94444
 
@@ -119,11 +123,13 @@ def altaz_to_xy(alt, az):
 
     # Angle measured from vertical so sin and cos are swapped from usual polar.
     # These are x,ys with respect to a zero.
-    x = -1 * r * math.sin(math.radians(az))
-    y = r * math.cos(math.radians(az))
+    x = -1 * r * np.sin(np.radians(az))
+    y = r * np.cos(np.radians(az))
 
     # y is measured from the top!
-    pointadjust = (x + center[0], center[1] - y)
+    x = x + center[0]
+    y = center[1] - y
+    pointadjust = (x.tolist(), y.tolist())
 
     return pointadjust
 
@@ -131,19 +137,19 @@ def altaz_to_xy(alt, az):
 # Returns a tuple of form (x,y)
 # Time must be an astropy Time object.
 def radec_to_xy(ra, dec, time):
-    altaz = radec_to_altaz(ra, dec, time)
-    x, y = altaz_to_xy(altaz[0], altaz[1])
-    return galactic_conv(x, y, altaz[1])
+    alt, az = radec_to_altaz(ra, dec, time)
+    x, y = altaz_to_xy(alt, az)
+    return galactic_conv(x, y, az)
 
 
 # Returns a tuple of form (ra,dec)
 # Time must be an astropy Time object.
 def xy_to_radec(x, y, time):
-    altaz = xy_to_altaz(x, y)
-    x, y = camera_conv(x, y, altaz[1])
-
-    altaz = xy_to_altaz(x, y)
-    return altaz_to_radec(altaz[0], altaz[1], time)
+    alt, az = xy_to_altaz(x, y)
+    x, y = camera_conv(x, y, az)
+    alt, az = xy_to_altaz(x, y)
+    
+    return altaz_to_radec(alt, az, time)
 
 
 # Converts a file name to a time object.
@@ -161,56 +167,76 @@ def timestring_to_obj(date, filename):
     return Time(formatted)
 
 
-# Converts from galactic x,y, expected az to camera x,y, actual az
+# Converts from galactic r, expected az to camera r, actual az
 def galactic_conv(x, y, az):
+    y = np.asarray(y)
+    x = np.asarray(x)
+    az = np.asarray(az)
+    
     # Convert to center relative coords.
     x = x - center[0]
     y = center[1] - y
 
-    r = math.sqrt(x**2 + y**2)
+    r = np.sqrt(x**2 + y**2)
     az = az - .94444
 
     # This was the best model I came up with.
-    r = r + 2.369 * math.cos(math.radians(0.997 * (az - 42.088))) + 0.699
-    az = az + 0.716 * math.cos(math.radians(1.015 * (az + 31.358))) - 0.181
+    r = r + 2.369 * np.cos(np.radians(0.997 * (az - 42.088))) + 0.699
+    az = az + 0.716 * np.cos(np.radians(1.015 * (az + 31.358))) - 0.181
 
-    x = -1 * r * math.sin(math.radians(az))
-    y = r * math.cos(math.radians(az))
+    x = -1 * r * np.sin(np.radians(az))
+    y = r * np.cos(np.radians(az))
 
     # Convert to top left relative coords.
     x = x + center[0]
     y = center[1] - y
 
-    return (x, y)
+    return (x.tolist(), y.tolist())
 
+
+def camera_conv1(x, y, az):
+    y = np.asarray(x)
+    x = np.asarray(y)
+    return (x.tolist(), y.tolist())
 
 # Converts from camera r,az to galactic r,az
 def camera_conv(x, y, az):
+    y = np.asarray(y)
+    x = np.asarray(x)
+    az = np.asarray(az)
+    
     # Convert to center relative coords.
     x = x - center[0]
     y = center[1] - y
 
-    r = math.sqrt(x**2 + y**2)
+    r = np.sqrt(x**2 + y**2)
 
     # You might think that this should be + but actually no.
     # Mostly due to math down below in the model this works better as -.
     az = az - .94444  # - 0.286375
 
-    az = az - 0.731 * math.cos(math.radians(0.993 * (az + 34.5))) + 0.181
-    r = r - 2.358 * math.cos(math.radians(0.99 * (az - 40.8))) - 0.729
+    az = np.subtract(az, 0.731 * np.cos(np.radians(0.993 * (az + 34.5)))) + 0.181
+    r = np.subtract(r, 2.358 * np.cos(np.radians(0.99 * (az - 40.8)))) - 0.729
 
-    x = -1 * r * math.sin(math.radians(az))
-    y = r * math.cos(math.radians(az))
+    x = -1 * r * np.sin(np.radians(az))
+    y = r * np.cos(np.radians(az))
 
     # Convert to top left relative coords.
     x = x + center[0]
     y = center[1] - y
 
-    return (x, y)
+    return (x.tolist(), y.tolist())
+
+
+# Loads in an image.
+def load_image(date, file):
+    file = 'Images/Radius/' + date + '-' + file + '.png'
+    img = ndimage.imread(file, mode='L')
+    return img
 
 
 # Draws a celestial horizon
-def celestial_horizon(date, file):
+def draw_celestial_horizon(date, file):
     load_image(date, file)
     time = timestring_to_obj(date, file)
 
@@ -226,17 +252,6 @@ def celestial_horizon(date, file):
             img[xy[1], xy[0]] = (244, 66, 229)
 
         ra += 0.5
-
-    return img
-
-
-# Loads in an image.
-def load_image(date, file):
-    time = timestring_to_obj(date, file)
-
-    file = 'Images/Radius/' + date + '-' + file + '.png'
-
-    img = ndimage.imread(file, mode='L')
 
     return img
 
@@ -357,7 +372,6 @@ def delta_r(img, centerx, centery):
 
     return (rexpected, ractual, deltar)
 
-altaz = xy_to_altaz(250, 300)
 
 #tempfile = 'r_ut043526s01920' #7/21
 #tempfile = 'r_ut113451s29520' #7/31

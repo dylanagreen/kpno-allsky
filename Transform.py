@@ -30,6 +30,14 @@ def transform(file, date):
     ignore = 'Images/Ignore.png'
     img2 = ndimage.imread(ignore, mode='RGB')
 
+    # Sets up the figure and axes objects
+    fig = plot.figure(frameon=False)
+    fig.set_size_inches(12, 6)
+
+    # We just want the globe to be centered in an image so we turn off the axis.
+    ax1 = plot.Axes(fig, [0., 0., 1., 1.])
+    ax1.set_axis_off()
+
     # This is black background stuff
     rapoints = []
     decpoints = []
@@ -45,18 +53,9 @@ def transform(file, date):
             dec += .5
         ra += .5
 
-    x, y = eckertiv(rapoints, decpoints)
-
-    # Sets up the figure and axes objects
-    fig = plot.figure(frameon=False)
-    fig.set_size_inches(12, 6)
-
-    # We just want the globe to be centered in an image so we turn off the axis.
-    ax1 = plot.Axes(fig, [0., 0., 1., 1.])
-    ax1.set_axis_off()
-
     # Scatter for the background
     # (i.e. fills in the rest of the globular shape with black)
+    x, y = eckertiv(rapoints, decpoints)
     scatter = ax1.scatter(x, y, s=2, color='black')
 
     # This is the image conversion
@@ -64,7 +63,6 @@ def transform(file, date):
     azpoints = []
     xpoints = []
     ypoints = []
-    colors = []
 
     for row in range(0, img.shape[0]):
         for column in range(0, img.shape[1]):
@@ -79,29 +77,20 @@ def transform(file, date):
                     img[column, row] = 0
                 elif (r > 240):
                     img[column, row] = 0
-
+            # Only want points in the circle to convert
             if(r < 241):
-                # We need to add 0.5 to the r,c coords to get the center
-                # of the pixel rather than the top left corner.
-                # I've also had to split the xy-radec conversion.
-                # The reason for this is that xy-to-altaz doesn't work
-                # On np.arrays vectorwise like altaz-to-radec does.
-                alt, az = Coordinates.xy_to_altaz(column + 0.5, row + 0.5)
-                x, y = Coordinates.camera_conv(column, row, az)
-
-                # x = column
-                # y = row
-                alt, az = Coordinates.xy_to_altaz(x, y)
-
-                altpoints.append(alt)
-                azpoints.append(az)
                 xpoints.append(column)
                 ypoints.append(row)
 
+    # We need to add 0.5 to the r,c coords to get the center of the pixel
+    # rather than the top left corner.
     # Convert the alt az to x,y
-    rapoints, decpoints = Coordinates.altaz_to_radec(altpoints, azpoints, time)
+    x = np.add(np.asarray(xpoints), 0.5)
+    y = np.add(np.asarray(ypoints), 0.5)
+    rapoints, decpoints = Coordinates.xy_to_radec(x, y, time)
 
     # Finds colors for dots.
+    colors = []
     for i in range(0, len(rapoints)):
         
         # This block changes the ra so that the projection is centered at 
@@ -119,9 +108,8 @@ def transform(file, date):
 
         colors.append(img[y, x])
 
-    x, y = eckertiv(rapoints, decpoints)
-
     # Scatter for the image conversion
+    x, y = eckertiv(rapoints, decpoints)
     scatter = ax1.scatter(x, y, s=1, c=colors, cmap='gray')
     
     # Add the contours
@@ -152,7 +140,7 @@ def transform(file, date):
     conv = directory + file
     
     # Want it to be 1920 wide.
-    dpi = 1920/(fig.get_size_inches()[0])
+    dpi = 1920 / (fig.get_size_inches()[0])
     plot.savefig(conv, dpi=dpi)
 
     print('Saved: ' + conv)
@@ -408,8 +396,8 @@ date = '20170820'
 directory = 'Images/' + date + '/'
 files = os.listdir(directory)
 
-#transform('r_ut032636s10080.png', date)
+transform('r_ut032920s05040.png', date)
 
 # Loop for transforming a whole day.
-for file in files:
-    transform(file, date)
+#for file in files:
+    #transform(file, date)
