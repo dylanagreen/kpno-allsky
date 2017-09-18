@@ -264,13 +264,8 @@ def draw_circle(x, y, img, color='c', name='blah.png'):
         circ.set_edgecolor(color)
         axes.add_patch(circ)
 
-    # DPI chosen to have resultant image be the same size as the originals.
-    # 128*4 = 512
     plot.savefig(name, dpi=128)
-
     plot.close()
-    # Show the plot
-    #plot.show()
 
 
 # Looks for a star in a variable size pixel box centered at x,y

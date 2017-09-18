@@ -8,8 +8,7 @@ from scipy import ndimage
 from PIL import Image
 from io import BytesIO
 
-
-
+import ImageIO
 
 # Html parser for looping through html tags
 class DateHTMLParser(HTMLParser):
@@ -204,7 +203,8 @@ def median_of_medians(arr, i):
     else:
         return median_of_medians(high, i - (lownum + identnum))
 
-
+# Finds all median images for a given date
+# Returns a dictionary of median images, with keys being exposures.
 def median_all_date(date, color=False):
     # I've hard coded the files for now, this can be changed later.
     directory = 'Images/' + date + '/'
@@ -216,15 +216,6 @@ def median_all_date(date, color=False):
         print('Images directory not found for that date!')
         print('Are you sure you downloaded images?')
         exit()
-
-    # Directory for the files to save to later
-    if not color:
-        filedir = 'Images/Median/' + date
-    else:
-        filedir = 'Images/Median-Color/' + date
-
-    if not os.path.exists(filedir):
-        os.makedirs(filedir)
 
     # These dictionaries hold the images and existence booleans.
     keys = ['All', '0.02', '0.3', '6']
@@ -283,21 +274,6 @@ def median_all_date(date, color=False):
     else:
         superimg['All'] = load_all_date(date)
 
-    # Sets the size of the image x,y in inches to be the same as the original
-    dpi = 128
-    y = superimg['All'].shape[0] / dpi
-    x = superimg['All'].shape[1] / dpi
-
-    # Generate Figure and Axes objects.
-    figure = plot.figure()
-    figure.set_size_inches(x, y)  # x inches by y inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
-
     print("Loaded images")
 
     # Axis 2 is the color axis (In RGB space 3 is the color axis).
@@ -308,14 +284,13 @@ def median_all_date(date, color=False):
         # If not color we can use magic np median techniques.
         if not color:
             finalimg[key] = np.median(superimg[key], axis=2)
-            final = finalimg[key]
         # In color we use the median of median because rgb tuples.
         else:
-            final = finalimg[key]
+            #final = finalimg[key]
             # Let's run this loop as little as possible thanks.
             if not np.array_equal(superimg[key], np.zeros((1, 1, 1, 1))):
                 supe = superimg[key]
-                final = np.zeros((supe.shape[0], supe.shape[1], 3))
+                #final = np.zeros((supe.shape[0], supe.shape[1], 3))
 
                 x = 0
                 y = 0
@@ -323,31 +298,38 @@ def median_all_date(date, color=False):
                     for column in row:
                         tuples = ndarray_to_tuplelist(column)
                         median = median_of_medians(tuples, len(tuples) // 2)
-                        final[y][x] = [median[1], median[2], median[3]]
-
+                        finalimg[key][y,x] = [median[1], median[2], median[3]]
                         x += 1
                     y += 1
                     x = 0
-
-        # Saves the pic
-        key = key.replace('.', '')
-        filename = filedir + '/' + key
-
-        if not color and not np.array_equal(final, np.zeros((1, 1))):
-            # cmap is required here
-            # Since I did the images in grayscale and imshow needs to know that
-            axes.imshow(final, cmap='gray')
-            plot.savefig(filename, dpi=dpi)
-
-        elif color and not np.array_equal(final, np.zeros((512, 512, 3))):
-            axes.imshow(np.uint8(final))
-            plot.savefig(filename, dpi=dpi)
-
+            #finalimg[key] = np.zeros((supe.shape[0], supe.shape[1], 3))
     print('Median images complete for ' + date)
+    return finalimg
 
-    # Show the plot
-    #plot.show()
+# Date tells this function what folder to save the medians in.
+# Color tells us if the medians are in color or not.
+def save_medians(medians, date, color=False):
+    if not color:
+        loc = 'Images/Median/' + date + '/'
+        cmap = 'gray'
+    else:
+        loc = 'Images/Median-Color/' + date + '/'
+        cmap = None
+    
+    if not os.path.exists(loc):
+        os.makedirs(loc)
+    
+    for key, median in medians.items():
+        name = key.replace('.', '')
+        
+        # If blocks to only save the ones with actual data
+        if not color and not np.array_equal(median, np.zeros((1, 1))):
+            ImageIO.save_image(median, name, loc, cmap)
+            
+        elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
+            ImageIO.save_image(np.uint8(median), name, loc)
 
-date = '1'
+date = '20170918'
 #download_all_date(date)
-median_all_date(date, True)
+medians = median_all_date(date)
+save_medians(medians, date)

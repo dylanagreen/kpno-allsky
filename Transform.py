@@ -358,6 +358,7 @@ def hull_patch():
 # This function sorts a set of values clockwise from the center.
 # Pos defines whether or not the sort sorts anticlockwise from the positive x
 # Or clockwise from the negative x.
+# Anticlockwise = True, clockwise = False
 def clockwise_sort(ra, dec, positive = False):
     x = sorted(ra)
     y = sorted(dec)

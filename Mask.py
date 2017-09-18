@@ -6,6 +6,7 @@ import math
 import os
 from collections import Counter
 
+import ImageIO
 
 # Looks through the images to make the mask and returns a mask array.
 def find_mask():
@@ -52,20 +53,8 @@ def save_mask(mask):
 
     for loc in mask:
         newimg[loc[1], loc[0]] = 255
-
-    figure = plot.figure()
-    figure.set_size_inches(4, 4)  # 4 inches by 4 inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
-
-    # Adds the image into the axes and displays it
-    axes.imshow(newimg, cmap='gray')
-
-    plot.savefig(dest, dpi=128)
+    
+    ImageIO.save_image(newimg, 'Mask.png', 'Images/', 'gray')
 
 
 # Applies the mask to the image
