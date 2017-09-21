@@ -1,11 +1,16 @@
-from scipy import ndimage
 import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
+import os
+from scipy import ndimage
 
 # Saves an input image with the given name in the folder denoted by location.
 # If the image is greyscale, cmap should be 'gray'
 def save_image(img, name, location, cmap=None):
+    
+    if not os.path.exists(location):
+        os.makedirs(location)
+    
     # DPI chosen to have resultant image be the same size as the originals.
     # 128*4 = 512
     dpi = 128
@@ -25,7 +30,14 @@ def save_image(img, name, location, cmap=None):
     # Adds the image into the axes and displays it
     # Then saves
     axes.imshow(img, cmap=cmap)
-    name = location + '/' + name + '.png'
+    
+    name = location + '/' + name
+    
+    # Append .png if it wasn't passed in like that already.
+    if not name[-4:] == '.png':
+        name = name + '.png'
+    
+    print('Saved: ' + name)
     plot.savefig(name, dpi=dpi)
 
     # Show the plot
