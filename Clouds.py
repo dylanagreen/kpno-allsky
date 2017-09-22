@@ -78,7 +78,7 @@ def six_cloud_contrast(img, name, date):
     
     img4 = np.uint8(temp)
 
-    loc = 'Images/Clouds/' + str(date)
+    loc = 'Images/Cloud/' + str(date)
 
     ImageIO.save_image(img4, name, loc, 'gray')
 
@@ -133,16 +133,16 @@ def six_cloud_contrast2(img, name, date):
 
     img8 = np.uint8(temp)
 
-    loc = 'Images/Clouds/' + str(date)
+    loc = 'Images/Cloud/' + str(date)
 
     ImageIO.save_image(img8, name, loc, 'gray')
     
 date = '20170624'
-directory = 'Images/' + date + '/'
+directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
 #file = 'r_ut071723s05040.png'
 for file in files:
     img = ndimage.imread(directory + file, mode='L')
-    cloud_contrast(img, file, date)
+    six_cloud_contrast(img, file, date)
     
 

@@ -31,7 +31,11 @@ def save_image(img, name, location, cmap=None):
     # Then saves
     axes.imshow(img, cmap=cmap)
     
-    name = location + '/' + name
+    # If location was passed with / on the end, don't append another one.
+    if not location[-1:] == '/':
+        name = location + '/' + name
+    else:
+        name = location + name
     
     # Append .png if it wasn't passed in like that already.
     if not name[-4:] == '.png':

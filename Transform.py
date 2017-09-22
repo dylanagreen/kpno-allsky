@@ -19,7 +19,7 @@ center = (256, 252)
 # TODO Refactor this to take in a numpy image and read in the image elsewhere.
 def transform(file, date):
     # Read in the file on given date.
-    img = ndimage.imread('Images/' + date + '/' + file, mode='L')
+    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
     time = Coordinates.timestring_to_obj(date, file)
 
     # Find the mask and black out those pixels.
@@ -73,10 +73,10 @@ def transform(file, date):
 
             # Zeros out ignorable objects first
             if(r < 250):
-                if np.array_equal(img2[column, row], [244, 66, 235]):
-                    img[column, row] = 0
+                if np.array_equal(img2[row, column], [244, 66, 235]):
+                    img[row, column] = 0
                 elif (r > 240):
-                    img[column, row] = 0
+                    img[row, column] = 0
             # Only want points in the circle to convert
             if(r < 241):
                 xpoints.append(column)
@@ -392,12 +392,12 @@ def clockwise_sort(ra, dec, positive = False):
     y = r * np.sin(theta) + centery
     return (x,y)
 
-date = '20170820'
-directory = 'Images/' + date + '/'
+date = '20170902'
+directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
 
-transform('r_ut032920s05040.png', date)
+#transform('r_ut032920s05040.png', date)
 
 # Loop for transforming a whole day.
-#for file in files:
-    #transform(file, date)
+for file in files:
+    transform(file, date)

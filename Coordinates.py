@@ -394,7 +394,7 @@ stars = {'Polaris': (37.9461429,  89.2641378),
 
 def contours(date, file):
     
-    file = 'Images/' + date + '/' + file + '.png'
+    file = 'Images/Original/' + date + '/' + file + '.png'
 
     img = ndimage.imread(file, mode='L')
     
@@ -421,7 +421,7 @@ def contours(date, file):
         axes.add_patch(circ)
         
         
-    name = "Images/test.png"
+    name = 'Images/Contour/' + date + '/' + file + '.png'
     plot.savefig(name, dpi=128)
 
     plot.close()
@@ -502,4 +502,4 @@ def conv_test():
 
 #conv_test()
 
-contours(date, tempfile)
+#contours(date, tempfile)

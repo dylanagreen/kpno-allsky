@@ -29,7 +29,8 @@ def download_all_date(date):
     # Creates the link
     link = 'http://kpasca-archives.tuc.noao.edu/' + date
 
-    directory = 'Images/' + date
+    # Prevents clutter by collecting originals in their own folder within Images
+    directory = 'Images/Original/' + date
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -52,6 +53,8 @@ def download_all_date(date):
         # Otherwise request the html data of the page for that image
         # and save the image
         else:
+            # I could use my ImageIO save_image here, but this way is quicker
+            # since I don't have to make a plot for every image.
             imageloc = link + '/' + image
             imagename = directory + '/' + image
             rimage = requests.get(imageloc)
@@ -82,7 +85,7 @@ def get_exposure(image):
 def load_all_date(date):
 
     # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/' + date + '/'
+    directory = 'Images/Original/' + date + '/'
 
     # In theory this is only ever called from median_all_date.
     # Just in case though.
@@ -207,7 +210,7 @@ def median_of_medians(arr, i):
 # Returns a dictionary of median images, with keys being exposures.
 def median_all_date(date, color=False):
     # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/' + date + '/'
+    directory = 'Images/Original/' + date + '/'
 
     # Gotta make sure those images exist.
     try:
@@ -316,9 +319,6 @@ def save_medians(medians, date, color=False):
         loc = 'Images/Median-Color/' + date + '/'
         cmap = None
     
-    if not os.path.exists(loc):
-        os.makedirs(loc)
-    
     for key, median in medians.items():
         name = key.replace('.', '')
         
@@ -329,7 +329,7 @@ def save_medians(medians, date, color=False):
         elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
             ImageIO.save_image(np.uint8(median), name, loc)
 
-date = '20170918'
-#download_all_date(date)
+date = '20170624'
+download_all_date(date)
 medians = median_all_date(date)
 save_medians(medians, date)
