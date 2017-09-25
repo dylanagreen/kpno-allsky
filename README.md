@@ -8,6 +8,7 @@ SciPy
 NumPy
 matplotlib
 Requests
+scikit-image
 
 At present:
 
@@ -33,6 +34,9 @@ At present:
 - Ra-dec image is projected as an Eckert-IV projection.
 - Methods are provided to transform arrays of ra and dec into x,y for Mollweide and Eckert-IV projections.
 - Ignores horizon objects, as defined in Ignore.png
+
+# Clouds.py
+- Makes (most of) the clouds in 6s exposure images darker.
 
 # Notebooks
 This repo also features a few jupyter notebooks designed for quick plotting/model corrections. Their functions are defined at the top of the notebooks themselves.
