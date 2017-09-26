@@ -187,7 +187,7 @@ def six_cloud_contrast2(img, name, date):
     img = Mask.apply_mask(mask, img)
 
     # Closing
-    img2 = ndimage.grey_closing(img, size=(2,2))
+    img2 = ndimage.grey_opening(img, size=(2,2))
 
     # Inverts
     img3 = np.subtract(255, img2)
@@ -195,48 +195,40 @@ def six_cloud_contrast2(img, name, date):
     # Subtract closing from the invert to increase contrast. 
     # If it goes negative I want it to be 0 rather than positive abs of num.
     temp = np.int16(img3) - np.int16(img2)
-    cond = np.less(temp, 0)
-    img4 = np.where(cond, 0, temp)
+    img4 = np.where(temp < 0, 0, temp)
 
     # Subtract the original from the working image.
     # Increases contrast with clouds.
     temp = np.int16(img4) - np.int16(img)
-    cond = np.less(temp, 0)
-    img7 = np.where(cond, 0, temp)
+    img5 = np.where(temp < 0, 0, temp)
     
-    thresh = threshold_otsu(img7)
-    #print(thresh)
+    # Again because if there are no clouds this makes it a bit less conspicuous
+    temp = np.int16(img5) - np.int16(img)
+    img6 = np.where(temp < 0, 0, temp)
     
-    # Threshold the image so we have the clouds white and everything else black.
-    img6 = np.where(img7 > thresh, 255, 0)
+    temp = np.copy(img)
+    
+    # This is kind of cool so I left it here in case someone wants to see.
+    #multiple = np.abs(.1 - img6 / 255)
 
-    temp = np.int16(img)
-    
-    for row in range(0,img6.shape[0]):
-        for column in range(0,img4.shape[1]):
-        
-            x = column - center[0]
-            y = center[1] - row
-            r = math.sqrt(x**2 + y**2)
-            if r <= 240 and img6[row, column] == 255:# and temp[row, column] < 44:
-                    #print(temp[row, column])
-                temp[row, column] = 0#temp[row, column] *.5#- 40
-            
-                if temp[row, column] < 0:
-                    temp[row, column] = 0
+    # The thinking here is that the whiter it is in the contrast++ image, the
+    # darker it should be in the original. Thus increasing cloud contrast
+    # without making it look like sketchy black blobs. 
+    multiple = 1 - img6 / 255
+    temp = np.multiply(temp, multiple)
 
-    img8 = np.uint8(temp)
+    img7 = np.uint8(temp)
 
     loc = 'Images/Cloud/' + str(date)
 
-    ImageIO.save_image(img8, name, loc, 'gray')
+    ImageIO.save_image(img7, name, loc, 'gray')
     
 date = '20170623'
 directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
-#file = 'r_ut080515s07920.png'
-for file in files:
-    img = ndimage.imread(directory + file, mode='L')
-    six_cloud_contrast(img, file, date)
+file = 'r_ut080515s07920.png'
+#for file in files:
+img = ndimage.imread(directory + file, mode='L')
+six_cloud_contrast2(img, file, date)
     
 
