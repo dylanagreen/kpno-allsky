@@ -187,7 +187,7 @@ def six_cloud_contrast2(img, name, date):
     img = Mask.apply_mask(mask, img)
 
     # Closing
-    img2 = ndimage.grey_opening(img, size=(2,2))
+    img2 = ndimage.grey_closing(img, size=(2,2))
 
     # Inverts
     img3 = np.subtract(255, img2)
