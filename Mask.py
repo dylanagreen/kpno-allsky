@@ -8,14 +8,16 @@ from collections import Counter
 
 import ImageIO
 
-# Looks through the images to make the mask and returns a mask array.
-def find_mask():
+center = (256, 252)
+
+# Looks through the median images to make the mask and returns a mask array.
+# "Clean" in this case means no horizon objects.
+def generate_clean_mask():
     fileloc = 'Images/Mask/'
     files = os.listdir(fileloc)
 
     tolerance = 150
-
-    hots = []
+    mask = []
 
     for file in files:
         file = fileloc + file
@@ -29,7 +31,7 @@ def find_mask():
                 # white-tolerance and white
                 # Y is first value as it's the row value
                 if img[y, x] >= (255 - tolerance):
-                    hots.append((x, y))
+                    mask.append((x, y))
 
                 x += 1
             y += 1
@@ -37,11 +39,38 @@ def find_mask():
 
     # Get only the pixels that appear as "hot" in all of the images
     final = []
-    for item, num in Counter(hots).items():
+    for item, num in Counter(mask).items():
         if num == len(files):
             final.append(item)
 
     return sorted(final)
+    
+# Gets the "clean" mask and then adds the horizon objects to it.
+def generate_mask():
+    mask = generate_clean_mask()
+    
+    # Read in the ignore image.
+    ignore = ndimage.imread('Images/Ignore.png', mode='RGB')
+    
+    y = 0
+    x = 0
+    while y < ignore.shape[1]:
+        while x < ignore.shape[0]:
+            
+            x1 = x - center[0]
+            y1 = center[1] - y
+            r = math.sqrt(x1**2 + y1**2)
+            
+            # Ignore horizon objects (which have been painted pink)
+            # Only want the horizon objects actually in the circle.
+            # Avoids unnecessary pixels.
+            if np.array_equal(ignore[y, x], [244, 66, 235]) and r < 242:
+                mask.append((x, y))
+            x += 1
+        y += 1
+        x = 0
+    
+    return sorted(mask)
 
 
 # Saves a given mask as in image in the Images folder.

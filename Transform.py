@@ -23,12 +23,8 @@ def transform(file, date):
     time = Coordinates.timestring_to_obj(date, file)
 
     # Find the mask and black out those pixels.
-    mask = Mask.find_mask()
+    mask = Mask.generate_mask()
     img = Mask.apply_mask(mask, img)
-
-    # Read in the ignore image.
-    ignore = 'Images/Ignore.png'
-    img2 = ndimage.imread(ignore, mode='RGB')
 
     # Sets up the figure and axes objects
     fig = plot.figure(frameon=False)
@@ -72,13 +68,10 @@ def transform(file, date):
             r = math.sqrt(x**2 + y**2)
 
             # Zeros out ignorable objects first
-            if(r < 250):
-                if np.array_equal(img2[row, column], [244, 66, 235]):
-                    img[row, column] = 0
-                elif (r > 240):
-                    img[row, column] = 0
+            if(r > 241):
+                img[row, column] = 0
             # Only want points in the circle to convert
-            if(r < 241):
+            else:
                 xpoints.append(column)
                 ypoints.append(row)
 
@@ -392,7 +385,7 @@ def clockwise_sort(ra, dec, positive = False):
     y = r * np.sin(theta) + centery
     return (x,y)
 
-date = '20170902'
+date = '20170918'
 directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
 
