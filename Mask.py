@@ -38,6 +38,8 @@ def generate_clean_mask():
             x = 0
 
     # Get only the pixels that appear as "hot" in all of the images
+    # Essentially means we only want the duplicates in the list that are
+    # duplicated the same amount of times as the number of files. 
     final = []
     for item, num in Counter(mask).items():
         if num == len(files):
