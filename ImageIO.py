@@ -41,10 +41,27 @@ def save_image(img, name, location, cmap=None):
     if not name[-4:] == '.png':
         name = name + '.png'
     
-    print('Saved: ' + name)
+    # Print "saved" after saving, in case saving messes up.
     plot.savefig(name, dpi=dpi)
+    print('Saved: ' + name)
 
     # Show the plot
     #plot.show()
 
+    # Close the plot in case you're running multiple saves.
     plot.close()
+
+
+# Returns the difference image between two images. 
+# Black areas are exactly the same in both, white areas are opposite.
+# Greyscale/color values are varying levels of difference.
+def image_diff(img1, img2):
+    # I encountered a problem previously, in that
+    # I assumed the type of the array would dynamically change.
+    # This is python, so that's not wrong per se.
+    # Anyway turns out it's wrong so I have to cast these to numpy ints.
+    # I then have to cast back to uints because imshow
+    # works differently on uint8 and int16.
+    diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
+
+    return diffimg
