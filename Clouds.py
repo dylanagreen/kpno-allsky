@@ -17,7 +17,7 @@ center = (256, 252)
 # TODO Refactor to return image, save elsewhere
 def six_cloud_contrast3(img, name, date):
     # Find the mask and black out those pixels.
-    mask = Mask.find_mask()
+    mask = Mask.generate_clean_mask()
     img = Mask.apply_mask(mask, img)
     
     # This blocks out all the stars, helping the local threshold later be more
@@ -85,7 +85,7 @@ def six_cloud_contrast3(img, name, date):
 
 def six_cloud_contrast(img, name, date):
     # Find the mask and black out those pixels.
-    mask = Mask.find_mask()
+    mask = Mask.generate_clean_mask()
     img = Mask.apply_mask(mask, img)
 
     # Closing
@@ -183,7 +183,7 @@ def six_cloud_contrast(img, name, date):
 def six_cloud_contrast2(img, name, date):
     
     # Find the mask and black out those pixels.
-    mask = Mask.find_mask()
+    mask = Mask.generate_clean_mask()
     img = Mask.apply_mask(mask, img)
 
     # Closing
@@ -226,9 +226,9 @@ def six_cloud_contrast2(img, name, date):
 date = '20170623'
 directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
-file = 'r_ut080515s07920.png'
-#for file in files:
-img = ndimage.imread(directory + file, mode='L')
-six_cloud_contrast2(img, file, date)
+#file = 'r_ut080515s07920.png'
+for file in files:
+    img = ndimage.imread(directory + file, mode='L')
+    six_cloud_contrast2(img, file, date)
     
 

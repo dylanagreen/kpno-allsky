@@ -43,7 +43,7 @@ def generate_clean_mask():
         if num == len(files):
             final.append(item)
 
-    return sorted(final)
+    return final
     
 # Gets the "clean" mask and then adds the horizon objects to it.
 def generate_mask():
@@ -70,7 +70,7 @@ def generate_mask():
         y += 1
         x = 0
     
-    return sorted(mask)
+    return mask
 
 
 # Saves a given mask as in image in the Images folder.
