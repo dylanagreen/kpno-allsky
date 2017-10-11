@@ -7,6 +7,8 @@ from scipy import ndimage
 from skimage.filters import threshold_otsu, threshold_isodata, threshold_li, threshold_local
 from skimage import exposure
 
+from matplotlib.patches import Circle
+
 import Mask
 import ImageIO
 
@@ -187,7 +189,7 @@ def six_cloud_contrast2(img, name, date):
     img = Mask.apply_mask(mask, img)
 
     # Closing
-    img2 = ndimage.grey_closing(img, size=(2,2))
+    img2 = np.copy(img)#ndimage.grey_opening(img, size=(2,2))
 
     # Inverts
     img3 = np.subtract(255, img2)
@@ -214,14 +216,51 @@ def six_cloud_contrast2(img, name, date):
     # The thinking here is that the whiter it is in the contrast++ image, the
     # darker it should be in the original. Thus increasing cloud contrast
     # without making it look like sketchy black blobs. 
-    multiple = 1 - img6 / 255
+    multiple = .6 - img6 / 255
     temp = np.multiply(temp, multiple)
+    
+    temp = np.where(temp < 0, 0, temp)
 
     img7 = np.uint8(temp)
+    
+    
+    img62 = ndimage.grey_closing(img6, size=(2,2))
+    # Generate Figure and Axes objects.
+    figure = plt.figure()
+    figure.set_size_inches(4, 4)  # 4 inches by 4 inches
+    axes = plt.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
+    # Turn off the actual visual axes for visual niceness.
+    # Then add axes to figure
+    axes.set_axis_off()
+    figure.add_axes(axes)
+
+    # Adds the image into the axes and displays it
+    axes.imshow(img62, cmap='gray')
+
+    axes.set_aspect('equal')
+    
+    for row in range(0,img.shape[1]):
+        for column in range(0,img.shape[0]):
+            if img[row, column] >= (255-100) and not img62[row, column] <= 10:
+                
+                x = column - center[0]
+                y = center[1] - row
+                r = math.sqrt(x**2 + y**2)
+
+                if(r < 241):
+                    circ = Circle((column,row), radius=3, fill=False, edgecolor='green')
+                    axes.add_patch(circ)
+        
+        
+    file = 'Images/Cloud/20170623 - Circle/' + name
+    plt.savefig(file, dpi=128)
+
+    plt.close()
+    
     loc = 'Images/Cloud/' + str(date)
 
-    ImageIO.save_image(img7, name, loc, 'gray')
+    ImageIO.save_image(img62, name, loc, 'gray')
     
 date = '20170623'
 directory = 'Images/Original/' + date + '/'
