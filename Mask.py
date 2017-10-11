@@ -16,7 +16,7 @@ def generate_clean_mask():
     fileloc = 'Images/Mask/'
     files = os.listdir(fileloc)
 
-    tolerance = 150
+    tolerance = 160
     mask = []
 
     for file in files:
