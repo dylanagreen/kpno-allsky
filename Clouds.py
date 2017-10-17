@@ -185,7 +185,7 @@ def six_cloud_contrast(img, name, date):
 def six_cloud_contrast2(img, name, date):
     
     # Find the mask and black out those pixels.
-    mask = Mask.generate_clean_mask()
+    mask = Mask.generate_mask()
     img = Mask.apply_mask(mask, img)
 
     # Closing
@@ -236,35 +236,97 @@ def six_cloud_contrast2(img, name, date):
     figure.add_axes(axes)
 
     # Adds the image into the axes and displays it
-    axes.imshow(img62, cmap='gray')
+    
+    
+    imgbin = np.where(img62 > 10, 1, 0)
+    imgbin = ndimage.binary_opening(imgbin)
+    
+    imgbin = Mask.apply_mask(mask, imgbin)
+    axes.imshow(imgbin, cmap='gray')
 
     axes.set_aspect('equal')
+
+    for row in range(0,img.shape[1]):
+        for column in range(0,img.shape[0]):
+            x = column - center[0]
+            y = center[1] - row
+            r = math.sqrt(x**2 + y**2)
+            if (r < 243) and (r > 241):
+                imgbin[row,column] = 0
+
+    labeled, num_features = ndimage.label(imgbin)
+    regionsize = [0] * (np.amax(labeled)+1)
+    stars = []
+    
+    
     
     for row in range(0,img.shape[1]):
         for column in range(0,img.shape[0]):
-            if img[row, column] >= (255-100) and not img62[row, column] <= 10:
+            regionsize[labeled[row,column]] += 1
+            
+            # This finds stars in "cloud" regions
+            # Basically, if somewhat bright, and the region is marked "cloud."
+            if img[row, column] >= (100) and imgbin[row, column] == 1:
                 
                 x = column - center[0]
                 y = center[1] - row
                 r = math.sqrt(x**2 + y**2)
-
-                if(r < 241):
+                # Let's save time but not reading extraneous outside the circle
+                # stars. Saves time mostly in reducing number of active patches.
+                if(r <= 240):
                     circ = Circle((column,row), radius=3, fill=False, edgecolor='green')
                     axes.add_patch(circ)
-        
-        
+                    stars.append((row, column))
+                    
+                
+    #stars.append((510,510))
+    #stars.append((508,508))
+
+    #circ = Circle(center, radius=241, fill=False, edgecolor='green')
+    #axes.add_patch(circ)
+    
     file = 'Images/Cloud/20170623 - Circle/' + name
     plt.savefig(file, dpi=128)
 
     plt.close()
     
+    # List length  = # of labeled regions + 1 (# of labeled regions does not
+    # include region 0, black sky)
+    starnums = [0] * (np.amax(labeled)+1)
+    for star in stars:
+        regionnum = labeled[star[0], star[1]]
+        starnums[regionnum] += 1
+        
+    
+    temp = np.copy(labeled)
+    #density = np.divide(starnums,regionsize)
+    density = np.where(np.asarray(starnums) <= 1, 0, np.divide(regionsize, starnums))
+    density[0] = 700
+    #density = np.where(density > 10000, 10000, density)
+    for row in range(0,temp.shape[1]):
+        for column in range(0,temp.shape[0]):
+            value = labeled[row, column]
+            temp[row, column] = density[value]
+            
+            
+    #print(np.amax(regions))
+    #print(starnums)    
+    #print(regionsize)
+    #print(density)
+    #print(np.mean(density[np.nonzero(density)]))
+    imgT = np.where(temp < np.mean(density[np.nonzero(density)]), 0, 1)
+    img6_1 = np.multiply(img6, imgT)
+    
+    #temp = temp * (1/np.amax(temp))
+    
     loc = 'Images/Cloud/' + str(date)
 
-    ImageIO.save_image(img62, name, loc, 'gray')
+    ImageIO.save_image(img6_1, name, loc, 'gray')
     
 date = '20170623'
 directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
+file = 'r_ut105647s18240.png'
 #file = 'r_ut080515s07920.png'
 for file in files:
     img = ndimage.imread(directory + file, mode='L')
