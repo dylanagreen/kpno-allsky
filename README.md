@@ -8,8 +8,6 @@ SciPy
 NumPy
 matplotlib
 Requests
-scikit-image
-
 At present:
 
 # Difference.py
