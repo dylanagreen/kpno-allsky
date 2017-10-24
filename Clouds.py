@@ -213,18 +213,14 @@ def six_cloud_contrast2(img, name, date):
     # This is kind of cool so I left it here in case someone wants to see.
     #multiple = np.abs(.1 - img6 / 255)
 
-    # The thinking here is that the whiter it is in the contrast++ image, the
-    # darker it should be in the original. Thus increasing cloud contrast
-    # without making it look like sketchy black blobs. 
-    multiple = .6 - img6 / 255
-    temp = np.multiply(temp, multiple)
     
     temp = np.where(temp < 0, 0, temp)
 
     img7 = np.uint8(temp)
     
     
-    img62 = ndimage.grey_closing(img6, size=(2,2))
+    img62 = ndimage.grey_closing(img6, size=(2,1))
+    
     # Generate Figure and Axes objects.
     figure = plt.figure()
     figure.set_size_inches(4, 4)  # 4 inches by 4 inches
@@ -245,19 +241,34 @@ def six_cloud_contrast2(img, name, date):
     axes.imshow(imgbin, cmap='gray')
 
     axes.set_aspect('equal')
-
+    
+    loc = 'Images/Cloud/' + str(date) + ' - Invert 1'
+    ImageIO.save_image(img62, name, loc, 'gray')
+    
+    loc = 'Images/Cloud/' + str(date) + ' - Binary 1'
+    ImageIO.save_image(imgbin, name, loc, 'gray')
+    
+    struct = [[False, True, False],[True, True, True],[False, True, False]]
+    imgbin = ndimage.binary_dilation(imgbin)
+    
+    # Creates a buffer circle keeping the circle isolated from the background.
     for row in range(0,img.shape[1]):
         for column in range(0,img.shape[0]):
             x = column - center[0]
             y = center[1] - row
             r = math.sqrt(x**2 + y**2)
-            if (r < 243) and (r > 241):
+            if (r < 246) and (r > 241):
                 imgbin[row,column] = 0
 
-    labeled, num_features = ndimage.label(imgbin)
+    loc = 'Images/Cloud/' + str(date) + ' - Binary 2'
+    ImageIO.save_image(imgbin, name, loc, 'gray')
+    
+    # This structure makes it so that diagonally connected pixels are part of
+    # the same region.
+    struct = [[True, True, True],[True, True, True],[True, True, True]]
+    labeled, num_features = ndimage.label(imgbin, structure = struct)
     regionsize = [0] * (np.amax(labeled)+1)
     stars = []
-    
     
     
     for row in range(0,img.shape[1]):
@@ -266,7 +277,7 @@ def six_cloud_contrast2(img, name, date):
             
             # This finds stars in "cloud" regions
             # Basically, if somewhat bright, and the region is marked "cloud."
-            if img[row, column] >= (100) and imgbin[row, column] == 1:
+            if img[row, column] >= (95) and imgbin[row, column] == 1:
                 
                 x = column - center[0]
                 y = center[1] - row
@@ -297,37 +308,69 @@ def six_cloud_contrast2(img, name, date):
         regionnum = labeled[star[0], star[1]]
         starnums[regionnum] += 1
         
-    
+    # The reason why I use density is mainly because of very small non-clouds.
+    # They contain few stars, which rules out a strictly star count method.
+    # This, however, is actually density^-1. I.e. it's size/stars rather than
+    # stars/size. This is because stars/size is very small sometimes.
     temp = np.copy(labeled)
     #density = np.divide(starnums,regionsize)
-    density = np.where(np.asarray(starnums) <= 1, 0, np.divide(regionsize, starnums))
-    density[0] = 700
-    #density = np.where(density > 10000, 10000, density)
+    
+    # I'm aware of a division by 0 warning here. If a region has no stars, then
+    # this divides by 0. In fact this np.where exists to ignore that and set
+    # zero star regions to a density of 0, since I ignore those later.
+    # Hence I'm supressing the divide by 0 warning for these two lines.
+    with np.errstate(divide='ignore'):
+        density = np.divide(regionsize, starnums)
+        density = np.where(np.asarray(starnums) < 1, 0, density)
+    
+    # Zeroes out densities < 12
+    density = np.where(density < 12, 0, density)
+    density[0] = 350
+    
     for row in range(0,temp.shape[1]):
         for column in range(0,temp.shape[0]):
             value = labeled[row, column]
             temp[row, column] = density[value]
             
-            
-    #print(np.amax(regions))
-    #print(starnums)    
-    #print(regionsize)
-    #print(density)
-    #print(np.mean(density[np.nonzero(density)]))
-    imgT = np.where(temp < np.mean(density[np.nonzero(density)]), 0, 1)
+    loc = 'Images/Cloud/' + str(date) + ' - Density'
+    ImageIO.save_image(temp, name, loc, 'gray')
+    
+    # If the value is less than the mean density, we want to mask it in the 
+    # "map" image. Hence set it to 0, everything else to 1, and multipy.
+    # This keeps the non masks (x*1 = x) and ignores the others (x*0 = 0)
+    m = np.mean(density[np.nonzero(density)])
+    s = np.std(density[np.nonzero(density)])
+    
+    
+    imgT = np.where(temp < m, 0, 1)
     img6_1 = np.multiply(img6, imgT)
     
-    #temp = temp * (1/np.amax(temp))
     
-    loc = 'Images/Cloud/' + str(date)
-
+    loc = 'Images/Cloud/' + str(date) + ' - Corrected'
     ImageIO.save_image(img6_1, name, loc, 'gray')
     
-date = '20170623'
+    
+    # The thinking here is that the whiter it is in the contrast++ image, the
+    # darker it should be in the original. Thus increasing cloud contrast
+    # without making it look like sketchy black blobs. 
+    multiple = .6 - img6_1 / 255
+    temp = np.multiply(img2, multiple)
+    
+    loc = 'Images/Cloud/' + str(date)
+    ImageIO.save_image(temp, name, loc, 'gray')
+    
+    print(density[np.nonzero(density)])
+    print(m)
+    print(s)
+    print(m + s)
+
+    
+date = '20170624'
 directory = 'Images/Original/' + date + '/'
 files = os.listdir(directory)
 file = 'r_ut105647s18240.png'
-#file = 'r_ut080515s07920.png'
+file = 'r_ut080515s07920.png'
+#file = 'r_ut113241s20400.png'
 for file in files:
     img = ndimage.imread(directory + file, mode='L')
     six_cloud_contrast2(img, file, date)
