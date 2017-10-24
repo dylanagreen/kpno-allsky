@@ -90,6 +90,7 @@ def save_mask(mask):
 
 # Applies the mask to the image
 def apply_mask(mask, img):
+    img = np.copy(img)
     # For masked pixel set the pixel to 0
     for loc in mask:
         img[loc[1], loc[0]] = 0
