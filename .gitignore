@@ -1,0 +1,11 @@
+* Image related stuff.
+Images/
+*.png
+Animations/
+
+__pycache__
+
+* Testing related files.
+Temp.py
+radii.txt
+Notebooks/.ipynb_checkpoints/
