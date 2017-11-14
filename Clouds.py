@@ -3,10 +3,16 @@ import os
 import numpy as np
 from scipy import ndimage
 
+
 import Mask
 import ImageIO
+import Coordinates
+
+
 
 center = (256, 252)
+
+
 
 # Takes in an image as an np ndarray.
 # Name and date are for saving purposes
@@ -114,15 +120,15 @@ def six_cloud_contrast(img, name, date):
     loc = 'Images/Cloud/' + str(date)
     ImageIO.save_image(newimg, name, loc, 'gray')
 
-
-date = '20170623'
-directory = 'Images/Original/' + date + '/'
-files = os.listdir(directory)
-file = 'r_ut105647s18240.png'
-file = 'r_ut080515s07920.png'
-#file = 'r_ut113241s20400.png'
-for file in files:
-    img = ndimage.imread(directory + file, mode='L')
-    six_cloud_contrast(img, file, date)
+if __name__ == "__main__":
+    date = '20171108'
+    directory = 'Images/Original/' + date + '/'
+    files = os.listdir(directory)
+    #file = 'r_ut105647s18240.png'
+    #file = 'r_ut080515s07920.png'
+    #file = 'r_ut113241s20400.png'
+    for file in files:
+        img = ndimage.imread(directory + file, mode='L')
+        six_cloud_contrast(img, file, date)
 
 

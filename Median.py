@@ -329,7 +329,8 @@ def save_medians(medians, date, color=False):
         elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
             ImageIO.save_image(np.uint8(median), name, loc)
 
-date = '20170624'
-download_all_date(date)
-medians = median_all_date(date)
-save_medians(medians, date)
+if __name__ == "__main__":
+    date = '20171108'
+    download_all_date(date)
+    medians = median_all_date(date)
+    save_medians(medians, date)
