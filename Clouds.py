@@ -3,10 +3,74 @@ import os
 import numpy as np
 from scipy import ndimage
 
+from astropy.coordinates import SkyCoord, EarthLocation, get_moon, AltAz
+from astropy import units as u
+from matplotlib.patches import Circle
+import matplotlib.pyplot as plot
+
 import Mask
 import ImageIO
+import Coordinates
+
 
 center = (256, 252)
+
+def zero_three_cloud_contrast(img, name, date):
+    
+    dpi = 128
+    y = img.shape[0] / dpi
+    x = img.shape[1] / dpi
+    
+    # Generate Figure and Axes objects.
+    figure = plot.figure()
+    figure.set_size_inches(x, y)  # 4 inches by 4 inches
+    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
+
+    # Turn off the actual visual axes for visual niceness.
+    # Then add axes to figure
+    axes.set_axis_off()
+    figure.add_axes(axes)
+
+    # Adds the image into the axes and displays it
+    # Then saves
+    axes.imshow(img, cmap = 'gray')
+    
+    # This is the latitude/longitude of the camera
+    camera = (31.959417 * u.deg, -111.598583 * u.deg)
+
+    cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
+                                height=2120 * u.meter)
+    
+    time = Coordinates.timestring_to_obj(date, name)
+    
+    #print(time)
+    moon = get_moon(time, location = cameraearth)
+    
+    moonaltaz = moon.transform_to(AltAz(obstime = time, location = cameraearth))
+
+    alt = moonaltaz.alt.degree
+    az =  moonaltaz.az.degree
+    x, y = Coordinates.altaz_to_xy(alt, az)
+    
+    pos = Coordinates.galactic_conv(x, y, az)
+    
+    r = 70
+    circ = Circle(pos, radius=r, fill=False, edgecolor='green')
+    axes.add_patch(circ)
+    
+    location = 'Images/Cloud/' + str(date) + '/'
+    name = location + name
+    
+    # Print "saved" after saving, in case saving messes up.
+    plot.savefig(name, dpi=dpi)
+    print('Saved: ' + name)
+
+    # Show the plot
+    #plot.show()
+
+    # Close the plot in case you're running multiple saves.
+    plot.close()
+
 
 # Takes in an image as an np ndarray.
 # Name and date are for saving purposes
@@ -115,14 +179,16 @@ def six_cloud_contrast(img, name, date):
     ImageIO.save_image(newimg, name, loc, 'gray')
 
 
-date = '20170623'
-directory = 'Images/Original/' + date + '/'
-files = os.listdir(directory)
-file = 'r_ut105647s18240.png'
-file = 'r_ut080515s07920.png'
-#file = 'r_ut113241s20400.png'
-for file in files:
-    img = ndimage.imread(directory + file, mode='L')
-    six_cloud_contrast(img, file, date)
+if __name__ == "__main__":
+    date = '20171108'
+    directory = 'Images/Original/' + date + '/'
+    files = os.listdir(directory)
+    #file = 'r_ut105647s18240.png'
+    #file = 'r_ut080515s07920.png'
+    #file = 'r_ut113241s20400.png'
+    for file in files:
+        img = ndimage.imread(directory + file, mode='L')
+        zero_three_cloud_contrast(img, file, date)
+
 
 
