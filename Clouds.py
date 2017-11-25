@@ -16,6 +16,34 @@ import Coordinates
 center = (256, 252)
 
 def zero_three_cloud_contrast(img, name, date):
+    img2 = ndimage.imread('Images/Original/' + date + '/r_ut052936s31200.png', mode='L')
+    
+    img3 = np.copy(img)
+    img = np.int16(img)
+    img2 = np.int16(img2)
+    
+    
+    val = img[510,510] - img2[510,510]
+    img = img - val
+    
+    test = ImageIO.image_diff(img, img2)
+    loc = 'Images/Cloud/' + str(date) + ' - 3'
+    
+    test = ndimage.grey_closing(test, size = (2,2))
+    
+    avg = np.mean(test)
+    
+    cond = np.where(test > avg, 0, 1)
+    
+    final = np.multiply(img3, cond)
+    
+    # Find the mask and black out those pixels.
+    mask = Mask.generate_mask()
+    final = Mask.apply_mask(mask, final)
+    
+    ImageIO.save_image(test, name, loc, 'gray')
+
+def zero_three_cloud_contrast2(img, name, date):
     
     dpi = 128
     y = img.shape[0] / dpi
