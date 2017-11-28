@@ -394,12 +394,11 @@ def clockwise_sort(ra, dec, positive = False):
     y = r * np.sin(theta) + centery
     return (x,y)
 
-date = '20170623'
-directory = 'Images/Original/' + date + '/'
-files = os.listdir(directory)
-
-#transform('r_ut032920s05040.png', date)
-
-# Loop for transforming a whole day.
-for file in files:
-    transform(file, date)
+if __name__ == "__main__":
+    date = '20170623'
+    directory = 'Images/Original/' + date + '/'
+    files = os.listdir(directory)
+    
+    # Loop for transforming a whole day.
+    for file in files:
+        transform(file, date)

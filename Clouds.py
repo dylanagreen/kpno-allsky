@@ -13,6 +13,7 @@ import ImageIO
 import Coordinates
 
 
+
 center = (256, 252)
 
 def zero_three_cloud_contrast(img, name, date):
