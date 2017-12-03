@@ -16,95 +16,55 @@ import Coordinates
 
 center = (256, 252)
 
-def zero_three_cloud_contrast(img, name, date):
-    img2 = ndimage.imread('Images/Original/' + date + '/r_ut052936s31200.png', mode='L')
+# This method is essentially a switch block for different exposures.
+def cloud_contrast(img):
+    exposure = ImageIO.get_exposure(img)
+    print(exposure)
+    
+    if exposure == 0.3:
+        return zero_three_cloud_contrast(img)
+    elif exposure == 6:
+        return six_cloud_contrast(img)
+        
+    return img
+    
+
+# Takes in an image as an np ndarray.
+def zero_three_cloud_contrast(img):
+    # Temprary, I intend to change this slightly later.
+    img2 = ndimage.imread('Images/Original/20171108/r_ut052936s31200.png', mode='L')
     
     img3 = np.copy(img)
     img = np.int16(img)
     img2 = np.int16(img2)
     
-    
+    # Finds the difference from the "standard" .03s image.
+    # Then subtracts that value from the entire image to normalize it to 
+    # standard image color.
     val = img[510,510] - img2[510,510]
     img = img - val
     
+    # Subtracts standard image from current image.
+    # Performs closing to clean up some speckling in lower band of image.
     test = ImageIO.image_diff(img, img2)
-    loc = 'Images/Cloud/' + str(date) + ' - 3'
-    
     test = ndimage.grey_closing(test, size = (2,2))
     
+    # Clouds are regions above the average value of the completed transform.
     avg = np.mean(test)
-    
     cond = np.where(test > avg, 0, 1)
-    
     final = np.multiply(img3, cond)
     
     # Find the mask and black out those pixels.
     mask = Mask.generate_mask()
     final = Mask.apply_mask(mask, final)
     
-    ImageIO.save_image(test, name, loc, 'gray')
-
-def zero_three_cloud_contrast2(img, name, date):
-    
-    dpi = 128
-    y = img.shape[0] / dpi
-    x = img.shape[1] / dpi
-    
-    # Generate Figure and Axes objects.
-    figure = plot.figure()
-    figure.set_size_inches(x, y)  # 4 inches by 4 inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
-
-    # Adds the image into the axes and displays it
-    # Then saves
-    axes.imshow(img, cmap = 'gray')
-    
-    # This is the latitude/longitude of the camera
-    camera = (31.959417 * u.deg, -111.598583 * u.deg)
-
-    cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
-                                height=2120 * u.meter)
-    
-    time = Coordinates.timestring_to_obj(date, name)
-    
-    #print(time)
-    moon = get_moon(time, location = cameraearth)
-    
-    moonaltaz = moon.transform_to(AltAz(obstime = time, location = cameraearth))
-
-    alt = moonaltaz.alt.degree
-    az =  moonaltaz.az.degree
-    x, y = Coordinates.altaz_to_xy(alt, az)
-    
-    pos = Coordinates.galactic_conv(x, y, az)
-    
-    r = 70
-    circ = Circle(pos, radius=r, fill=False, edgecolor='green')
-    axes.add_patch(circ)
-    
-    location = 'Images/Cloud/' + str(date) + '/'
-    name = location + name
-    
-    # Print "saved" after saving, in case saving messes up.
-    plot.savefig(name, dpi=dpi)
-    print('Saved: ' + name)
-
-    # Show the plot
-    #plot.show()
-
-    # Close the plot in case you're running multiple saves.
-    plot.close()
+    return final
 
 
 # Takes in an image as an np ndarray.
 # Name and date are for saving purposes
 # TODO Refactor to return image, save elsewhere
-def six_cloud_contrast(img, name, date):
+def six_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
     mask = Mask.generate_mask()
@@ -204,8 +164,7 @@ def six_cloud_contrast(img, name, date):
     multiple = .6 - invert2 / 255
     newimg = np.multiply(img, multiple)
 
-    loc = 'Images/Cloud/' + str(date)
-    ImageIO.save_image(newimg, name, loc, 'gray')
+    return newimg
 
 
 if __name__ == "__main__":
@@ -217,7 +176,8 @@ if __name__ == "__main__":
     #file = 'r_ut113241s20400.png'
     for file in files:
         img = ndimage.imread(directory + file, mode='L')
-        zero_three_cloud_contrast(img, file, date)
+        img = cloud_contrast(img)
+        ImageIO.save_image(img, file, 'Images/Cloud/' + date + '/', 'gray')
 
 
 

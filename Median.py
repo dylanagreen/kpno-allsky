@@ -208,7 +208,7 @@ def median_all_date(date, color=False):
         exit()
 
     # These dictionaries hold the images and existence booleans.
-    keys = ['All', '0.02', '0.3', '6']
+    keys = ['All', 0.02, 0.3, 6]
 
     finalimg = {}
     superimg = {}
@@ -307,7 +307,7 @@ def save_medians(medians, date, color=False):
         cmap = None
     
     for key, median in medians.items():
-        name = key.replace('.', '')
+        name = str(key).replace('.', '')
         
         # If blocks to only save the ones with actual data
         if not color and not np.array_equal(median, np.zeros((1, 1))):
@@ -318,6 +318,6 @@ def save_medians(medians, date, color=False):
 
 if __name__ == "__main__":
     date = '20171108'
-    download_all_date(date)
+    #download_all_date(date)
     medians = median_all_date(date)
     save_medians(medians, date)

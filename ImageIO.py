@@ -75,11 +75,11 @@ def get_exposure(image):
         pix2 = math.floor(pix2)
     
     if pix1 == 225:
-        return '0.3'
+        return 0.3
     if pix2 == 225:
-        return '0.02'
+        return 0.02
     else:
-        return '6'
+        return 6
 
 
 # Returns the difference image between two images. 

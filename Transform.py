@@ -9,6 +9,7 @@ from matplotlib.patches import Polygon
 
 import Coordinates
 import Mask
+import Clouds
 
 
 center = (256, 252)
@@ -22,9 +23,13 @@ def transform(file, date):
     img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
     time = Coordinates.timestring_to_obj(date, file)
 
+    img = Clouds.cloud_contrast(img)
+    
+    
     # Find the mask and black out those pixels.
-    mask = Mask.generate_mask()
-    img = Mask.apply_mask(mask, img)
+    # Contrasting the clouds already masks.
+    #mask = Mask.generate_mask()
+    #img = Mask.apply_mask(mask, img)
 
     # Sets up the figure and axes objects
     fig = plot.figure(frameon=False)
@@ -395,7 +400,7 @@ def clockwise_sort(ra, dec, positive = False):
     return (x,y)
 
 if __name__ == "__main__":
-    date = '20170623'
+    date = '20171108'
     directory = 'Images/Original/' + date + '/'
     files = os.listdir(directory)
     
