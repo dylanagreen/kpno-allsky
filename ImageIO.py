@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
 import os
+import math
 from scipy import ndimage
 
 # Saves an input image with the given name in the folder denoted by location.
@@ -52,6 +53,35 @@ def save_image(img, name, location, cmap=None):
     plot.close()
 
 
+# Gets the exposure time of an image.
+# 225 is the greyscale value for the yellow in the image.
+# The pixel chosen is yellow for .03s and "not yellow" for 6s.
+# The second pixel is yellow in .03 and .002
+# but due to magic of if blocks that's ok.
+def get_exposure(image):
+    
+    # Handles separate cases for greyscale and RGB images.
+    if len(image.shape) == 2:
+        pix1 = image[19, 174]
+        pix2 = image[17, 119]
+    # Greyscale conversion below is the same one used by imread.
+    elif len(image.shape) == 3:
+        pix1 = image[19, 174]
+        pix1 = pix1[0] * 299/1000 + pix1[1] * 587/1000 + pix1[2] * 114/1000
+        pix1 = math.floor(pix1)
+        
+        pix2 = image[17, 119]
+        pix2 = pix2[0] * 299/1000 + pix2[1] * 587/1000 + pix2[2] * 114/1000
+        pix2 = math.floor(pix2)
+    
+    if pix1 == 225:
+        return '0.3'
+    if pix2 == 225:
+        return '0.02'
+    else:
+        return '6'
+
+
 # Returns the difference image between two images. 
 # Black areas are exactly the same in both, white areas are opposite.
 # Greyscale/color values are varying levels of difference.
@@ -65,3 +95,4 @@ def image_diff(img1, img2):
     diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
 
     return diffimg
+

@@ -67,19 +67,6 @@ def download_all_date(date):
     print('All photos downloaded for ' + date)
 
 
-# Gets the exposure time of an image.
-# 225 is the greyscale value for the yellow in the image.
-# The pixel chosen is yellow for .03s and "not yellow" for 6s.
-# The second pixel is yellow in .03 and .002
-# but due to magic of if blocks that's ok.
-def get_exposure(image):
-    if image[19][174] == 225:
-        return '0.3'
-    if image[17][119] == 225:
-        return '0.02'
-    else:
-        return '6'
-
 
 # Loads all the images for a certain date
 def load_all_date(date):
@@ -253,7 +240,7 @@ def median_all_date(date, color=False):
             img = ndimage.imread(file, mode='L')
             temp = img.reshape(img.shape[0], img.shape[1], 1)
 
-            exposure = get_exposure(img)
+            exposure = ImageIO.get_exposure(img)
 
             # All Median
             # Make the super image have the correct
