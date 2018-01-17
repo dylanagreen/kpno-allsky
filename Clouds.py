@@ -52,6 +52,10 @@ def zero_three_cloud_contrast(img):
     # Clouds are regions above the average value of the completed transform.
     avg = np.mean(test)
     cond = np.where(test > avg, 0, 1)
+    
+    # Increases black sky brightness in images where the moon is alone (thanks
+    # to low dynamic range the sky is black because the moon is so bright)
+    img3 = np.where(img3 < 150, img3 + 40, img3)
     final = np.multiply(img3, cond)
     
     # Find the mask and black out those pixels.

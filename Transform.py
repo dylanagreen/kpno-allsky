@@ -23,7 +23,7 @@ def transform(file, date):
     img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
     time = Coordinates.timestring_to_obj(date, file)
 
-    img = Clouds.cloud_contrast(img)
+    #img = Clouds.cloud_contrast(img)
     
     
     # Find the mask and black out those pixels.
