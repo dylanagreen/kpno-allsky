@@ -12,6 +12,7 @@ center = (256, 252)
 
 # Looks through the median images to make the mask and returns a mask array.
 # "Clean" in this case means no horizon objects.
+# The mask thus only contains likely "hot" pixels.
 def generate_clean_mask():
     fileloc = 'Images/Mask/'
     files = os.listdir(fileloc)
@@ -72,10 +73,8 @@ def generate_mask(forcenew = False):
             return mask
         
     
-    # Get the "clean" mask, i.e. the stars only ignore mask.
+    # Get the "clean" mask, i.e. the pixels only ignore mask.
     mask = generate_clean_mask()
-    
-
     
     y = 0
     x = 0
@@ -100,6 +99,27 @@ def generate_mask(forcenew = False):
     
     return mask
 
+# The full mask is the horion objects plus the hot pixels, plus then it blacks
+# out everything that's not in the circular image.
+def generate_full_mask():
+    mask = generate_mask()
+    
+    # Ignore everything outside the circular image.
+    y = 0
+    x = 0
+    while y < mask.shape[1]:
+        while x < mask.shape[0]:
+            x1 = x - center[0]
+            y1 = center[1] - y
+            r = math.sqrt(x1**2 + y1**2)
+            if r > 241:
+                mask[y, x] = 1
+                
+            x += 1
+        y += 1
+        x = 0
+    
+    return mask
 
 # Saves a given mask as in image in the Images folder.
 def save_mask(mask):
