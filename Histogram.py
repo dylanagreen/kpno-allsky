@@ -12,13 +12,17 @@ center = (256, 252)
 
 def histogram(file):
     
-    date = '20171026'
-    img1 = ndimage.imread('Images/Original/' + date + '/' + file, mode = 'L')
-    mask = Mask.generate_mask()
-    img1 = Mask.apply_mask(mask, img1)
+    date = '20171108'
+    img = ndimage.imread('Images/Original/' + date + '/' + file, mode = 'L')
+    mask = Mask.generate_full_mask()
+    mask = 1 - mask
+    
+    # Converts the 1/0 array to True/False so it can be used as an index.
+    mask = np.ma.make_mask(mask)
+    #img1 = Mask.apply_mask(mask, img1)
     
     #hist = np.histogram(img1, bins = 255)
-
+    img1 = img[mask]
 
     #print(sum(hist[0]))
     fig, ax = plt.subplots(1, 2)
@@ -28,13 +32,11 @@ def histogram(file):
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
     ax[0].set_axis_off()
-    ax[0].imshow(img1, cmap='gray')
+    ax[0].imshow(img, cmap='gray')
     #figure.add_axes(axes)
     
     
-    #ax[1].hist(hist[0], bins = hist[1])
     bins = list(range(0,256))
-    #print(bins)
     ax[1].hist(img1.flatten(), bins = bins, color = 'blue', log = True)
     #plt.show()
     
@@ -72,7 +74,7 @@ def test(file):
     print(blah2)
 
 
-directory = 'Images/Original/20171026/'
+directory = 'Images/Original/20171108/'
 files = os.listdir(directory)
 
 for file in files:
