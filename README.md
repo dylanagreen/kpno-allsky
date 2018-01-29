@@ -1,6 +1,6 @@
 # kpno-allsky
 
-This is some scripts/software I’m developing based on all-sky images from the Kitt Peak National Observatory. It should probably have version control so I set this up.
+This is some scripts/software I’m developing based on all-sky images from the Kitt Peak National Observatory. These images can be found at the following url: http://kpasca-archives.tuc.noao.edu
 
 Current dependencies:
 AstroPy
@@ -10,8 +10,10 @@ matplotlib
 Requests
 At present:
 
-# Difference.py
+# ImageIO.py
 - Finds the difference between two images.
+- Saves images.
+- Gets the exposure of images.
 
 # Median.py
 - Downloads all the images from a given day
@@ -35,6 +37,10 @@ At present:
 
 # Clouds.py
 - Makes (most of) the clouds in 6s exposure images darker.
+- Does some .3s clouds well and others badly.
+
+# Histogram.py
+- Creates histograms of greyscale values in .3s images.
 
 # Notebooks
 This repo also features a few jupyter notebooks designed for quick plotting/model corrections. Their functions are defined at the top of the notebooks themselves.
