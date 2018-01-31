@@ -1,8 +1,12 @@
 import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
+import requests
 import os
 import math
+from html.parser import HTMLParser
+from PIL import Image
+from io import BytesIO
 from scipy import ndimage
 
 # Saves an input image with the given name in the folder denoted by location.
@@ -51,6 +55,140 @@ def save_image(img, name, location, cmap=None):
 
     # Close the plot in case you're running multiple saves.
     plot.close()
+
+
+# Html parser for looping through html tags
+class DateHTMLParser(HTMLParser):
+    def __init__(self):
+        HTMLParser.__init__(self)
+        self.data = []
+
+    def handle_starttag(self, tag, attrs):
+        # All image names are held in tags of form <A HREF=imagename>
+        if tag == 'a':
+            for attr in attrs:
+                # If the first attribute is href we need to ignore it
+                if attr[0] == 'href':
+                    self.data.append(attr[1])
+
+
+# Downloads all the images for a certain date.
+def download_all_date(date):
+    # Creates the link
+    link = 'http://kpasca-archives.tuc.noao.edu/' + date
+
+    # Prevents clutter by collecting originals in their own folder within Images
+    directory = 'Images/Original/' + date
+    # Verifies that an Images folder exists, creates one if it does not.
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    # Gets the html for a date page,
+    # then parses it to find the image names on that page.
+    htmllink = link + '/index.html'
+    rdate = requests.get(htmllink)
+    htmldate = rdate.text
+    parser = DateHTMLParser()
+    parser.feed(htmldate)
+    parser.close()
+    imagenames = parser.data
+
+    # Runs through the array of image names and downloads them
+    for image in imagenames:
+        # We want to ignore the all image animations
+        if image == 'allblue.gif' or image == 'allred.gif':
+            continue
+        # Otherwise request the html data of the page for that image
+        # and save the image
+        else:
+            # I could use my ImageIO save_image here, but this way is quicker
+            # since I don't have to make a plot for every image.
+            imageloc = link + '/' + image
+            imagename = directory + '/' + image
+            rimage = requests.get(imageloc)
+
+            # Converts the image data to a python image
+            i = Image.open(BytesIO(rimage.content)).convert('RGB')
+            # Saves the image
+            i.save(imagename)
+
+    print('All photos downloaded for ' + date)
+
+
+# Loads all the images for a certain date
+def load_all_date(date):
+
+    # I've hard coded the files for now, this can be changed later.
+    directory = 'Images/Original/' + date + '/'
+
+    # In theory this is only ever called from median_all_date.
+    # Just in case though.
+    try:
+        files = os.listdir(directory)
+    except:
+        print('Images directory not found for that date!')
+        print('Are you sure you downloaded images?')
+        exit()
+
+    dic = {}
+    imgs = len(files)
+    n = 0
+
+    # Runs while the number of 100 blocks doesn't encompass all the images yet.
+    while n <= (imgs // 100):
+        if (n+1)*100 < imgs:
+            final = 100
+        else:
+            final = (imgs - n*100)
+
+        if final == 0:
+            break
+        else:
+            file = directory + files[n * 100]
+            temp = gray_and_color_image(file)
+
+        # Creates the array of images.
+        for i in range(1, final):
+            # Loads in the image and creates that imgtemp
+            file = directory + files[i + n * 100]
+
+            imgtemp = gray_and_color_image(file)
+
+            # i + n * 100 required for > 100 images
+            temp = np.concatenate((temp, imgtemp), axis=3)
+
+        n += 1
+        if final > 0:
+            dic[n] = temp
+
+    # Return is the super image for later.
+    # This just makes it random and in the correct shape for later
+    # In case key == 1 fails.
+    result = np.random.rand(512, 512, 4, 1)
+
+    for key, val in dic.items():
+        # result doesn't exist yet so set it to val for the first key.
+        if key == 1:
+            result = val
+        else:
+            result = np.concatenate((result, val), axis=3)
+
+    return result
+
+
+# Loads in an image and returns it as an array where
+# each pixel has 4 values associated with it:
+# Grayscale (L), R, G and B
+def gray_and_color_image(file):
+    img = ndimage.imread(file, mode='RGB')
+    img2 = ndimage.imread(file, mode='L')
+
+    # Reshape to concat
+    img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
+    img = np.concatenate((img2, img), axis=2)
+
+    # Return the reshaped image
+    return img.reshape(img.shape[0], img.shape[1], 4, 1)
 
 
 # Gets the exposure time of an image.
