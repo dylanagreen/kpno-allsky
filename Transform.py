@@ -70,7 +70,7 @@ def transform(file, date):
 
             x = column - center[0]
             y = center[1] - row
-            r = math.sqrt(x**2 + y**2)
+            r = math.hypot(x,y)
 
             # Zeros out ignorable objects first
             if(r > 241):
@@ -366,7 +366,7 @@ def clockwise_sort(ra, dec, positive = False):
     y = np.subtract(dec, centery)
 
     # Creates polar nonsense
-    r = np.sqrt(x**2 + y**2)
+    r = np.hypot(x, y)
     theta = np.arctan2(y, x)
 
     # Reshape to stack

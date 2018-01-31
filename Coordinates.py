@@ -49,7 +49,7 @@ def xy_to_altaz(x, y):
     az = np.degrees(az)
 
     # Pythagorean thereom boys.
-    r = np.sqrt(pointadjust[0]**2 + pointadjust[1]**2)
+    r = np.hypot(pointadjust[0], pointadjust[1])
 
     # 90- turns the angle from measured from the vertical
     # to measured from the horizontal.
@@ -177,7 +177,7 @@ def galactic_conv(x, y, az):
     x = x - center[0]
     y = center[1] - y
 
-    r = np.sqrt(x**2 + y**2)
+    r = np.hypot(x, y)
     az = az - .94444
 
     # This was the best model I came up with.
@@ -204,7 +204,7 @@ def camera_conv(x, y, az):
     x = x - center[0]
     y = center[1] - y
 
-    r = np.sqrt(x**2 + y**2)
+    r = np.hypot(x, y)
 
     # You might think that this should be + but actually no.
     # Mostly due to math down below in the model this works better as -.

@@ -317,7 +317,7 @@ def save_medians(medians, date, color=False):
             ImageIO.save_image(np.uint8(median), name, loc)
 
 if __name__ == "__main__":
-    date = '20171108'
-    #download_all_date(date)
-    medians = median_all_date(date)
-    save_medians(medians, date)
+    date = '20160823'
+    download_all_date(date)
+    #medians = median_all_date(date)
+    #save_medians(medians, date)

@@ -83,7 +83,7 @@ def generate_mask(forcenew = False):
             
             x1 = x - center[0]
             y1 = center[1] - y
-            r = math.sqrt(x1**2 + y1**2)
+            r = math.hypot(x1, y1)
             
             # Ignore horizon objects (which have been painted pink)
             # Only want the horizon objects actually in the circle.
@@ -111,7 +111,7 @@ def generate_full_mask():
         while x < mask.shape[0]:
             x1 = x - center[0]
             y1 = center[1] - y
-            r = math.sqrt(x1**2 + y1**2)
+            r = math.hypot(x1, y1)
             if r > 241:
                 mask[y, x] = 1
                 

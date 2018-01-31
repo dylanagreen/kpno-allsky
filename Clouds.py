@@ -104,7 +104,7 @@ def six_cloud_contrast(img):
         for column in range(0,img.shape[0]):
             x = column - center[0]
             y = center[1] - row
-            r = math.sqrt(x**2 + y**2)
+            r = math.hypot(x, y)
             if (r < 246) and (r > 241):
                 binimg[row,column] = 0
 
@@ -125,7 +125,7 @@ def six_cloud_contrast(img):
             if img[row, column] >= (95) and binimg[row, column] == 1:
                 x = column - center[0]
                 y = center[1] - row
-                r = math.sqrt(x**2 + y**2)
+                r = math.hypot(x, y)
                 if(r <= 240):
                     regionnum = labeled[row, column]
                     starnums[regionnum] += 1
