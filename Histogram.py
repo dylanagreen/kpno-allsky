@@ -62,8 +62,8 @@ def histogram(date, file):
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     bins = list(range(0,256))
-    ax[1].hist(img1.flatten(), bins = bins, color = 'blue', log = True)
-
+    hist = ax[1].hist(img1.flatten(), bins = bins, color = 'blue', log = True)
+    
     #plt.show()
 
     ax[0].text(0, -20, str(r), fontsize = 20)
@@ -77,6 +77,10 @@ def histogram(date, file):
 
     # Close the plot at the end.
     plt.close()
+    
+    # Return the histogram bin values in case you want to use it somewhere.
+
+    return hist[0]
 
 
 # Finds the moon position and returns a the x,y position of the moon.
@@ -111,17 +115,17 @@ def fit_moon(img, x, y):
     # first white pixel it encounters (because the center may be overflow black)
     # and stops at the last white pixel. White here defined as > 250 greyscale.
     yfloor = math.floor(y)
-    start = yfloor
     count = False
     size = 0
     xfloor = math.floor(x)
+    start = xfloor
     for i in range(0,35):
         start += 1
-        if not count and img[start, xfloor] >= 250:
+        if not count and img[yfloor, start] >= 250:
             count = True
-        elif count and img[start, xfloor] >= 250:
+        elif count and img[yfloor, start] >= 250:
             size += 1
-        elif count and img[start, xfloor] < 250:
+        elif count and img[yfloor, start] < 250:
             break
 
     # Add some buffer pixels in case the center is black and the edges of the
@@ -147,10 +151,10 @@ def fit_moon(img, x, y):
     midy = deltay / 2
     midx = deltax / 2
 
-    # Gaussian fit, centered in square, stdev of 20 as a start.
+    # Moffat fit, centered in square, stdev of 20 as a start.
     stddev = 20
-    model_init = models.Gaussian2D(amplitude=200, x_mean=midx, y_mean=midy,
-                               x_stddev=stddev, y_stddev=stddev)
+    model_init = models.Moffat2D(amplitude=200, x_0=midx, y_0=midy, 
+                                 gamma = stddev)
     fit = fitting.LevMarLSQFitter()
 
     with warnings.catch_warnings():
@@ -159,11 +163,78 @@ def fit_moon(img, x, y):
         model = fit(model_init, x, y, z)
 
     # /2 is average FWHM but FWHM = diameter, so divide by two again.
-    fwhm = (model.x_fwhm + model.y_fwhm) / 4
-
+    #fwhm = (model.x_fwhm + model.y_fwhm) / 4
+    fwhm = model.fwhm / 2
+    
     return fwhm
 
 
+# Intializes the category defining histograms.
+# Returns a dictionary where the key is the category number and the value is 
+# the defining histogram for that category.
+def init_categories():
+    # Loads up the category numbers
+    directory = 'Images/Category/'
+    files = sorted(os.listdir(directory))
+    categories = {}
+    
+    for file in files:
+        
+        # Opens the image, then uses np.histogram to generate the histogram
+        # for that image, where the image is masked the same way as in the
+        # histogram method.
+        img = ndimage.imread('Images/Category/' + file, mode = 'L')
+        mask = Mask.generate_full_mask()
+        mask = 1 - mask
+
+        mask = np.ma.make_mask(mask)
+        img1 = img[mask]
+
+        # Creates the histogram and adds it to the dict.
+        bins = list(range(0,256))
+        hist = np.histogram(img1, bins=bins)
+
+        name = file[:-4]
+        categories[name] = hist[0]
+    
+    return categories
+    
+
+
+# This method categorizes the histogram given based on the categories given.
+# Categories should be a dict of categories, from init_categories for example.
+# This method uses an algorithm called the histogram intersection algorithm.
+def categorize(histogram, categories):
+    
+    best = 0
+    category = None
+    
+    for cat in categories:
+        
+        # Take the minimum value of that bar from both histograms.
+        minimum = np.minimum(histogram, categories[cat])
+        
+        # Then normalize based on the number of values in the category histogram
+        # This is the intersection value.
+        nummin = np.sum(minimum)
+        numtot = np.sum(categories[cat])
+        
+        # Need to use true divide so the division does not floor itself.
+        intersection = np.true_divide(nummin, numtot)
+        
+        # We want the category with the highest intersection value.
+        if intersection > best:
+            best = intersection
+            category = cat
+    
+    # At present I'm currently looking for more categories, so if there isn't
+    # a category with > thresh% intersection I want to know that.
+    thresh = 0.75
+    if best > thresh:
+        return category
+    else:
+        return None
+    
 
 if __name__ == "__main__":
 
@@ -175,12 +246,32 @@ if __name__ == "__main__":
     #print(dates)
     #for date in dates:
 
-    #date = '20171108'
-    date = '20170817'
+    date = '20171108'
+    #date = '20170817'
 
     directory = 'Images/Original/' + date + '/'
     files = sorted(os.listdir(directory))
 
+    cats = init_categories()
+    
+    for cat in cats:
+        if not os.path.exists('Images/Histogram/' + date + '/' + cat + '/'):
+            os.makedirs('Images/Histogram/' + date + '/' + cat + '/')
+
     for file in files:
-        histogram(date, file)
+        hist = histogram(date, file)
+        #print("HIST")
+        #print(hist)
+        
+        if hist is not None:
+            newcat = categorize(hist, cats)
+            print(newcat)
+
+            
+            name1 = 'Images/Histogram/' + date + '/' + file
+            
+            if newcat is not None:
+                name2 = 'Images/Histogram/' + date + '/' + newcat + '/' + file
+                os.rename(name1, name2)
+            
 
