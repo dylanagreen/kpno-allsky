@@ -14,9 +14,9 @@ At present:
 - Finds the difference between two images.
 - Saves images.
 - Gets the exposure of images.
+- Downloads all the images from a given day.
 
 # Median.py
-- Downloads all the images from a given day
 - Finds a median image for all images from a given day.
 
 # Coordinates.py
@@ -28,12 +28,13 @@ At present:
 # Mask.py
 - Takes a few medians and finds the hot/stuck pixels.
 - Outputs as an image or a list of pixels.
+- Additional Masks mask the horizon objects, and all pixels outside the circular image.
 
 # Transform.py
 - Converts a circular all-sky image into an ra-dec image that shows the ra-dec visible portions of the sky for that image.
 - Ra-dec image is projected as an Eckert-IV projection.
 - Methods are provided to transform arrays of ra and dec into x,y for Mollweide and Eckert-IV projections.
-- Ignores horizon objects, as defined in Ignore.png
+- Ignores masked pixels from Mask.
 
 # Clouds.py
 - Makes (most of) the clouds in 6s exposure images darker.
@@ -41,6 +42,8 @@ At present:
 
 # Histogram.py
 - Creates histograms of greyscale values in .3s images.
+- Categorizes the histograms based on predefined categories.
+- Finds an approximate radius of the moon in each image.
 
 # Notebooks
 This repo also features a few jupyter notebooks designed for quick plotting/model corrections. Their functions are defined at the top of the notebooks themselves.

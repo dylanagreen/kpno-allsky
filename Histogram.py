@@ -23,6 +23,7 @@ center = (256, 252)
 date = '20170718'
 
 # Creates a histogram of the greyscale values in the image and saves it.
+# Returns the histogram bin values.
 def histogram(date, file):
 
     # Read in the image, then gets a mask
@@ -33,15 +34,15 @@ def histogram(date, file):
     # Only want to histogram 0.3s images, as those are the ones with the moon.
     exposure = ImageIO.get_exposure(img)
     if exposure != 0.3:
-        return
+        return (None, None)
 
     # Gets the location of the moon.
-    moonx, moony = find_moon(img, date, file)
+    moonx, moony = find_moon(date, file)
     r = fit_moon(img, moonx, moony)
 
     # Sets up the patch, radius = 5, color = cyan
-    circ = Circle((moonx, moony), 100, fill = False)
-    circ.set_edgecolor('c')
+    #circ = Circle((moonx, moony), 100, fill = False)
+    #circ.set_edgecolor('c')
 
     # Converts the 1/0 array to True/False so it can be used as an index.
     # Then applies it, creating a new "image" array that only has the inside the
@@ -66,6 +67,7 @@ def histogram(date, file):
     
     #plt.show()
 
+    # Writes the moon radius onto the image.
     ax[0].text(0, -20, str(r), fontsize = 20)
 
     # Saving code.
@@ -80,11 +82,11 @@ def histogram(date, file):
     
     # Return the histogram bin values in case you want to use it somewhere.
 
-    return hist[0]
+    return (hist[0], r)
 
 
 # Finds the moon position and returns a the x,y position of the moon.
-def find_moon(image, date, file):
+def find_moon(date, file):
 
     # Sets up location and time variables.
     time = Coordinates.timestring_to_obj(date, file)
@@ -121,6 +123,10 @@ def fit_moon(img, x, y):
     start = xfloor
     for i in range(0,35):
         start += 1
+        
+        # Breaks if it reaches the edge of the image.
+        if start == img.shape[1]:
+            break
         if not count and img[yfloor, start] >= 250:
             count = True
         elif count and img[yfloor, start] >= 250:
@@ -229,8 +235,9 @@ def categorize(histogram, categories):
     
     # At present I'm currently looking for more categories, so if there isn't
     # a category with > thresh% intersection I want to know that.
-    thresh = 0.75
+    thresh = 0.35
     if best > thresh:
+        print(best)
         return category
     else:
         return None
@@ -246,32 +253,54 @@ if __name__ == "__main__":
     #print(dates)
     #for date in dates:
 
-    date = '20171108'
+    #date = '20171108'
     #date = '20170817'
+    date = '20161104'
 
     directory = 'Images/Original/' + date + '/'
     files = sorted(os.listdir(directory))
 
     cats = init_categories()
     
+    saves = []
+    
     for cat in cats:
         if not os.path.exists('Images/Histogram/' + date + '/' + cat + '/'):
             os.makedirs('Images/Histogram/' + date + '/' + cat + '/')
+            
+    if not os.path.exists('Images/Histogram/' + date + '/Moon/'):
+        os.makedirs('Images/Histogram/' + date + '/Moon/')
 
+    lowest = 100
+    lowfile = ""
     for file in files:
-        hist = histogram(date, file)
+        hist, r = histogram(date, file)
         #print("HIST")
         #print(hist)
         
         if hist is not None:
             newcat = categorize(hist, cats)
             print(newcat)
-
+        else:
+            newcat = None
+        
+        saves.append((file, newcat))
+        
+                
+        if r is not None and 0 < r < lowest:
+            lowfile = file
+            lowest = r
             
-            name1 = 'Images/Histogram/' + date + '/' + file
+    #print(lowfile)
+    for loc in saves:
+        file = loc[0]
+        cat = loc[1]
+    
+        name1 = 'Images/Histogram/' + date + '/' + file
             
-            if newcat is not None:
-                name2 = 'Images/Histogram/' + date + '/' + newcat + '/' + file
-                os.rename(name1, name2)
-            
-
+        if cat is not None and not file == lowfile:
+            name2 = 'Images/Histogram/' + date + '/' + cat + '/' + file
+            os.rename(name1, name2)
+        elif cat is not None and file == lowfile:
+            name2 = 'Images/Histogram/' + date + '/Moon/' + file
+            os.rename(name1, name2)
