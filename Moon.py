@@ -1,11 +1,19 @@
-from scipy import ndimage
+import warnings
 import numpy as np
 import matplotlib.image as image
 import matplotlib.pyplot as plot
+import astropy.coordinates
+import astropy.time.core as aptime
 import os
 import math
-
 import ImageIO
+import Coordinates
+from scipy import ndimage
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.time import Time
+from astropy import units as u
+from astropy.modeling import models, fitting
+
 
 # Radii in kilometers
 # Radius of the earth is the radius of the earth shadow at the moon's orbit.
@@ -41,7 +49,7 @@ def eclipse_visible(d, R, r):
 
     # Get the shaded proportion by divding the shaded area by the total area
     # Assumes r is the radius of the moon being shaded.
-    
+
     P = A / (np.pi * r * r)
 
     # P is the shaded area, so 1-P is the lit up area.
@@ -98,6 +106,95 @@ def moon_size(date, file):
 
     return (biggest, d)
 
+# Finds the x,y coordinates of the moon's center in a given image.
+def find_moon(date, file):
+
+    # Sets up location and time variables.
+    time = Coordinates.timestring_to_obj(date, file)
+    camera = (31.959417 * u.deg, -111.598583 * u.deg)
+    cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
+                                height=2120 * u.meter)
+
+    # Gets a SkyCoord with the moon position.
+    moon = astropy.coordinates.get_moon(time, cameraearth)
+    #print(moon.frame)
+
+    # Converstion to x,y positions on the image.
+    altazcoord = moon.transform_to(AltAz(obstime=time, location=cameraearth))
+    alt = altazcoord.alt.degree
+    az = altazcoord.az.degree
+    x, y = Coordinates.altaz_to_xy(alt, az)
+    x, y = Coordinates.galactic_conv(x, y, az)
+
+    return (x,y)
+
+
+
+# Fits a Moffat fit to the moon and returns the estimated radius of the moon.
+# Radius of the moon is the FWHM of the fitting function.
+def fit_moon(img, x, y):
+
+    # This block of code runs straight vertical from the center of the moon
+    # It gives a predicted rough radius of the moon, it starts counting at the
+    # first white pixel it encounters (because the center may be overflow black)
+    # and stops at the last white pixel. White here defined as > 250 greyscale.
+    yfloor = math.floor(y)
+    count = False
+    size = 0
+    xfloor = math.floor(x)
+    start = xfloor
+    for i in range(0,35):
+        start += 1
+
+        # Breaks if it reaches the edge of the image.
+        if start == img.shape[1]:
+            break
+        if not count and img[yfloor, start] >= 250:
+            count = True
+        elif count and img[yfloor, start] >= 250:
+            size += 1
+        elif count and img[yfloor, start] < 250:
+            break
+
+    # Add some buffer pixels in case the center is black and the edges of the
+    # moon are fuzzed.
+    size = (size + 10) * 2
+
+    # Makes sure the lower/upper slices don't out of bounds error.
+    lowerx = xfloor - size if (xfloor - size > 0) else 0
+    lowery = yfloor - size if (yfloor - size > 0) else 0
+    upperx = xfloor + size if (xfloor + size < 511) else 511
+    uppery = yfloor + size if (yfloor + size < 511) else 511
+
+    # Size of the moon enclosing square.
+    deltax = (upperx - lowerx)
+    deltay = (uppery - lowery)
+
+    # Creates two arrays, with the array values being the x or y coordinate of
+    # that location in the array.
+    y, x = np.mgrid[0:deltay, 0:deltax]
+
+    # Slices out the moon square and finds center coords.
+    z = img[lowery:uppery, lowerx:upperx]
+    midy = deltay / 2
+    midx = deltax / 2
+
+    # Moffat fit, centered in square, stdev of 20 as a start.
+    stddev = 20
+    model_init = models.Moffat2D(amplitude=200, x_0=midx, y_0=midy,
+                                 gamma = stddev)
+    fit = fitting.LevMarLSQFitter()
+
+    with warnings.catch_warnings():
+        # Ignore model linearity warning from the fitter
+        warnings.simplefilter('ignore')
+        model = fit(model_init, x, y, z)
+
+    # /2 is average FWHM but FWHM = diameter, so divide by two again.
+    #fwhm = (model.x_fwhm + model.y_fwhm) / 4
+    fwhm = model.fwhm / 2
+
+    return fwhm
 
 if __name__ == "__main__":
     date = '20180131'
@@ -142,4 +239,3 @@ if __name__ == "__main__":
     plot.xlabel("Proportion of moon visible")
 
     plot.show()
-    
