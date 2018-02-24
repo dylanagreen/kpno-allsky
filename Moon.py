@@ -57,6 +57,33 @@ def eclipse_visible(d, R, r):
 
     return P
 
+# Calculates the proportion of the moon that is lit up for noneclipse nights.
+# 1.0 = Full moon, 0.0 = New Moon
+def moon_visible(date, file):
+    
+    # This is the first New Moon (P = 1.0) of 2018, and serves as a reference.
+    ref = Time("2018-01-01 2:25:0")
+    ref = ref.jd
+    
+    period = 29.530588
+    
+    time = Coordinates.timestring_to_obj(date, file)
+    time = time.jd
+    
+    # Finds the passage of time, absolute value because the date might be before
+    # the reference but we want the magnitude of the time passed.
+    diff = abs(time - ref)
+    delta = diff / period
+    
+    # Strips out only the fractional portion of the time change.
+    phase = math.modf(delta)[0]
+    
+    # We start at a full moon, at 0.5 this will be 0, which is the new moon.
+    # Then after 0.5 this works it's way back up to 1 for the next full moon.
+    phase = abs(1.0 - 2 * phase)
+    
+    return phase
+    
 
 # Finds the size of the moon region (approximately) by taking pixels that are
 # "close to white" (in this case, > 255 - threshold)
@@ -202,40 +229,5 @@ if __name__ == "__main__":
     directory = 'Images/Original/' + date + '/'
     files = sorted(os.listdir(directory))
 
-    f = open('phase.txt', 'w')
-
-    distances = []
-    found = []
-
     for file in files:
-        biggest, d = moon_size(date, file)
-
-        found.append(biggest)
-        distances.append(d)
-
-
-    f.close()
-
-    vis = eclipse_visible(distances, R_earth, R_moon)
-    print(vis)
-
-    yes = False
-    i1 = 0
-    i2 = 0
-    for i in range(0,len(vis)):
-        if not math.isnan(vis[i]) and not yes:
-            yes = True
-            i1 = i
-        if math.isnan(vis[i]) and yes:
-            yes = False
-            i2 = i
-            break
-
-    print(i1)
-    print(i2)
-
-    plot.scatter(vis[i1: i2 + 1], found[i1: i2 + 1])
-    plot.ylabel("Approx Moon Size (pixels)")
-    plot.xlabel("Proportion of moon visible")
-
-    plot.show()
+        print(moon_visible(date, file))
