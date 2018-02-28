@@ -248,45 +248,59 @@ def fit_moon(img, x, y):
 
     return fwhm
 
-if __name__ == "__main__":
-    date = '20180131'
 
-    directory = 'Images/Original/' + date + '/'
-    files = sorted(os.listdir(directory))
-
-
-
+def generate_eclipse_data(regen = False):
+    
+    # Necessary lists
     distances = []
-    found = []
+    imvis = []
+    truevis = []
+    
+    # Check to see if the data has been generated already. If it has 
+    save = 'eclipse.txt'
+    if os.path.isfile(save) and not regen:
+        f = open(save)
+        for line in f:
+            line = line.rstrip().split(',')
+            truevis.append(float(line[0]))
+            imvis.append(float(line[1]))
+        f.close()
+        return (truevis, imvis)
+    
+    # If we're regenerating the data we do it here.
+    date = '20180131'
+    directory = 'Images/Original/' + date + '/'
+    images = sorted(os.listdir(directory))
 
-    for file in files:
-        biggest, d = moon_size(date, file)
-
-        found.append(biggest)
+    # Finds the size of the moon in each image.
+    for img in images:
+        size, d = moon_size(date, img)
+        imvis.append(size)
         distances.append(d)
 
-    vis = eclipse_visible(distances, R_earth, R_moon)
-    print(vis)
+    # Calculates the proportion of visible moon for the given distance between
+    # the centers.
+    truevis = eclipse_visible(distances, R_earth, R_moon)
+    
+    imvis = np.asarray(imvis)
 
-    yes = False
-    i1 = 0
-    i2 = 0
-    for i in range(0,len(vis)):
-        if not math.isnan(vis[i]) and not yes:
-            yes = True
-            i1 = i
-        if math.isnan(vis[i]) and yes:
-            yes = False
-            i2 = i
-            break
+    # If the moon is greater than 40,000 pixels then I know that the moon has
+    # merged with the light that comes from the sun and washes out the horizon.
+    imvis = np.where(imvis < 40000, imvis, float('NaN'))
+    
+    f = open(save, 'w')
+    
+    for i in range(0,len(truevis)):
+        f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
+    f.close()
+    
+    return (truevis, imvis)
+    
 
-    print(vis[i1: i2])
-    print(found[i1: i2])
-    print(files[i1: i2])
-
-    found = np.asarray(found)
-
-    found = np.where(found < 40000, found, float('NaN'))
+if __name__ == "__main__":
+    
+    vis, found = generate_eclipse_data()
+    print("Eclipse data loaded!")
 
     # Some fitting code for later.
     #t_init = models.Sine1D()
