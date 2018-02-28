@@ -26,16 +26,25 @@ def eclipse_visible(d, R, r):
 
     # This makes addition work as addition and not concatenates
     d = np.asarray(d)
+    d = np.abs(d) # Required as for after totality times d < 0
+
+    print(d)
+
+    r2 = r * r
+    R2 = R * R
+    d2 = np.square(d)
+
+    #d1 = d * d - r2 + R2
 
     # Part 1 of the shaded area equation
-    a = (d * d + r * r - R * R)
+    a = (d2 + r2 - R2)
     b = d * 2 * r
-    p1 = r * r * np.arccos(a / b)
+    p1 = r2 * np.arccos(a / b)
 
     # Part 2 of the shaded area equation
-    a = (d * d + R * R - r * r)
+    a = (d2 + R2 - r2)
     b = d * 2 * R
-    p2 = R * R * np.arccos(a / b)
+    p2 = R2 * np.arccos(a / b)
 
     # Part 3 of the shaded area equation
     a1 = (r + R - d)
@@ -49,8 +58,7 @@ def eclipse_visible(d, R, r):
 
     # Get the shaded proportion by divding the shaded area by the total area
     # Assumes r is the radius of the moon being shaded.
-
-    P = A / (np.pi * r * r)
+    P = A / (np.pi * r2)
 
     # P is the shaded area, so 1-P is the lit up area.
     P = 1 - P
@@ -60,35 +68,36 @@ def eclipse_visible(d, R, r):
 # Calculates the proportion of the moon that is lit up for noneclipse nights.
 # 1.0 = Full moon, 0.0 = New Moon
 def moon_visible(date, file):
-    
+
     # This is the first New Moon (P = 1.0) of 2018, and serves as a reference.
     ref = Time("2018-01-01 2:25:0")
     ref = ref.jd
-    
+
     period = 29.530588
-    
+
     time = Coordinates.timestring_to_obj(date, file)
     time = time.jd
-    
+
     # Finds the passage of time, absolute value because the date might be before
     # the reference but we want the magnitude of the time passed.
     diff = abs(time - ref)
     delta = diff / period
-    
+
     # Strips out only the fractional portion of the time change.
     phase = math.modf(delta)[0]
-    
+
     # We start at a full moon, at 0.5 this will be 0, which is the new moon.
     # Then after 0.5 this works it's way back up to 1 for the next full moon.
     phase = abs(1.0 - 2 * phase)
-    
+
     return phase
-    
+
 
 # Finds the size of the moon region (approximately) by taking pixels that are
 # "close to white" (in this case, > 255 - threshold)
 def moon_size(date, file):
     img = ndimage.imread('Images/Original/' + date + '/' + file, mode = 'L')
+    img1 = np.copy(img)
 
     thresh = 5
     img = np.where(img >= 255 - thresh, 1, 0)
@@ -116,20 +125,36 @@ def moon_size(date, file):
 
     # 0 = Start of moon being shaded
     # 1 = totality of eclipse
-    eclipse_0 = (10) * 3600 + (49.8) * 60
+    eclipse_0 = (11) * 3600 + (47.6) * 60
     eclipse_1 = (12) * 3600 + (51.4) * 60
 
     # Time of this image in seconds
     time = int(file[4:6]) * 3600 + int(file[6:8]) * 60 + int(file[8:10])
 
-    # Point slope form.
-    slope = (R_moon + R_earth) / (eclipse_0 - eclipse_1)
-    d = slope * (time - eclipse_1)
+    # Point slope form. Totality occurs when d = R_e - R_m, and not at d=0 as
+    # originally assumed.
+    slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
+    d = slope * (time - eclipse_1) + (R_earth - R_moon)
 
-    # The moon is the biggest white area... most of the time.
-    # TODO: Change this using a find moon function to just pick the region that
-    # astropy says the moon is in.
-    biggest = np.amax(sizes)
+    # Use astropy to find the labeled region that the moon is in.
+    posx, posy = find_moon(date, file)
+    posx = math.floor(posx)
+    posy = math.floor(posy)
+
+    reg = labeled[posy, posx]
+
+    # Very large and bright moons have a dark center (region 0) but I want the
+    # region of the moon.
+    while reg == 0 and posx < 511:
+        posx = posx + 1
+        reg = labeled[posy, posx]
+
+
+    biggest = sizes[reg]
+
+    temp = np.where(labeled == reg, 1, 0)
+    ImageIO.save_image(temp, file + '-1', 'Images/Temp/' + date, cmap='gray')
+    ImageIO.save_image(img1, file + '-2', 'Images/Temp/' + date, cmap='gray')
 
     return (biggest, d)
 
@@ -229,5 +254,66 @@ if __name__ == "__main__":
     directory = 'Images/Original/' + date + '/'
     files = sorted(os.listdir(directory))
 
+
+
+    distances = []
+    found = []
+
     for file in files:
-        print(moon_visible(date, file))
+        biggest, d = moon_size(date, file)
+
+        found.append(biggest)
+        distances.append(d)
+
+    vis = eclipse_visible(distances, R_earth, R_moon)
+    print(vis)
+
+    yes = False
+    i1 = 0
+    i2 = 0
+    for i in range(0,len(vis)):
+        if not math.isnan(vis[i]) and not yes:
+            yes = True
+            i1 = i
+        if math.isnan(vis[i]) and yes:
+            yes = False
+            i2 = i
+            break
+
+    print(vis[i1: i2])
+    print(found[i1: i2])
+    print(files[i1: i2])
+
+    found = np.asarray(found)
+
+    found = np.where(found < 40000, found, float('NaN'))
+
+    # Some fitting code for later.
+    #t_init = models.Sine1D()
+    #fit_t = fitting.LevMarLSQFitter()
+    #t = fit_t(t_init, found, vis)
+
+    plot.scatter(vis, found, label='Eclipse', s=7)
+    plot.ylabel("Approx Moon Size (pixels)")
+    plot.xlabel("Proportion of moon visible")
+
+    plot.plot(t(vis), vis)
+
+    f1 = open("images.txt", 'r')
+
+    vis = []
+    found = []
+    for line in f1:
+        line = line.rstrip()
+        info = line.split(',')
+        vis.append(moon_visible(info[0], info[1]))
+        found.append((moon_size(info[0], info[1] + '.png'))[0])
+
+    print(vis)
+    print(found)
+    plot.scatter(vis, found, label='Regular', s=7)
+    plot.legend()
+
+    plot.savefig("Images/moon-size.png", dpi=256)
+
+    #plot.show()
