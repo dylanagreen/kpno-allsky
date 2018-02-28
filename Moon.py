@@ -297,7 +297,7 @@ if __name__ == "__main__":
     plot.ylabel("Approx Moon Size (pixels)")
     plot.xlabel("Proportion of moon visible")
 
-    plot.plot(t(vis), vis)
+    #plot.plot(t(vis), vis)
 
     f1 = open("images.txt", 'r')
 
