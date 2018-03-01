@@ -122,19 +122,6 @@ def moon_size(date, file):
     # Following code calculates d, the distance between the center of
     # Earth's shadow and the center of the moon. Basically just d = v*t.
 
-    # 0 = Start of moon being shaded
-    # 1 = totality of eclipse
-    eclipse_0 = (11) * 3600 + (47.6) * 60
-    eclipse_1 = (12) * 3600 + (51.4) * 60
-
-    # Time of this image in seconds
-    time = int(file[4:6]) * 3600 + int(file[6:8]) * 60 + int(file[8:10])
-
-    # Point slope form. Totality occurs when d = R_e - R_m, and not at d=0 as
-    # originally assumed.
-    slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
-    d = slope * (time - eclipse_1) + (R_earth - R_moon)
-
     # Use astropy to find the labeled region that the moon is in.
     posx, posy = find_moon(date, file)
     posx = math.floor(posx)
@@ -155,7 +142,7 @@ def moon_size(date, file):
     #ImageIO.save_image(temp, file + '-1', 'Images/Temp/' + date, cmap='gray')
     #ImageIO.save_image(img1, file + '-2', 'Images/Temp/' + date, cmap='gray')
 
-    return (biggest, d)
+    return biggest
 
 # Finds the x,y coordinates of the moon's center in a given image.
 def find_moon(date, file):
@@ -274,7 +261,21 @@ def generate_eclipse_data(regen = False):
 
     # Finds the size of the moon in each image.
     for img in images:
-        size, d = moon_size(date, img)
+        
+        # 0 = Start of moon being shaded
+        # 1 = totality of eclipse
+        eclipse_0 = (11) * 3600 + (47.6) * 60
+        eclipse_1 = (12) * 3600 + (51.4) * 60
+
+        # Time of this image in seconds
+        time = int(file[4:6]) * 3600 + int(file[6:8]) * 60 + int(file[8:10])
+
+        # Point slope form. Totality occurs when d = R_e - R_m, and not at d=0
+        # as originally assumed.
+        slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
+        d = slope * (time - eclipse_1) + (R_earth - R_moon)
+        
+        size = moon_size(date, img)
         imvis.append(size)
         distances.append(d)
 
@@ -321,7 +322,7 @@ if __name__ == "__main__":
         line = line.rstrip()
         info = line.split(',')
         vis.append(moon_visible(info[0], info[1]))
-        found.append((moon_size(info[0], info[1] + '.png'))[0])
+        found.append((moon_size(info[0], info[1] + '.png')))
         print("Processed: " + info[0] + '/' + info[1] + '.png')
 
     found = np.asarray(found)
