@@ -14,6 +14,8 @@ from astropy.time import Time
 from astropy import units as u
 from astropy.modeling import models, fitting
 
+import ephem
+
 
 # Radii in kilometers
 # Radius of the earth is the radius of the earth shadow at the moon's orbit.
@@ -69,28 +71,25 @@ def eclipse_visible(d, R, r):
 # 1.0 = Full moon, 0.0 = New Moon
 def moon_visible(date, file):
 
-    # This is the first New Moon (P = 1.0) of 2018, and serves as a reference.
-    ref = Time("2018-01-01 2:25:0")
-    ref = ref.jd
+    #phase = (1/2) * math.cos(2 * math.pi * diff / period) + (1/2)
 
-    period = 29.530588
+    # Nicked this time formatting code from timestring to object.
+    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
+    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
+    formatdate = formatdate + ' ' + time
 
-    time = Coordinates.timestring_to_obj(date, file)
-    time = time.jd
+    # Sets up a pyephem object for the camera.
+    camera = ephem.Observer()
+    camera.lat = '31.959417'
+    camera.lon = '-111.598583'
+    camera.elevation = 2120
+    camera.date = formatdate
 
-    # Finds the passage of time, absolute value because the date might be before
-    # the reference but we want the magnitude of the time passed.
-    diff = abs(time - ref)
-    delta = diff / period
+    # Makes a moon object and calculates it for the observation location/time
+    moon = ephem.Moon()
+    moon.compute(camera)
 
-    # Strips out only the fractional portion of the time change.
-    phase = math.modf(delta)[0]
-
-    # We start at a full moon, at 0.5 this will be 0, which is the new moon.
-    # Then after 0.5 this works it's way back up to 1 for the next full moon.
-    phase = abs(1.0 - 2 * phase)
-
-    return phase
+    return moon.moon_phase
 
 
 # Finds the size of the moon region (approximately) by taking pixels that are
@@ -152,9 +151,9 @@ def moon_size(date, file):
 
     biggest = sizes[reg]
 
-    temp = np.where(labeled == reg, 1, 0)
-    ImageIO.save_image(temp, file + '-1', 'Images/Temp/' + date, cmap='gray')
-    ImageIO.save_image(img1, file + '-2', 'Images/Temp/' + date, cmap='gray')
+    #temp = np.where(labeled == reg, 1, 0)
+    #ImageIO.save_image(temp, file + '-1', 'Images/Temp/' + date, cmap='gray')
+    #ImageIO.save_image(img1, file + '-2', 'Images/Temp/' + date, cmap='gray')
 
     return (biggest, d)
 
@@ -250,13 +249,14 @@ def fit_moon(img, x, y):
 
 
 def generate_eclipse_data(regen = False):
-    
+
     # Necessary lists
     distances = []
     imvis = []
     truevis = []
-    
-    # Check to see if the data has been generated already. If it has 
+
+    # Check to see if the data has been generated already. If it has then read
+    # it from the file
     save = 'eclipse.txt'
     if os.path.isfile(save) and not regen:
         f = open(save)
@@ -266,7 +266,7 @@ def generate_eclipse_data(regen = False):
             imvis.append(float(line[1]))
         f.close()
         return (truevis, imvis)
-    
+
     # If we're regenerating the data we do it here.
     date = '20180131'
     directory = 'Images/Original/' + date + '/'
@@ -281,24 +281,24 @@ def generate_eclipse_data(regen = False):
     # Calculates the proportion of visible moon for the given distance between
     # the centers.
     truevis = eclipse_visible(distances, R_earth, R_moon)
-    
+
     imvis = np.asarray(imvis)
 
     # If the moon is greater than 40,000 pixels then I know that the moon has
     # merged with the light that comes from the sun and washes out the horizon.
     imvis = np.where(imvis < 40000, imvis, float('NaN'))
-    
+
     f = open(save, 'w')
-    
+
     for i in range(0,len(truevis)):
         f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
     f.close()
-    
+
     return (truevis, imvis)
-    
+
 
 if __name__ == "__main__":
-    
+
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
 
@@ -322,7 +322,10 @@ if __name__ == "__main__":
         info = line.split(',')
         vis.append(moon_visible(info[0], info[1]))
         found.append((moon_size(info[0], info[1] + '.png'))[0])
+        print("Processed: " + info[0] + '/' + info[1] + '.png')
 
+    found = np.asarray(found)
+    found = np.where(found < 40000, found, float('NaN'))
     print(vis)
     print(found)
     plot.scatter(vis, found, label='Regular', s=7)

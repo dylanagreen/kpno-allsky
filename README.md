@@ -8,6 +8,7 @@ SciPy
 NumPy
 matplotlib
 Requests
+pyephem
 At present:
 
 # ImageIO.py
@@ -43,7 +44,12 @@ At present:
 # Histogram.py
 - Creates histograms of greyscale values in .3s images.
 - Categorizes the histograms based on predefined categories.
-- Finds an approximate radius of the moon in each image.
+
+# Moon.py
+- Finds a moon in an image
+- Fits a Moffat to the moon to find an approx radius and center
+- Finds the illuminated fraction of the moon for eclipse and non eclipse images.
+- Finds an approximate size of the moon on the image.
 
 # Notebooks
 This repo also features a few jupyter notebooks designed for quick plotting/model corrections. Their functions are defined at the top of the notebooks themselves.
