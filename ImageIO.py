@@ -1,5 +1,4 @@
 import numpy as np
-import matplotlib.image as image
 import matplotlib.pyplot as plot
 import requests
 import os
@@ -9,10 +8,10 @@ from PIL import Image
 from io import BytesIO
 from scipy import ndimage
 
+
 # Saves an input image with the given name in the folder denoted by location.
 # If the image is greyscale, cmap should be 'gray'
 def save_image(img, name, location, cmap=None):
-
     if not os.path.exists(location):
         os.makedirs(location)
 
@@ -49,9 +48,6 @@ def save_image(img, name, location, cmap=None):
     # Print "saved" after saving, in case saving messes up.
     plot.savefig(name, dpi=dpi)
     print('Saved: ' + name)
-
-    # Show the plot
-    #plot.show()
 
     # Close the plot in case you're running multiple saves.
     plot.close()
@@ -233,4 +229,3 @@ def image_diff(img1, img2):
     diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
 
     return diffimg
-

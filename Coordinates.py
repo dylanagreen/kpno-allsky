@@ -7,7 +7,6 @@ from astropy import units as u
 import numpy as np
 
 from matplotlib.patches import Circle, Rectangle
-import matplotlib.image as image
 import matplotlib.pyplot as plot
 from scipy import ndimage
 
@@ -33,7 +32,7 @@ def xy_to_altaz(x, y):
     # Converts lists/numbers to np ndarrays for vectorwise math.
     x = np.asarray(x)
     y = np.asarray(y)
-    
+
     # Point adjusted based on the center being at... well... the center.
     # And not the top left. In case you were confused.
     # Y is measured from the top stop messing it up.
@@ -56,7 +55,7 @@ def xy_to_altaz(x, y):
     # This interpolates the value from the two on either side of it.
     r = r * 11.6 / 240  # Magic pixel to mm conversion rate
     alt = 90 - np.interp(r, xp=rpoints, fp=thetapoints)
-    
+
     # For now if r is on the edge of the circle or beyond
     # we'll have it just be 0 degrees. (Up from horizontal)
     cond = np.greater(r, 240)
@@ -64,7 +63,7 @@ def xy_to_altaz(x, y):
 
     # Az correction
     az = az + .94444
-    
+
     return (alt.tolist(), az.tolist())
 
 
@@ -112,7 +111,7 @@ def radec_to_altaz(ra, dec, time):
 def altaz_to_xy(alt, az):
     alt = np.asarray(alt)
     az = np.asarray(az)
-    
+
     # Approximate correction (due to distortion of lens?)
     az = az - .94444
 
@@ -148,7 +147,7 @@ def xy_to_radec(x, y, time):
     alt, az = xy_to_altaz(x, y)
     x, y = camera_conv(x, y, az)
     alt, az = xy_to_altaz(x, y)
-    
+
     return altaz_to_radec(alt, az, time)
 
 
@@ -172,7 +171,7 @@ def galactic_conv(x, y, az):
     y = np.asarray(y)
     x = np.asarray(x)
     az = np.asarray(az)
-    
+
     # Convert to center relative coords.
     x = x - center[0]
     y = center[1] - y
@@ -199,7 +198,7 @@ def camera_conv(x, y, az):
     y = np.asarray(y)
     x = np.asarray(x)
     az = np.asarray(az)
-    
+
     # Convert to center relative coords.
     x = x - center[0]
     y = center[1] - y
@@ -232,7 +231,7 @@ def load_image(date, file):
 
 # Draws a celestial horizon
 def draw_celestial_horizon(date, file):
-    load_image(date, file)
+    img = load_image(date, file)
     time = timestring_to_obj(date, file)
 
     dec = 0
@@ -269,7 +268,6 @@ def draw_circle(x, y, img, color='c', name='blah.png'):
 
     axes.set_aspect('equal')
     for i in range(0, len(x)):
-        #circ = Circle((x[i], y[i]), 5, fill = False)
         circ = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
         circ.set_edgecolor(color)
         axes.add_patch(circ)
@@ -282,6 +280,7 @@ def draw_circle(x, y, img, color='c', name='blah.png'):
 # This just finds the "center of mass" for the square patch,
 # with mass = greyscale value. With some modifications
 # Mass is converted to exp(mass/10)
+# square = half a (side length-1). i.e. range from x-square to x+square
 def find_star(img, centerx, centery, square=6):
 
     # We need to round these to get the center pixel as an int.
@@ -290,9 +289,6 @@ def find_star(img, centerx, centery, square=6):
     # Just setting up some variables.
     R = (0, 0)
     M = 0
-
-    # Half a (side length-1). i.e. range from x-square to x+square
-    #square = 6
 
     # Fudge factor exists because I made a math mistake and somehow
     # it worked better than the correct mean.
@@ -311,7 +307,6 @@ def find_star(img, centerx, centery, square=6):
             temp[y, x] = math.exp(temp[y, x]/10)
 
     averagem = np.mean(temp) * fudge
-    #print(temp)
     # This is a box from -square to square in both directions
     # Range is open on the upper bound.
     for x in range(-square, square + 1):
@@ -323,7 +318,7 @@ def find_star(img, centerx, centery, square=6):
             # if it's less than the average of the stamp
             if m < averagem:
                 m = 0
-            #print(str(m) + ' ' + str(x) + ' ' + str(y))
+
             R = (m * x + R[0], m * y + R[1])
             M += m
 
@@ -340,9 +335,6 @@ def find_star(img, centerx, centery, square=6):
         return find_star(img, star[0], star[1], square - 2)
     else:
         return star
-
-    #print(R) # Debug
-    #return (centerx + R[0], centery + R[1])
 
 
 # Returns a tuple of the form (rexpected, ractual, deltar)
@@ -392,12 +384,13 @@ stars = {'Polaris': (37.9461429,  89.2641378),
          'Spica': (201.298, -11.1613),
          'Sirius': (101.2875, -16.7161)}
 
+
 def contours(date, file):
-    
+
     file = 'Images/Original/' + date + '/' + file + '.png'
 
     img = ndimage.imread(file, mode='L')
-    
+
     # Generate Figure and Axes objects.
     figure = plot.figure()
     figure.set_size_inches(4, 4)  # 4 inches by 4 inches
@@ -412,19 +405,19 @@ def contours(date, file):
     axes.imshow(img, cmap='gray')
 
     axes.set_aspect('equal')
-    
-    for alt in range(0,100,30):
+
+    for alt in range(0, 100, 30):
         r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
         r = r * 240 / 11.6  # mm to pixel rate
-        
+
         circ = Circle(center, radius=r, fill=False, edgecolor='green')
         axes.add_patch(circ)
-        
-        
+
     name = 'Images/Contour/' + date + '/' + file + '.png'
     plot.savefig(name, dpi=128)
 
     plot.close()
+
 
 # Designed to test the conversion as well as the find_star method.
 # Essentially all but useless now, but I may need to do so again in the future.
@@ -466,9 +459,6 @@ def conv_test():
 
                 # Expected
                 altaz1 = xy_to_altaz(xlist[i], ylist[i])
-
-                #point = find_star(img, xlist[i],ylist[i])
-
                 x = xlist[i] - center[0]
                 y = center[1] - ylist[i]
                 point = galactic_conv(x, y, altaz1[1])
@@ -480,7 +470,7 @@ def conv_test():
                 # Actual
                 altaz2 = xy_to_altaz(point[0], point[1])
 
-                deltaaz = altaz2[1] - altaz1[1]
+                #deltaaz = altaz2[1] - altaz1[1]
 
                 # Radius stuff
                 #s = s + ', ' + str(altaz1[1]) + ', ' + str(altaz2[1]) + ', ' + str(deltaaz)
@@ -497,9 +487,4 @@ def conv_test():
         draw_circle(xlist, ylist, img, name=loc + date + '-1.png')
         draw_circle(xlist2, ylist2, img, color='y', name=loc + date + '-2.png')
 
-
     f.close()
-
-#conv_test()
-
-#contours(date, tempfile)

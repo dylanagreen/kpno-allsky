@@ -1,11 +1,8 @@
 import numpy as np
-import matplotlib.image as image
 import matplotlib.pyplot as plt
-import math
 import os
 import Mask
 import ImageIO
-import Coordinates
 import Moon
 from scipy import ndimage
 
@@ -13,12 +10,13 @@ center = (256, 252)
 
 date = '20170718'
 
+
 # Creates a histogram of the greyscale values in the image and saves it.
 # Returns the histogram bin values.
 def histogram(date, file):
 
     # Read in the image, then gets a mask
-    img = ndimage.imread('Images/Original/' + date + '/' + file, mode = 'L')
+    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
     mask = Mask.generate_full_mask()
     mask = 1 - mask
 
@@ -40,7 +38,7 @@ def histogram(date, file):
     # Sets up the image so that the image is on the left and the histogram is
     # on the right.
     fig, ax = plt.subplots(1, 2)
-    fig.set_size_inches(10,5)
+    fig.set_size_inches(10, 5)
 
     # Turn off the actual visual axes on the image for visual niceness.
     # Then add the image to the left axes with the moon circle.
@@ -48,13 +46,13 @@ def histogram(date, file):
     ax[0].imshow(img, cmap='gray')
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
-    bins = list(range(0,256))
-    hist = ax[1].hist(img1.flatten(), bins = bins, color = 'blue', log = True)
+    bins = list(range(0, 256))
+    hist = ax[1].hist(img1.flatten(), bins=bins, color='blue', log=True)
 
     #plt.show()
 
     # Writes the moon radius onto the image.
-    ax[0].text(0, -20, str(r), fontsize = 20)
+    ax[0].text(0, -20, str(r), fontsize=20)
 
     # Saving code.
     name = 'Images/Histogram/' + date + '/' + file
@@ -85,7 +83,7 @@ def init_categories():
         # Opens the image, then uses np.histogram to generate the histogram
         # for that image, where the image is masked the same way as in the
         # histogram method.
-        img = ndimage.imread('Images/Category/' + file, mode = 'L')
+        img = ndimage.imread('Images/Category/' + file, mode='L')
         mask = Mask.generate_full_mask()
         mask = 1 - mask
 
@@ -93,7 +91,7 @@ def init_categories():
         img1 = img[mask]
 
         # Creates the histogram and adds it to the dict.
-        bins = list(range(0,256))
+        bins = list(range(0, 256))
         hist = np.histogram(img1, bins=bins)
 
         name = file[:-4]
@@ -145,12 +143,7 @@ if __name__ == "__main__":
     dates.remove('.DS_Store')
     dates.remove('1')
     dates = sorted(dates)
-    #print(dates)
-    #for date in dates:
 
-    #date = '20171108'
-    #date = '20170817'
-    #date = '20161104'
     date = '20180131'
 
     directory = 'Images/Original/' + date + '/'
@@ -171,29 +164,22 @@ if __name__ == "__main__":
     lowfile = ""
     for file in files:
         hist, r = histogram(date, file)
-        #print("HIST")
-        #print(hist)
-
         if hist is not None:
             newcat = categorize(hist, cats)
             print(newcat)
         else:
             newcat = None
-
         saves.append((file, newcat))
-
 
         if r is not None and 0 < r < lowest:
             lowfile = file
             lowest = r
 
-    #print(lowfile)
     for loc in saves:
         file = loc[0]
         cat = loc[1]
 
         name1 = 'Images/Histogram/' + date + '/' + file
-
         if cat is not None and not file == lowfile:
             name2 = 'Images/Histogram/' + date + '/' + cat + '/' + file
             #os.rename(name1, name2)

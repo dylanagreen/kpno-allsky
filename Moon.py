@@ -8,17 +8,13 @@ import numpy as np
 
 from scipy import ndimage
 
-import matplotlib.image as image
 import matplotlib.pyplot as plt
 
 import astropy.coordinates
-import astropy.time.core as aptime
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from astropy.time import Time
+from astropy.coordinates import EarthLocation, AltAz
 import astropy.units as u
-from astropy.modeling import models,fitting
+from astropy.modeling import models, fitting
 
-import ImageIO
 import Coordinates
 
 
@@ -27,19 +23,18 @@ import Coordinates
 R_moon = 1737
 R_earth = 4479
 
+
 # Returns the amount of the moon that is lit up still by the sun, and not
 # shaded by the earth.
 def eclipse_visible(d, R, r):
 
     # This makes addition work as addition and not concatenates
     d = np.asarray(d)
-    d = np.abs(d) # Required as for after totality times d < 0
+    d = np.abs(d)  # Required as for after totality times d < 0
 
     r2 = r * r
     R2 = R * R
     d2 = np.square(d)
-
-    #d1 = d * d - r2 + R2
 
     # Part 1 of the shaded area equation
     a = (d2 + r2 - R2)
@@ -70,11 +65,10 @@ def eclipse_visible(d, R, r):
 
     return P
 
+
 # Calculates the proportion of the moon that is lit up for noneclipse nights.
 # 1.0 = Full moon, 0.0 = New Moon
 def moon_visible(date, file):
-
-    #phase = (1/2) * math.cos(2 * math.pi * diff / period) + (1/2)
 
     # Nicked this time formatting code from timestring to object.
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
@@ -98,9 +92,7 @@ def moon_visible(date, file):
 # Finds the size of the moon region (approximately) by taking pixels that are
 # "close to white" (in this case, > 255 - threshold)
 def moon_size(date, file):
-    img = ndimage.imread('Images/Original/' + date + '/' + file, mode = 'L')
-    img1 = np.copy(img)
-
+    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
     thresh = 5
     img = np.where(img >= 255 - thresh, 1, 0)
 
@@ -108,8 +100,8 @@ def moon_size(date, file):
     # a rogue antenna). Then labels the connected white regions. Structure s
     # Makes it so that regions connected diagonally are counted as 1 region.
     s = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-    img = ndimage.morphology.binary_closing(img, structure = s)
-    labeled, nums = ndimage.label(img, structure = s)
+    img = ndimage.morphology.binary_closing(img, structure=s)
+    labeled, nums = ndimage.label(img, structure=s)
 
     # Want to find the size of each labeled region.
     sizes = [0] * (nums + 1)
@@ -138,14 +130,10 @@ def moon_size(date, file):
         posx = posx + 1
         reg = labeled[posy, posx]
 
-
     biggest = sizes[reg]
 
-    #temp = np.where(labeled == reg, 1, 0)
-    #ImageIO.save_image(temp, file + '-1', 'Images/Temp/' + date, cmap='gray')
-    #ImageIO.save_image(img1, file + '-2', 'Images/Temp/' + date, cmap='gray')
-
     return biggest
+
 
 # Finds the x,y coordinates of the moon's center in a given image.
 def find_moon(date, file):
@@ -158,7 +146,6 @@ def find_moon(date, file):
 
     # Gets a SkyCoord with the moon position.
     moon = astropy.coordinates.get_moon(time, cameraearth)
-    #print(moon.frame)
 
     # Converstion to x,y positions on the image.
     altazcoord = moon.transform_to(AltAz(obstime=time, location=cameraearth))
@@ -167,8 +154,7 @@ def find_moon(date, file):
     x, y = Coordinates.altaz_to_xy(alt, az)
     x, y = Coordinates.galactic_conv(x, y, az)
 
-    return (x,y)
-
+    return (x, y)
 
 
 # Fits a Moffat fit to the moon and returns the estimated radius of the moon.
@@ -177,14 +163,14 @@ def fit_moon(img, x, y):
 
     # This block of code runs straight vertical from the center of the moon
     # It gives a predicted rough radius of the moon, it starts counting at the
-    # first white pixel it encounters (because the center may be overflow black)
+    # first white pixel it encounters (the center may be black)
     # and stops at the last white pixel. White here defined as > 250 greyscale.
     yfloor = math.floor(y)
     count = False
     size = 0
     xfloor = math.floor(x)
     start = xfloor
-    for i in range(0,35):
+    for i in range(0, 35):
         start += 1
 
         # Breaks if it reaches the edge of the image.
@@ -223,7 +209,7 @@ def fit_moon(img, x, y):
     # Moffat fit, centered in square, stdev of 20 as a start.
     stddev = 20
     model_init = models.Moffat2D(amplitude=200, x_0=midx, y_0=midy,
-                                 gamma = stddev)
+                                 gamma=stddev)
     fit = fitting.LevMarLSQFitter()
 
     with warnings.catch_warnings():
@@ -238,14 +224,14 @@ def fit_moon(img, x, y):
     return fwhm
 
 
-def generate_eclipse_data(regen = False):
+def generate_eclipse_data(regen=False):
 
     dates = ['20180131', '20150404']
 
-    eclipsestart = {'20180131':(11) * 3600 + (47.6) * 60,
-                    '20150404':(10) * 3600 + (16) * 60}
-    eclipsetotal = {'20180131':(12) * 3600 + (51.4) * 60,
-                    '20150404':(11) * 3600 + (58) * 60}
+    eclipsestart = {'20180131': (11) * 3600 + (47.6) * 60,
+                    '20150404': (10) * 3600 + (16) * 60}
+    eclipsetotal = {'20180131': (12) * 3600 + (51.4) * 60,
+                    '20150404': (11) * 3600 + (58) * 60}
 
     # 0 = Start of moon being shaded
     # 1 = totality of eclipse
@@ -255,8 +241,8 @@ def generate_eclipse_data(regen = False):
         imvis = []
         truevis = []
 
-        # Check to see if the data has been generated already. If it has then read
-        # it from the file
+        # Check to see if the data has been generated already. If it has then
+        # read it from the file
         save = 'eclipse-' + date + '.txt'
         if os.path.isfile(save) and not regen:
             f = open(save)
@@ -287,8 +273,8 @@ def generate_eclipse_data(regen = False):
             imvis.append(size)
             distances.append(d)
 
-        # Calculates the proportion of visible moon for the given distance between
-        # the centers.
+        # Calculates the proportion of visible moon for the given distance
+        # between the centers.
         truevis = eclipse_visible(distances, R_earth, R_moon)
 
         imvis = np.asarray(imvis)
@@ -300,7 +286,7 @@ def generate_eclipse_data(regen = False):
 
         f = open(save, 'w')
 
-        for i in range(0,len(truevis)):
+        for i in range(0, len(truevis)):
             f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
         f.close()
 
@@ -321,18 +307,11 @@ if __name__ == "__main__":
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
 
-    # Some fitting code for later.
-    #t_init = models.Sine1D()
-    #fit_t = fitting.LevMarLSQFitter()
-    #t = fit_t(t_init, found, vis)
-
     plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Proportion of moon visible")
 
     plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
-
-    #plt.plot(t(vis), vis)
 
     f1 = open("images.txt", 'r')
 
@@ -356,5 +335,3 @@ if __name__ == "__main__":
     #ax.set_yscale('log')
 
     plt.savefig("Images/moon-size.png", dpi=256)
-
-    #plt.show()

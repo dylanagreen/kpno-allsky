@@ -1,10 +1,9 @@
 import numpy as np
-import matplotlib.image as image
-import matplotlib.pyplot as plot
 import os
 from scipy import ndimage
 
 import ImageIO
+
 
 # This is necessary.
 # Python works on tuples as required for color medians, which means we need to
@@ -54,6 +53,7 @@ def median_of_medians(arr, i):
         return pivot
     else:
         return median_of_medians(high, i - (lownum + identnum))
+
 
 # Finds all median images for a given date
 # Returns a dictionary of median images, with keys being exposures.
@@ -138,11 +138,9 @@ def median_all_date(date, color=False):
             finalimg[key] = np.median(superimg[key], axis=2)
         # In color we use the median of median because rgb tuples.
         else:
-            #final = finalimg[key]
             # Let's run this loop as little as possible thanks.
             if not np.array_equal(superimg[key], np.zeros((1, 1, 1, 1))):
                 supe = superimg[key]
-                #final = np.zeros((supe.shape[0], supe.shape[1], 3))
 
                 x = 0
                 y = 0
@@ -150,13 +148,14 @@ def median_all_date(date, color=False):
                     for column in row:
                         tuples = ndarray_to_tuplelist(column)
                         median = median_of_medians(tuples, len(tuples) // 2)
-                        finalimg[key][y,x] = [median[1], median[2], median[3]]
+                        finalimg[key][y, x] = [median[1], median[2], median[3]]
                         x += 1
                     y += 1
                     x = 0
             #finalimg[key] = np.zeros((supe.shape[0], supe.shape[1], 3))
     print('Median images complete for ' + date)
     return finalimg
+
 
 # Date tells this function what folder to save the medians in.
 # Color tells us if the medians are in color or not.
@@ -167,19 +166,20 @@ def save_medians(medians, date, color=False):
     else:
         loc = 'Images/Median-Color/' + date + '/'
         cmap = None
-    
+
     for key, median in medians.items():
         name = str(key).replace('.', '')
-        
+
         # If blocks to only save the ones with actual data
         if not color and not np.array_equal(median, np.zeros((1, 1))):
             ImageIO.save_image(median, name, loc, cmap)
-            
+
         elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
             ImageIO.save_image(np.uint8(median), name, loc)
 
+
 if __name__ == "__main__":
-    date = '20160823'
-    #ImageIO.download_all_date(date)
-    medians = median_all_date(date)
-    save_medians(medians, date)
+    date = '20150404'
+    ImageIO.download_all_date(date)
+    #medians = median_all_date(date)
+    #save_medians(medians, date)

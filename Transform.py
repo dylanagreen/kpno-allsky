@@ -2,14 +2,12 @@ import math
 import os
 import ast
 import numpy as np
-import matplotlib.image as image
 import matplotlib.pyplot as plot
 from scipy import ndimage
 from matplotlib.patches import Polygon
 
 import Coordinates
 import Mask
-import Clouds
 
 
 center = (256, 252)
@@ -24,18 +22,17 @@ def transform(file, date):
     time = Coordinates.timestring_to_obj(date, file)
 
     #img = Clouds.cloud_contrast(img)
-    
-    
+
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
-    #mask = Mask.generate_mask()
-    #img = Mask.apply_mask(mask, img)
+    mask = Mask.generate_mask()
+    img = Mask.apply_mask(mask, img)
 
     # Sets up the figure and axes objects
     fig = plot.figure(frameon=False)
     fig.set_size_inches(12, 6)
 
-    # We just want the globe to be centered in an image so we turn off the axis.
+    # We just want the globe to be centered in an image so we turn off the axis
     ax1 = plot.Axes(fig, [0., 0., 1., 1.])
     ax1.set_axis_off()
 
@@ -60,8 +57,6 @@ def transform(file, date):
     scatter = ax1.scatter(x, y, s=2, color='black')
 
     # This is the image conversion
-    altpoints = []
-    azpoints = []
     xpoints = []
     ypoints = []
 
@@ -70,7 +65,7 @@ def transform(file, date):
 
             x = column - center[0]
             y = center[1] - row
-            r = math.hypot(x,y)
+            r = math.hypot(x, y)
 
             # Zeros out ignorable objects first
             if(r > 241):
@@ -153,12 +148,12 @@ def contours(axis, time):
 
     # Loop runs over all the alts.
     # Resets the arrays at the start, creates alt/az for that alt value.
-    for alt in range(0,90,30):
+    for alt in range(0, 90, 30):
         # We need it to not connect the different contours so they have to be
         # added seperately.
         altpoints = []
         azpoints = []
-        for az in range(0,360,1):
+        for az in range(0, 360, 1):
             altpoints.append(alt)
             azpoints.append(az)
 
@@ -177,7 +172,7 @@ def contours(axis, time):
         if not alt == 60:
             # Sorting by ra so that the left and right edges don't connect.
             points = []
-            for i in range(0,len(rapoints)):
+            for i in range(0, len(rapoints)):
                 points.append((rapoints[i], decpoints[i]))
 
             points = sorted(points)
@@ -189,7 +184,7 @@ def contours(axis, time):
             x, y = eckertiv(rapoints, decpoints)
 
             # 42f44e is super bright green.
-            scatter = axis.plot(x,y,c='#42f44e')
+            scatter = axis.plot(x, y, c='#42f44e')
 
         # The 60 contour needs to be two plots if it gets seperated by the edge.
         else:
@@ -202,7 +197,7 @@ def contours(axis, time):
                 lowerdec = []
                 upperra = []
                 upperdec = []
-                for i in range(0,len(rapoints)):
+                for i in range(0, len(rapoints)):
                     if rapoints[i] < 180:
                         lowerra.append(rapoints[i])
                         lowerdec.append(decpoints[i])
@@ -215,16 +210,16 @@ def contours(axis, time):
                 # Left needs to be sorted from negative x.
                 lowerra, lowerdec = clockwise_sort(lowerra, lowerdec)
                 x, y = eckertiv(lowerra, lowerdec)
-                scatter = axis.plot(x,y,c='#42f44e')
+                scatter = axis.plot(x, y, c='#42f44e')
 
                 # Right needs to be sorted from the positive x.
                 upperra, upperdec = clockwise_sort(upperra, upperdec, True)
                 x, y = eckertiv(upperra, upperdec)
-                scatter = axis.plot(x,y,c='#42f44e')
+                scatter = axis.plot(x, y, c='#42f44e')
 
             else:
                 x, y = eckertiv(rapoints, decpoints)
-                scatter = axis.plot(x,y,c='#42f44e')
+                scatter = axis.plot(x, y, c='#42f44e')
 
     return axis
 
@@ -325,14 +320,13 @@ def eckertiv(ra, dec):
     x = 2 * R * coeff * np.subtract(np.radians(ra), center) * (1 + np.cos(theta))
     y = 2 * R * math.pi * coeff * np.sin(theta)
 
-
     return(x, y)
 
 
 # Returns a matplotlib patch for each of the two DESI view polygons.
 def hull_patch():
     f = open('hull.txt', 'r')
-    
+
     # Converts the string representation of the list to a list of points.
     left = f.readline()
     left = ast.literal_eval(left)
@@ -340,10 +334,10 @@ def hull_patch():
     right = ast.literal_eval(right)
 
     # Zorder parameter ensures the patches are on top of everything.
-    patch1 = Polygon(left, closed = True, fill = False,
-                     edgecolor='red',lw=2, zorder=4)
-    patch2 = Polygon(right, closed = True, fill = False,
-                     edgecolor='red',lw=2, zorder=4)
+    patch1 = Polygon(left, closed=True, fill=False,
+                     edgecolor='red', lw=2, zorder=4)
+    patch2 = Polygon(right, closed=True, fill=False,
+                     edgecolor='red', lw=2, zorder=4)
 
     f.close()
 
@@ -354,7 +348,7 @@ def hull_patch():
 # Pos defines whether or not the sort sorts anticlockwise from the positive x
 # Or clockwise from the negative x.
 # Anticlockwise = True, clockwise = False
-def clockwise_sort(ra, dec, positive = False):
+def clockwise_sort(ra, dec, positive=False):
     x = sorted(ra)
     y = sorted(dec)
 
@@ -380,7 +374,7 @@ def clockwise_sort(ra, dec, positive = False):
         theta = np.where(cond, theta + 2 * np.pi, theta)
 
     # Stack into list of form (theta,r) (we want to sort theta first)
-    stack = np.hstack((theta,r))
+    stack = np.hstack((theta, r))
 
     stack2 = []
     for i in stack:
@@ -392,18 +386,19 @@ def clockwise_sort(ra, dec, positive = False):
     # Now we just have to convert back!
     # Slice out theta and r
     stack2 = np.array(stack2)
-    theta = stack2[:,0]
-    r = stack2[:,1]
+    theta = stack2[:, 0]
+    r = stack2[:, 1]
 
     x = r * np.cos(theta) + centerx
     y = r * np.sin(theta) + centery
-    return (x,y)
+    return (x, y)
+
 
 if __name__ == "__main__":
     date = '20171108'
     directory = 'Images/Original/' + date + '/'
     files = os.listdir(directory)
-    
+
     # Loop for transforming a whole day.
     for file in files:
         transform(file, date)
