@@ -30,8 +30,6 @@ def eclipse_visible(d, R, r):
     d = np.asarray(d)
     d = np.abs(d) # Required as for after totality times d < 0
 
-    print(d)
-
     r2 = r * r
     R2 = R * R
     d2 = np.square(d)
@@ -237,65 +235,80 @@ def fit_moon(img, x, y):
 
 def generate_eclipse_data(regen = False):
 
-    # Necessary lists
-    distances = []
-    imvis = []
-    truevis = []
+    dates = ['20180131', '20150404']
+    
+    eclipsestart = {'20180131':(11) * 3600 + (47.6) * 60,
+                    '20150404':(10) * 3600 + (16) * 60}
+    eclipsetotal = {'20180131':(12) * 3600 + (51.4) * 60,
+                    '20150404':(11) * 3600 + (58) * 60}
 
-    # Check to see if the data has been generated already. If it has then read
-    # it from the file
-    save = 'eclipse.txt'
-    if os.path.isfile(save) and not regen:
-        f = open(save)
-        for line in f:
-            line = line.rstrip().split(',')
-            truevis.append(float(line[0]))
-            imvis.append(float(line[1]))
+    # 0 = Start of moon being shaded
+    # 1 = totality of eclipse
+    def data(date, eclipse_0, eclipse_1):
+        # Necessary lists
+        distances = []
+        imvis = []
+        truevis = []
+
+        # Check to see if the data has been generated already. If it has then read
+        # it from the file
+        save = 'eclipse-' + date + '.txt'
+        if os.path.isfile(save) and not regen:
+            f = open(save)
+            for line in f:
+                line = line.rstrip().split(',')
+                truevis.append(float(line[0]))
+                imvis.append(float(line[1]))
+            f.close()
+            return (truevis, imvis)
+
+        # If we're regenerating the data we do it here.
+    
+        directory = 'Images/Original/' + date + '/'
+        images = sorted(os.listdir(directory))
+
+        # Finds the size of the moon in each image.
+        for img in images:
+        
+            # Time of this image in seconds
+            time = int(img[4:6]) * 3600 + int(img[6:8]) * 60 + int(img[8:10])
+
+            # Point slope form. Totality occurs when d = R_e - R_m, and not at
+            # d = 0 as originally assumed.
+            slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
+            d = slope * (time - eclipse_1) + (R_earth - R_moon)
+        
+            size = moon_size(date, img)
+            imvis.append(size)
+            distances.append(d)
+
+        # Calculates the proportion of visible moon for the given distance between
+        # the centers.
+        truevis = eclipse_visible(distances, R_earth, R_moon)
+
+        imvis = np.asarray(imvis)
+
+        # If the moon is greater than 40,000 pixels then I know that the moon
+        # has merged with the light that comes from the sun and washes out the
+        # horizon.
+        imvis = np.where(imvis < 80000, imvis, float('NaN'))
+
+        f = open(save, 'w')
+
+        for i in range(0,len(truevis)):
+            f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
         f.close()
+
         return (truevis, imvis)
-
-    # If we're regenerating the data we do it here.
-    date = '20180131'
-    directory = 'Images/Original/' + date + '/'
-    images = sorted(os.listdir(directory))
-
-    # Finds the size of the moon in each image.
-    for img in images:
         
-        # 0 = Start of moon being shaded
-        # 1 = totality of eclipse
-        eclipse_0 = (11) * 3600 + (47.6) * 60
-        eclipse_1 = (12) * 3600 + (51.4) * 60
-
-        # Time of this image in seconds
-        time = int(file[4:6]) * 3600 + int(file[6:8]) * 60 + int(file[8:10])
-
-        # Point slope form. Totality occurs when d = R_e - R_m, and not at d=0
-        # as originally assumed.
-        slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
-        d = slope * (time - eclipse_1) + (R_earth - R_moon)
-        
-        size = moon_size(date, img)
-        imvis.append(size)
-        distances.append(d)
-
-    # Calculates the proportion of visible moon for the given distance between
-    # the centers.
-    truevis = eclipse_visible(distances, R_earth, R_moon)
-
-    imvis = np.asarray(imvis)
-
-    # If the moon is greater than 40,000 pixels then I know that the moon has
-    # merged with the light that comes from the sun and washes out the horizon.
-    imvis = np.where(imvis < 40000, imvis, float('NaN'))
-
-    f = open(save, 'w')
-
-    for i in range(0,len(truevis)):
-        f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
-    f.close()
-
-    return (truevis, imvis)
+    trues = []
+    ims = []
+    for date in dates:
+        true, im = data(date, eclipsestart[date], eclipsetotal[date])
+        trues.append(true)
+        ims.append(im)
+    
+    return (trues, ims)
 
 
 if __name__ == "__main__":
@@ -308,9 +321,11 @@ if __name__ == "__main__":
     #fit_t = fitting.LevMarLSQFitter()
     #t = fit_t(t_init, found, vis)
 
-    plot.scatter(vis, found, label='Eclipse', s=7)
+    plot.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
     plot.ylabel("Approx Moon Size (pixels)")
     plot.xlabel("Proportion of moon visible")
+    
+    plot.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
 
     #plot.plot(t(vis), vis)
 
@@ -331,6 +346,9 @@ if __name__ == "__main__":
     print(found)
     plot.scatter(vis, found, label='Regular', s=7)
     plot.legend()
+    
+    #ax = plot.gca()
+    #ax.set_yscale('log')
 
     plot.savefig("Images/moon-size.png", dpi=256)
 
