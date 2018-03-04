@@ -1,20 +1,25 @@
-import warnings
-import numpy as np
-import matplotlib.image as image
-import matplotlib.pyplot as plot
-import astropy.coordinates
-import astropy.time.core as aptime
 import os
 import math
-import ImageIO
-import Coordinates
-from scipy import ndimage
-from astropy.coordinates import SkyCoord, EarthLocation, AltAz
-from astropy.time import Time
-from astropy import units as u
-from astropy.modeling import models, fitting
+import warnings
 
 import ephem
+
+import numpy as np
+
+from scipy import ndimage
+
+import matplotlib.image as image
+import matplotlib.pyplot as plt
+
+import astropy.coordinates
+import astropy.time.core as aptime
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
+from astropy.time import Time
+import astropy.units as u
+from astropy.modeling import models,fitting
+
+import ImageIO
+import Coordinates
 
 
 # Radii in kilometers
@@ -236,7 +241,7 @@ def fit_moon(img, x, y):
 def generate_eclipse_data(regen = False):
 
     dates = ['20180131', '20150404']
-    
+
     eclipsestart = {'20180131':(11) * 3600 + (47.6) * 60,
                     '20150404':(10) * 3600 + (16) * 60}
     eclipsetotal = {'20180131':(12) * 3600 + (51.4) * 60,
@@ -263,13 +268,13 @@ def generate_eclipse_data(regen = False):
             return (truevis, imvis)
 
         # If we're regenerating the data we do it here.
-    
+
         directory = 'Images/Original/' + date + '/'
         images = sorted(os.listdir(directory))
 
         # Finds the size of the moon in each image.
         for img in images:
-        
+
             # Time of this image in seconds
             time = int(img[4:6]) * 3600 + int(img[6:8]) * 60 + int(img[8:10])
 
@@ -277,7 +282,7 @@ def generate_eclipse_data(regen = False):
             # d = 0 as originally assumed.
             slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
             d = slope * (time - eclipse_1) + (R_earth - R_moon)
-        
+
             size = moon_size(date, img)
             imvis.append(size)
             distances.append(d)
@@ -300,14 +305,14 @@ def generate_eclipse_data(regen = False):
         f.close()
 
         return (truevis, imvis)
-        
+
     trues = []
     ims = []
     for date in dates:
         true, im = data(date, eclipsestart[date], eclipsetotal[date])
         trues.append(true)
         ims.append(im)
-    
+
     return (trues, ims)
 
 
@@ -321,13 +326,13 @@ if __name__ == "__main__":
     #fit_t = fitting.LevMarLSQFitter()
     #t = fit_t(t_init, found, vis)
 
-    plot.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
-    plot.ylabel("Approx Moon Size (pixels)")
-    plot.xlabel("Proportion of moon visible")
-    
-    plot.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+    plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
+    plt.ylabel("Approx Moon Size (pixels)")
+    plt.xlabel("Proportion of moon visible")
 
-    #plot.plot(t(vis), vis)
+    plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+
+    #plt.plot(t(vis), vis)
 
     f1 = open("images.txt", 'r')
 
@@ -344,12 +349,12 @@ if __name__ == "__main__":
     found = np.where(found < 40000, found, float('NaN'))
     print(vis)
     print(found)
-    plot.scatter(vis, found, label='Regular', s=7)
-    plot.legend()
-    
-    #ax = plot.gca()
+    plt.scatter(vis, found, label='Regular', s=7)
+    plt.legend()
+
+    #ax = plt.gca()
     #ax.set_yscale('log')
 
-    plot.savefig("Images/moon-size.png", dpi=256)
+    plt.savefig("Images/moon-size.png", dpi=256)
 
-    #plot.show()
+    #plt.show()
