@@ -14,6 +14,7 @@ import astropy.coordinates
 from astropy.coordinates import EarthLocation, AltAz
 import astropy.units as u
 from astropy.modeling import models, fitting
+from astropy.modeling.models import custom_model
 
 import Coordinates
 
@@ -302,6 +303,19 @@ def generate_eclipse_data(regen=False):
     return (trues, ims)
 
 
+# Below this are fitting models.
+# Exponential model, which apparently doesn't exist in the Astropy library.
+@custom_model
+def exponential(x, C1=1, C2=1, C3=1):
+    return C1*np.exp(C2*x) + C3
+
+
+# Exponential joined with a power model. Purely for fun really.
+@custom_model
+def power(x, C1=1, C2=1, C3=1, C4=2):
+    return C1*np.exp(x*C2) + C3*np.power(x,C4)
+
+
 if __name__ == "__main__":
 
     vis, found = generate_eclipse_data()
@@ -311,7 +325,7 @@ if __name__ == "__main__":
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Proportion of moon visible")
 
-    plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
 
     f1 = open("images.txt", 'r')
 
@@ -330,6 +344,29 @@ if __name__ == "__main__":
     print(found)
     plt.scatter(vis, found, label='Regular', s=7)
     plt.legend()
+    
+    x = []
+    y = []
+    
+    for i in range(0,len(found)):
+        if not math.isnan(found[i]):
+            x.append(vis[i])
+            y.append(found[i])
+    
+    t1_i = power()
+    t2_i = exponential()
+    fitter = fitting.LevMarLSQFitter()
+    t1 = fitter(t1_i, x, y)
+    t2 = fitter(t2_i, x, y)
+    
+    x = np.arange(0.0,1.02,0.01)
+    
+    print(t1)
+    print(t2)
+    
+    # Only plot the exponential for now. 
+    #plt.plot(x, t1(x), color='green')
+    plt.plot(x, t2(x), color='orange')
 
     #ax = plt.gca()
     #ax.set_yscale('log')
