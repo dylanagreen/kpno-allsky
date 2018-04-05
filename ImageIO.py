@@ -7,6 +7,8 @@ from html.parser import HTMLParser
 from PIL import Image
 from io import BytesIO
 from scipy import ndimage
+from astropy.io import fits
+from astropy.utils.data import download_file
 
 
 # Saves an input image with the given name in the folder denoted by location.
@@ -109,6 +111,47 @@ def download_all_date(date):
             i.save(imagename)
 
     print('All photos downloaded for ' + date)
+
+
+# Downloads all the images for a certain date.
+def download_all_date2(date):
+    
+    link = 'http://skycam.mmto.arizona.edu/skycam/' + date + '/'
+    
+    rdate = requests.get(link)    
+    if rdate.status_code == 404:
+        print("Date not found.")
+        return
+    
+    htmldate = rdate.text
+    parser = DateHTMLParser()
+    parser.feed(htmldate)
+    parser.close()
+    imagenames = parser.data
+    #print(imagenames)
+    
+    # Prevents clutter by collecting originals in their own folder within Images
+    directory = 'Images/Original/MMTO/' + date
+    # Verifies that an Images folder exists, creates one if it does not.
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    
+    imagenames2 = []
+    for item in imagenames:
+        fits = item[-4:] == 'fits'
+        if 'image' in item and fits:
+            imagenames2.append(item)
+            
+    for image in imagenames2:
+    
+        imageloc = link + image
+        imagename = directory + '/' + image
+        rimage = requests.get(imageloc)
+        with open(imagename, 'wb') as f:
+                f.write(rimage.content)
+                
+        print("Downloaded: " + imagename)
+    
 
 
 # Loads all the images for a certain date
@@ -229,3 +272,8 @@ def image_diff(img1, img2):
     diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
 
     return diffimg
+
+
+if __name__ == "__main__":
+    date = '20150404'
+    download_all_date2(date)
