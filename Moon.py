@@ -261,7 +261,6 @@ def generate_eclipse_data(regen=False):
 
         # Finds the size of the moon in each image.
         for img in images:
-
             # Time of this image in seconds
             time = int(img[4:6]) * 3600 + int(img[6:8]) * 60 + int(img[8:10])
 
@@ -312,14 +311,34 @@ def exponential(x, C1=1, C2=1, C3=1):
 
 # Exponential joined with a power model. Purely for fun really.
 @custom_model
-def power(x, C1=1, C2=1, C3=1, C4=2):
-    return C1*np.exp(x*C2) + C3*np.power(x,C4)
+def power(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=1):
+    return C1*np.exp(-1 * (x*x*C2)/(C3*x*x + C4*x + C5)) + C6
+    
+
+
+@custom_model
+def transfer(x, C1=1, C2=1, C3=1, C4=1):
+    return -1*(C1*(x-C4)*(x-C4))/((x-C4)*(x-C4) + C2 * (x-C4) + C3)
+
+
+@custom_model
+def hyperbola(x, h=1, a=1, k=1, b=1):
+    #p1 = a*b*np.sqrt(a*a + b*b - (h - 2 * x) * (h - 2 * x))
+    #p2 = -b*b*h - a*a*x + b*b*x
+    #return (p1 + p2)/(a*a + b*b)
+    
+    return a*np.power(x,0.5) + k#b*np.power(x,0.5) + k
 
 
 if __name__ == "__main__":
 
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
+
+    #found[0] = np.asarray(found[0]) / np.nanmax(found[0])
+    #found[1] = np.asarray(found[1]) / np.nanmax(found[1])
+    
+    #print(str(np.nanmax(found[0])))
 
     plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
     plt.ylabel("Approx Moon Size (pixels)")
@@ -337,36 +356,74 @@ if __name__ == "__main__":
         vis.append(moon_visible(info[0], info[1]))
         found.append((moon_size(info[0], info[1] + '.png')))
         print("Processed: " + info[0] + '/' + info[1] + '.png')
+        print(vis[-1],found[-1])
 
     found = np.asarray(found)
     found = np.where(found < 40000, found, float('NaN'))
     print(vis)
     print(found)
-    plt.scatter(vis, found, label='Regular', s=7)
-    plt.legend()
     
-    x = []
-    y = []
+    #found1 = found / np.nanmax(found)
+    
+    plt.scatter(vis, found, label='Regular', s=7)
+    #plt.legend()
+    
+    x1 = []
+    y1 = []
+    x2 = []
+    y2 = []
+    x3 = []
+    y3 = []
     
     for i in range(0,len(found)):
-        if not math.isnan(found[i]):
-            x.append(vis[i])
-            y.append(found[i])
+        if not math.isnan(found[i]) and found[i] > 0:
+            if vis[i] <= 0.35 and not (vis[i] < .1 and found[i] > 1000):
+                x1.append(vis[i])
+                y1.append(found[i])
+            elif vis[i] >= 0.45:
+                x2.append(vis[i])
+                y2.append(found[i])
+                
+            if not (vis[i] < .1 and found[i] > 1000):
+                x3.append(vis[i])
+                y3.append(found[i])
+                
+                
+    y1 = np.log(y1)
+    y2 = np.log(y2)
+    y3 = np.log(y3)
     
-    t1_i = power()
-    t2_i = exponential()
+    #t1_i = exponential()
+    #t2_i = exponential()
+    
+    t1_i = models.Linear1D(40,40)
+    t2_i = models.Linear1D()
+    
+    t3_i = hyperbola()
+    
     fitter = fitting.LevMarLSQFitter()
-    t1 = fitter(t1_i, x, y)
-    t2 = fitter(t2_i, x, y)
+    t1 = fitter(t1_i, x1, y1)
+    t2 = fitter(t2_i, x2, y2)
+    t3 = fitter(t3_i, x3, y3)
     
     x = np.arange(0.0,1.02,0.01)
     
     print(t1)
     print(t2)
+    print(t3)
+    
+    #plt.scatter(x1, np.exp(y1), label='Regular', s=7, color="green")
+    ##plt.scatter(x2, np.exp(y2), label='Regular', s=7, color="red")
+    plt.legend()
+    
+    x1 = np.arange(0.0,0.4,0.01)
+    x2 = np.arange(0.4,1.02,0.01)
     
     # Only plot the exponential for now. 
-    #plt.plot(x, t1(x), color='green')
-    plt.plot(x, t2(x), color='orange')
+    #plt.plot(x1, np.exp(t1(x1)), color='green')
+    #plt.plot(x2, np.exp(t2(x2)), color='red')
+    
+    plt.plot(x, np.exp(t3(x)), color='orange')
 
     #ax = plt.gca()
     #ax.set_yscale('log')
