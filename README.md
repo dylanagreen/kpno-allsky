@@ -1,21 +1,21 @@
 # kpno-allsky
 
-This is some scripts/software I’m developing based on all-sky images from the Kitt Peak National Observatory. These images can be found at the following url: http://kpasca-archives.tuc.noao.edu
+These are some scripts/software based on all-sky images from the Kitt Peak National Observatory. These images can be found at the following url: http://kpasca-archives.tuc.noao.edu
 
 Current dependencies:
-AstroPy
-SciPy
-NumPy
-matplotlib
-Requests
-pyephem
-At present:
+- AstroPy
+- SciPy
+- NumPy
+- matplotlib
+- Requests
+- pyephem
 
 # ImageIO.py
 - Finds the difference between two images.
 - Saves images.
 - Gets the exposure of images.
 - Downloads all the images from a given day.
+- Downloads from two cameras: KPNO and MMTO.
 
 # Median.py
 - Finds a median image for all images from a given day.
