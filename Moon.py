@@ -11,10 +11,11 @@ from scipy import ndimage
 import matplotlib.pyplot as plt
 
 import astropy.coordinates
-from astropy.coordinates import EarthLocation, AltAz
+from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 import astropy.units as u
 from astropy.modeling import models, fitting
 from astropy.modeling.models import custom_model
+from astropy.modeling.powerlaws import PowerLaw1D
 
 import Coordinates
 
@@ -22,7 +23,7 @@ import Coordinates
 # Radii in kilometers
 # Radius of the earth is the radius of the earth shadow at the moon's orbit.
 R_moon = 1737
-R_earth = 4479
+R_earth = 4500
 
 
 # Returns the amount of the moon that is lit up still by the sun, and not
@@ -148,7 +149,7 @@ def find_moon(date, file):
     # Gets a SkyCoord with the moon position.
     moon = astropy.coordinates.get_moon(time, cameraearth)
 
-    # Converstion to x,y positions on the image.
+    # Conversion to x,y positions on the image.
     altazcoord = moon.transform_to(AltAz(obstime=time, location=cameraearth))
     alt = altazcoord.alt.degree
     az = altazcoord.az.degree
@@ -225,25 +226,20 @@ def fit_moon(img, x, y):
     return fwhm
 
 
+# Generates the size vs illuminated fraction for the two eclipse nights.
 def generate_eclipse_data(regen=False):
 
     dates = ['20180131', '20150404']
 
-    eclipsestart = {'20180131': (11) * 3600 + (47.6) * 60,
-                    '20150404': (10) * 3600 + (16) * 60}
-    eclipsetotal = {'20180131': (12) * 3600 + (51.4) * 60,
-                    '20150404': (11) * 3600 + (58) * 60}
-
-    # 0 = Start of moon being shaded
-    # 1 = totality of eclipse
-    def data(date, eclipse_0, eclipse_1):
+    # Function within a function to avoid code duplication.
+    def data(date):
         # Necessary lists
         distances = []
         imvis = []
         truevis = []
 
-        # Check to see if the data has been generated already. If it has then
-        # read it from the file
+        # Check to see if the data has been generated already.
+        # If it has then read it from the file.
         save = 'eclipse-' + date + '.txt'
         if os.path.isfile(save) and not regen:
             f = open(save)
@@ -255,23 +251,50 @@ def generate_eclipse_data(regen=False):
             return (truevis, imvis)
 
         # If we're regenerating the data we do it here.
-
         directory = 'Images/Original/' + date + '/'
         images = sorted(os.listdir(directory))
 
         # Finds the size of the moon in each image.
         for img in images:
-            # Time of this image in seconds
-            time = int(img[4:6]) * 3600 + int(img[6:8]) * 60 + int(img[8:10])
 
-            # Point slope form. Totality occurs when d = R_e - R_m, and not at
-            # d = 0 as originally assumed.
-            slope = (2 + R_moon) / (eclipse_0 - eclipse_1)
-            d = slope * (time - eclipse_1) + (R_earth - R_moon)
+            # Nicked this time formatting code from timestring to object.
+            formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
+            time = img[4:6] + ':' + img[6:8] + ':' + img[8:10]
+            formatdate = formatdate + ' ' + time
+
+            # Sets up a pyephem object for the camera.
+            camera = ephem.Observer()
+            camera.lat = '31.959417'
+            camera.lon = '-111.598583'
+
+            # This basically hacks us to use the center of the earth as our
+            # observation point.
+            camera.elevation = - ephem.earth_radius
+            camera.date = formatdate
+
+            # Calculates the sun and moon positions.
+            moon = ephem.Moon()
+            sun = ephem.Sun()
+            moon.compute(camera)
+            sun.compute(camera)
+
+            # Finds the angular separation between the sun and the moon.
+            sep = ephem.separation((sun.az, sun.alt), (moon.az, moon.alt))
+
+            # Radius of moon orbit to convert angular separation -> distance
+            R = 385000
+
+            # For angles this small theta ~ sin(theta), so I dropped the sine
+            # to save computation time.
+            # Angle between moon and earth's shadow + angle between moon and sun
+            # should add to pi, i.e. the earth's shadow is across from the sun.
+            d = R * (np.pi - sep)
 
             size = moon_size(date, img)
             imvis.append(size)
             distances.append(d)
+
+            print("Processed: " + date + '/' + img)
 
         # Calculates the proportion of visible moon for the given distance
         # between the centers.
@@ -286,6 +309,7 @@ def generate_eclipse_data(regen=False):
 
         f = open(save, 'w')
 
+        # Writes the data to a file so we can read it later for speed.
         for i in range(0, len(truevis)):
             f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
         f.close()
@@ -295,7 +319,7 @@ def generate_eclipse_data(regen=False):
     trues = []
     ims = []
     for date in dates:
-        true, im = data(date, eclipsestart[date], eclipsetotal[date])
+        true, im = data(date)
         trues.append(true)
         ims.append(im)
 
@@ -313,12 +337,27 @@ def exponential(x, C1=1, C2=1, C3=1):
 @custom_model
 def power(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=1):
     return C1*np.exp(-1 * (x*x*C2)/(C3*x*x + C4*x + C5)) + C6
-    
+
 
 
 @custom_model
-def transfer(x, C1=1, C2=1, C3=1, C4=1):
-    return -1*(C1*(x-C4)*(x-C4))/((x-C4)*(x-C4) + C2 * (x-C4) + C3)
+def transfer(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=0):
+    x1 = (x-C5)
+
+    #return -1*(C1*(x-C4)*(x-C4))/(C5*(x-C4)*(x-C4) + C2 * (x-C4) + C3)
+    return -C1* x1 / (C3*x1 +C2) + C4
+
+    #return -C1 * x1 * x1/ C4*x1*x1 + C2 * x1 + C3
+
+
+@custom_model
+def transfer2(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=0):
+    x1 = (x-C5)
+
+    #return -1*(C1*(x-C4)*(x-C4))/(C5*(x-C4)*(x-C4) + C2 * (x-C4) + C3)
+    return C1* x1 / (C3*x1 +C2) + C4
+
+    #return -C1 * x1 * x1/ C4*x1*x1 + C2 * x1 + C3
 
 
 @custom_model
@@ -326,25 +365,24 @@ def hyperbola(x, h=1, a=1, k=1, b=1):
     #p1 = a*b*np.sqrt(a*a + b*b - (h - 2 * x) * (h - 2 * x))
     #p2 = -b*b*h - a*a*x + b*b*x
     #return (p1 + p2)/(a*a + b*b)
-    
+
     return a*np.power(x,0.5) + k#b*np.power(x,0.5) + k
 
 
 if __name__ == "__main__":
-
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
 
     #found[0] = np.asarray(found[0]) / np.nanmax(found[0])
     #found[1] = np.asarray(found[1]) / np.nanmax(found[1])
-    
+
     #print(str(np.nanmax(found[0])))
 
     plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Proportion of moon visible")
 
-    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+    plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
 
     f1 = open("images.txt", 'r')
 
@@ -362,19 +400,19 @@ if __name__ == "__main__":
     found = np.where(found < 40000, found, float('NaN'))
     print(vis)
     print(found)
-    
+
     #found1 = found / np.nanmax(found)
-    
+
     plt.scatter(vis, found, label='Regular', s=7)
     #plt.legend()
-    
+
     x1 = []
     y1 = []
     x2 = []
     y2 = []
     x3 = []
     y3 = []
-    
+
     for i in range(0,len(found)):
         if not math.isnan(found[i]) and found[i] > 0:
             if vis[i] <= 0.35 and not (vis[i] < .1 and found[i] > 1000):
@@ -383,49 +421,56 @@ if __name__ == "__main__":
             elif vis[i] >= 0.45:
                 x2.append(vis[i])
                 y2.append(found[i])
-                
+
             if not (vis[i] < .1 and found[i] > 1000):
                 x3.append(vis[i])
                 y3.append(found[i])
-                
-                
+
+
     y1 = np.log(y1)
     y2 = np.log(y2)
-    y3 = np.log(y3)
-    
+    y3 = y3
+    y4 = np.log(y3)
+
     #t1_i = exponential()
     #t2_i = exponential()
-    
-    t1_i = models.Linear1D(40,40)
+
+    t1_i = PowerLaw1D()
     t2_i = models.Linear1D()
-    
-    t3_i = hyperbola()
-    
+
+    t3_i = transfer2()
+    t4_i = PowerLaw1D()
+
     fitter = fitting.LevMarLSQFitter()
     t1 = fitter(t1_i, x1, y1)
     t2 = fitter(t2_i, x2, y2)
-    t3 = fitter(t3_i, x3, y3)
-    
+    t3 = fitter(t3_i, x3, y4)
+    t4 = fitter(t4_i, x3, y3)
+
     x = np.arange(0.0,1.02,0.01)
-    
-    print(t1)
-    print(t2)
+
+    #print(t1)
+    #print(t2)
     print(t3)
-    
+    print(t4)
+
     #plt.scatter(x1, np.exp(y1), label='Regular', s=7, color="green")
     ##plt.scatter(x2, np.exp(y2), label='Regular', s=7, color="red")
     plt.legend()
-    
+
     x1 = np.arange(0.0,0.4,0.01)
     x2 = np.arange(0.4,1.02,0.01)
-    
-    # Only plot the exponential for now. 
+
+    # Only plot the exponential for now.
     #plt.plot(x1, np.exp(t1(x1)), color='green')
     #plt.plot(x2, np.exp(t2(x2)), color='red')
-    
-    plt.plot(x, np.exp(t3(x)), color='orange')
 
-    #ax = plt.gca()
-    #ax.set_yscale('log')
+    #plt.plot(x, np.exp(t3(x)), color='red')
+    #plt.plot(x, t4(x), color='green')
 
     plt.savefig("Images/moon-size.png", dpi=256)
+
+    ax = plt.gca()
+    ax.set_yscale('log')
+
+    plt.savefig("Images/moon-size-log.png", dpi=256)
