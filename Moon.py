@@ -18,6 +18,9 @@ from astropy.modeling.models import custom_model
 from astropy.modeling.powerlaws import PowerLaw1D
 
 import Coordinates
+import ImageIO
+
+from matplotlib.patches import Circle
 
 
 # Radii in kilometers
@@ -380,9 +383,9 @@ if __name__ == "__main__":
 
     plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
     plt.ylabel("Approx Moon Size (pixels)")
-    plt.xlabel("Proportion of moon visible")
+    plt.xlabel("Illuminated Fraction")
 
-    plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
 
     f1 = open("images.txt", 'r')
 
@@ -406,67 +409,34 @@ if __name__ == "__main__":
     plt.scatter(vis, found, label='Regular', s=7)
     #plt.legend()
 
-    x1 = []
-    y1 = []
-    x2 = []
-    y2 = []
-    x3 = []
-    y3 = []
-
-    for i in range(0,len(found)):
-        if not math.isnan(found[i]) and found[i] > 0:
-            if vis[i] <= 0.35 and not (vis[i] < .1 and found[i] > 1000):
-                x1.append(vis[i])
-                y1.append(found[i])
-            elif vis[i] >= 0.45:
-                x2.append(vis[i])
-                y2.append(found[i])
-
-            if not (vis[i] < .1 and found[i] > 1000):
-                x3.append(vis[i])
-                y3.append(found[i])
-
-
-    y1 = np.log(y1)
-    y2 = np.log(y2)
-    y3 = y3
-    y4 = np.log(y3)
-
-    #t1_i = exponential()
-    #t2_i = exponential()
-
-    t1_i = PowerLaw1D()
-    t2_i = models.Linear1D()
-
-    t3_i = transfer2()
-    t4_i = PowerLaw1D()
-
-    fitter = fitting.LevMarLSQFitter()
-    t1 = fitter(t1_i, x1, y1)
-    t2 = fitter(t2_i, x2, y2)
-    t3 = fitter(t3_i, x3, y4)
-    t4 = fitter(t4_i, x3, y3)
-
-    x = np.arange(0.0,1.02,0.01)
-
-    #print(t1)
-    #print(t2)
-    print(t3)
-    print(t4)
-
-    #plt.scatter(x1, np.exp(y1), label='Regular', s=7, color="green")
-    ##plt.scatter(x2, np.exp(y2), label='Regular', s=7, color="red")
-    plt.legend()
-
-    x1 = np.arange(0.0,0.4,0.01)
-    x2 = np.arange(0.4,1.02,0.01)
-
-    # Only plot the exponential for now.
-    #plt.plot(x1, np.exp(t1(x1)), color='green')
-    #plt.plot(x2, np.exp(t2(x2)), color='red')
-
-    #plt.plot(x, np.exp(t3(x)), color='red')
-    #plt.plot(x, t4(x), color='green')
+    vis = np.around(vis, decimals = 2)
+    print(vis)
+    
+    vis2 = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
+    found2 = [650, 6500, 10500, 18000, 30000, 35000]
+    
+    plt.plot(vis2, found2, label='Model')
+    
+    found3 = np.interp(vis, vis2, found2)
+    plt.scatter(vis, found3, label='Interpolated', s=7)
+    
+    f1 = open("images.txt", 'r')
+    for line in f1:
+        line = line.rstrip()
+        info = line.split(',')
+        x,y = find_moon(info[0], info[1])
+        
+        vis = moon_visible(info[0], info[1])
+        
+        A = np.interp(vis, vis2, found2)
+        
+        r = np.sqrt(A/np.pi)
+        
+        circ = Circle((x, y),r, fill=False)
+        
+        img = ndimage.imread('Images/Original/' + info[0] + '/' + info[1] + '.png', mode='L')
+        
+        ImageIO.save_image(img, info[1],'Images/Moonset/', cmap='gray', patch=circ)
 
     plt.savefig("Images/moon-size.png", dpi=256)
 
