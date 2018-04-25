@@ -4,8 +4,6 @@ import requests
 import os
 import math
 from html.parser import HTMLParser
-from PIL import Image
-from io import BytesIO
 from scipy import ndimage
 from astropy.io import fits
 from astropy.utils.data import download_file
@@ -13,7 +11,7 @@ from astropy.utils.data import download_file
 
 # Saves an input image with the given name in the folder denoted by location.
 # If the image is greyscale, cmap should be 'gray'
-def save_image(img, name, location, cmap=None):
+def save_image(img, name, location, cmap=None, patch=None):
     if not os.path.exists(location):
         os.makedirs(location)
 
@@ -36,6 +34,9 @@ def save_image(img, name, location, cmap=None):
     # Adds the image into the axes and displays it
     # Then saves
     axes.imshow(img, cmap=cmap)
+
+    if patch:
+        axes.add_patch(patch)
 
     # If location was passed with / on the end, don't append another one.
     if not location[-1:] == '/':
