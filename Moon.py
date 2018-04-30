@@ -329,47 +329,16 @@ def generate_eclipse_data(regen=False):
     return (trues, ims)
 
 
-# Below this are fitting models.
-# Exponential model, which apparently doesn't exist in the Astropy library.
-@custom_model
-def exponential(x, C1=1, C2=1, C3=1):
-    return C1*np.exp(C2*x) + C3
+# Calculates the estimated size of the moon in the image based on the passed in
+# illuminated fraction. 
+# Returns the radius of the circle that will cover the moon in the image.
+def moon_circle(frac):
+    illum = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
+    size = [650, 4000, 10500, 18000, 30000, 35000]
 
-
-# Exponential joined with a power model. Purely for fun really.
-@custom_model
-def power(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=1):
-    return C1*np.exp(-1 * (x*x*C2)/(C3*x*x + C4*x + C5)) + C6
-
-
-
-@custom_model
-def transfer(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=0):
-    x1 = (x-C5)
-
-    #return -1*(C1*(x-C4)*(x-C4))/(C5*(x-C4)*(x-C4) + C2 * (x-C4) + C3)
-    return -C1* x1 / (C3*x1 +C2) + C4
-
-    #return -C1 * x1 * x1/ C4*x1*x1 + C2 * x1 + C3
-
-
-@custom_model
-def transfer2(x, C1=1, C2=1, C3=1, C4=1, C5=1, C6=0):
-    x1 = (x-C5)
-
-    #return -1*(C1*(x-C4)*(x-C4))/(C5*(x-C4)*(x-C4) + C2 * (x-C4) + C3)
-    return C1* x1 / (C3*x1 +C2) + C4
-
-    #return -C1 * x1 * x1/ C4*x1*x1 + C2 * x1 + C3
-
-
-@custom_model
-def hyperbola(x, h=1, a=1, k=1, b=1):
-    #p1 = a*b*np.sqrt(a*a + b*b - (h - 2 * x) * (h - 2 * x))
-    #p2 = -b*b*h - a*a*x + b*b*x
-    #return (p1 + p2)/(a*a + b*b)
-
-    return a*np.power(x,0.5) + k#b*np.power(x,0.5) + k
+    A = np.interp(frac, illum, size)
+    return np.sqrt(A/np.pi)
+    
 
 
 if __name__ == "__main__":
@@ -413,7 +382,7 @@ if __name__ == "__main__":
     print(vis)
     
     vis2 = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
-    found2 = [650, 6500, 10500, 18000, 30000, 35000]
+    found2 = [650, 4000, 10500, 18000, 30000, 35000]
     
     plt.plot(vis2, found2, label='Model')
     
@@ -428,15 +397,13 @@ if __name__ == "__main__":
         
         vis = moon_visible(info[0], info[1])
         
-        A = np.interp(vis, vis2, found2)
-        
-        r = np.sqrt(A/np.pi)
+        r = moon_circle(vis)
         
         circ = Circle((x, y),r, fill=False)
         
         img = ndimage.imread('Images/Original/' + info[0] + '/' + info[1] + '.png', mode='L')
         
-        ImageIO.save_image(img, info[1],'Images/Moonset/', cmap='gray', patch=circ)
+        ImageIO.save_image(img, info[1] + '-1','Images/Moonset/', cmap='gray', patch=circ)
 
     plt.savefig("Images/moon-size.png", dpi=256)
 
