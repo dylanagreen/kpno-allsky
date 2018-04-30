@@ -330,7 +330,7 @@ def generate_eclipse_data(regen=False):
 
 
 # Calculates the estimated size of the moon in the image based on the passed in
-# illuminated fraction. 
+# illuminated fraction.
 # Returns the radius of the circle that will cover the moon in the image.
 def moon_circle(frac):
     illum = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
@@ -338,26 +338,30 @@ def moon_circle(frac):
 
     A = np.interp(frac, illum, size)
     return np.sqrt(A/np.pi)
-    
 
 
-if __name__ == "__main__":
+
+# Generates a plot of illuminated fraction vs apparent moon size.
+def generate_plots():
+    # Loads the eclipse data
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
 
+    # Eclipse normalization code.
     #found[0] = np.asarray(found[0]) / np.nanmax(found[0])
     #found[1] = np.asarray(found[1]) / np.nanmax(found[1])
 
-    #print(str(np.nanmax(found[0])))
-
+    # Plots the two eclipses, the first in blue (default), the second in green
     plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
+    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Illuminated Fraction")
 
-    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
-
+    # Openthe file that tells us what images to use
     f1 = open("images.txt", 'r')
 
+    # Vis is the portion of the moon illuminated by the sun that night
+    # Found is the approximate size of the moon in the image
     vis = []
     found = []
     for line in f1:
@@ -366,48 +370,38 @@ if __name__ == "__main__":
         vis.append(moon_visible(info[0], info[1]))
         found.append((moon_size(info[0], info[1] + '.png')))
         print("Processed: " + info[0] + '/' + info[1] + '.png')
-        print(vis[-1],found[-1])
 
+    # Removes out any moons that appear too large in the images to be
+    # considered valid.
     found = np.asarray(found)
     found = np.where(found < 40000, found, float('NaN'))
-    print(vis)
-    print(found)
 
+    # Normalizes the non eclipse data.
     #found1 = found / np.nanmax(found)
 
+    # Adds the noneclipse data to the plot.
     plt.scatter(vis, found, label='Regular', s=7)
-    #plt.legend()
 
-    vis = np.around(vis, decimals = 2)
-    print(vis)
-    
+    # This plots the estimated model of moon size on top of the graph.
     vis2 = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
     found2 = [650, 4000, 10500, 18000, 30000, 35000]
-    
-    plt.plot(vis2, found2, label='Model')
-    
+    plt.plot(vis2, found2, label='Model', c='r')
+
+    # Interpolation estimate for the moon size in the image based on the
+    # illuminated fractions.
     found3 = np.interp(vis, vis2, found2)
     plt.scatter(vis, found3, label='Interpolated', s=7)
-    
-    f1 = open("images.txt", 'r')
-    for line in f1:
-        line = line.rstrip()
-        info = line.split(',')
-        x,y = find_moon(info[0], info[1])
-        
-        vis = moon_visible(info[0], info[1])
-        
-        r = moon_circle(vis)
-        
-        circ = Circle((x, y),r, fill=False)
-        
-        img = ndimage.imread('Images/Original/' + info[0] + '/' + info[1] + '.png', mode='L')
-        
-        ImageIO.save_image(img, info[1] + '-1','Images/Moonset/', cmap='gray', patch=circ)
+    plt.legend()
 
+    # Saves the figure, and then saves the same figure with a log scale.
     plt.savefig("Images/moon-size.png", dpi=256)
 
     ax = plt.gca()
     ax.set_yscale('log')
-
     plt.savefig("Images/moon-size-log.png", dpi=256)
+
+    plt.close()
+
+
+if __name__ == "__main__":
+    generate_plots()
