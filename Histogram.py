@@ -12,26 +12,14 @@ date = '20170718'
 
 
 # Creates a histogram of the greyscale values in the image and saves it.
+# Saves histogram to passed in path.
 # Returns the histogram bin values.
-def histogram(date, file):
-
-    # Read in the image, then gets a mask
-    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
-    mask = Mask.generate_full_mask()
-    mask = 1 - mask
-
-    # Only want to histogram 0.3s images, as those are the ones with the moon.
-    exposure = ImageIO.get_exposure(img)
-    if exposure != 0.3:
-        return (None, None)
-
-    # Gets the location of the moon.
-    moonx, moony = Moon.find_moon(date, file)
-    r = Moon.fit_moon(img, moonx, moony)
-
+def histogram(img, path):
     # Converts the 1/0 array to True/False so it can be used as an index.
     # Then applies it, creating a new "image" array that only has the inside the
     # cicle items, but not the horizon items.
+    mask = Mask.generate_full_mask()
+    mask = 1 - mask
     mask = np.ma.make_mask(mask)
     img1 = img[mask]
 
@@ -51,13 +39,8 @@ def histogram(date, file):
 
     #plt.show()
 
-    # Writes the moon radius onto the image.
-    ax[0].text(0, -20, str(r), fontsize=20)
-
     # Saving code.
-    name = 'Images/Histogram/' + date + '/' + file
-    if not os.path.exists('Images/Histogram/' + date + '/'):
-        os.makedirs('Images/Histogram/' + date + '/')
+    name = 'Images/Histogram/' + path
     plt.savefig(name, dpi=256)
     print('Saved: ' + name)
 
@@ -66,7 +49,7 @@ def histogram(date, file):
 
     # Return the histogram bin values in case you want to use it somewhere.
 
-    return (hist[0], r)
+    return hist[0]
 
 
 # Intializes the category defining histograms.
@@ -163,17 +146,14 @@ if __name__ == "__main__":
     lowest = 100
     lowfile = ""
     for file in files:
-        hist, r = histogram(date, file)
+        img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
+        hist = histogram(img, os.path.join(date, file))
         if hist is not None:
             newcat = categorize(hist, cats)
             print(newcat)
         else:
             newcat = None
         saves.append((file, newcat))
-
-        if r is not None and 0 < r < lowest:
-            lowfile = file
-            lowest = r
 
     for loc in saves:
         file = loc[0]
