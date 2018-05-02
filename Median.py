@@ -142,13 +142,16 @@ def median_all_date(date, color=False):
             if not np.array_equal(superimg[key], np.zeros((1, 1, 1, 1))):
                 supe = superimg[key]
 
+                # Need to resize the final image to the same dimensions
+                shape = superimg[key].shape
+                finalimg[key] = np.zeros((shape[0], shape[1], 3))
                 x = 0
                 y = 0
                 for row in supe:
                     for column in row:
                         tuples = ndarray_to_tuplelist(column)
                         median = median_of_medians(tuples, len(tuples) // 2)
-                        finalimg[key][y, x] = [median[1], median[2], median[3]]
+                        finalimg[key][y][x] = [median[1], median[2], median[3]]
                         x += 1
                     y += 1
                     x = 0
@@ -179,7 +182,7 @@ def save_medians(medians, date, color=False):
 
 
 if __name__ == "__main__":
-    date = '20150404'
-    ImageIO.download_all_date(date)
-    #medians = median_all_date(date)
-    #save_medians(medians, date)
+    date = '1'
+    #ImageIO.download_all_date(date)
+    medians = median_all_date(date, True)
+    save_medians(medians, date, True)
