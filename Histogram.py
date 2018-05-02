@@ -41,6 +41,13 @@ def histogram(img, path):
 
     # Saving code.
     name = 'Images/Histogram/' + path
+
+    # This ensures that the directory you're saving to actually exists.
+    loc = path.rfind('/')
+    dirname = 'Images/Histogram/' + path[0:loc]
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
     plt.savefig(name, dpi=256)
     print('Saved: ' + name)
 
