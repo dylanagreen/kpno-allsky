@@ -49,6 +49,8 @@ def generate_clean_mask():
 
 # Gets the "clean" mask and then adds the horizon objects to it.
 # forcenew allows you to force this to disregarded a saved mask.
+# Pixels that should be masked are returned with a '1' value.
+# Pixels that should be unchanged are returned with a '0' value.
 def generate_mask(forcenew=False):
 
     # Read in the ignore image.
