@@ -19,7 +19,6 @@ def histogram(img, path):
     # Then applies it, creating a new "image" array that only has the inside the
     # cicle items, but not the horizon items.
     mask = Mask.generate_full_mask()
-    mask = 1 - mask
     mask = np.ma.make_mask(mask)
     img1 = np.ma.masked_array(img, mask)
 
@@ -31,7 +30,7 @@ def histogram(img, path):
     # Turn off the actual visual axes on the image for visual niceness.
     # Then add the image to the left axes with the moon circle.
     ax[0].set_axis_off()
-    ax[0].imshow(img, cmap='gray')
+    ax[0].imshow(img1, cmap='gray')
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     bins = list(range(0, 256))
