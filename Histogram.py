@@ -21,7 +21,7 @@ def histogram(img, path):
     mask = Mask.generate_full_mask()
     mask = 1 - mask
     mask = np.ma.make_mask(mask)
-    img1 = img[mask]
+    img1 = np.ma.masked_array(img, mask)
 
     # Sets up the image so that the image is on the left and the histogram is
     # on the right.
@@ -35,7 +35,7 @@ def histogram(img, path):
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     bins = list(range(0, 256))
-    hist = ax[1].hist(img1.flatten(), bins=bins, color='blue', log=True)
+    hist = ax[1].hist(img1.compressed(), bins=bins, color='blue', log=True)
 
     #plt.show()
 
