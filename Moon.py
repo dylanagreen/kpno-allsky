@@ -333,12 +333,51 @@ def generate_eclipse_data(regen=False):
 # illuminated fraction.
 # Returns the radius of the circle that will cover the moon in the image.
 def moon_circle(frac):
-    illum = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
+    illuminated = [0, 0.345, 0.71, 0.88, 0.97, 1.0]
     size = [650, 4000, 10500, 18000, 30000, 35000]
 
-    A = np.interp(frac, illum, size)
+    A = np.interp(frac, illuminated, size)
     return np.sqrt(A/np.pi)
 
+
+# Generates a mask that covers up the moon for a given image.
+def moon_mask(date, file):
+    # Get the fraction visible for interpolation and find the
+    # location of the moon.
+    vis = moon_visible(info[0], info[1])
+    x,y = find_moon(info[0],info[1])
+
+    # Creates the circle patch we use.
+    r = moon_circle(vis)
+    circ = Circle((x, y),r, fill=False)
+
+    # The following code converts the patch to a 512x512 mask array, with True
+    # for values outside the circle and False for those inside.
+    # This is the same syntax as np.ma.make_mask requires.
+
+    # This section of code generates an 262144x2 array of the
+    # 512x512 pixel locations. 262144 = 512^2
+    points = np.zeros((512**2,2))
+    index = 0
+    for i in range(0,512):
+        for j in range(0,512):
+            # These are backwards as expected due to how reshape works later.
+            # Points is in x,y format, but reshape reshapes such that
+            # it needs to be in y,x format.
+            points[index,0] = j
+            points[index,1] = i
+            index += 1
+
+    # Checks all the points are inside the circle, then reshapes it to the
+    # 512x512 size.
+    mask = circ.contains_points(points)
+    mask = mask.reshape(512,512)
+
+    # Inverts since contains_points returns True for inside the cirlce and
+    # False outside.
+    mask = np.invert(mask)
+
+    return mask
 
 
 # Generates a plot of illuminated fraction vs apparent moon size.
@@ -383,7 +422,7 @@ def generate_plots():
     plt.scatter(vis, found, label='Regular', s=7)
 
     # This plots the estimated model of moon size on top of the graph.
-    vis2 = [0.013, 0.345, 0.71, 0.88, 0.97, 1.0]
+    vis2 = [0, 0.345, 0.71, 0.88, 0.97, 1.0]
     found2 = [650, 4000, 10500, 18000, 30000, 35000]
     plt.plot(vis2, found2, label='Model', c='r')
 
@@ -404,4 +443,14 @@ def generate_plots():
 
 
 if __name__ == "__main__":
-    generate_plots()
+    f1 = open("images.txt", 'r')
+
+    for line in f1:
+        line = line.rstrip()
+        info = line.split(',')
+
+        cont = moon_mask(info[0], info[1])
+
+        ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
+
+

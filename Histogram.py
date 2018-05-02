@@ -48,7 +48,6 @@ def histogram(img, path):
     plt.close()
 
     # Return the histogram bin values in case you want to use it somewhere.
-
     return hist[0]
 
 
