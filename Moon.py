@@ -19,6 +19,7 @@ from astropy.modeling.powerlaws import PowerLaw1D
 
 import Coordinates
 import ImageIO
+import Histogram
 
 from matplotlib.patches import Circle
 
@@ -353,7 +354,7 @@ def moon_mask(date, file):
 
     # The following code converts the patch to a 512x512 mask array, with True
     # for values outside the circle and False for those inside.
-    # This is the same syntax as np.ma.make_mask requires.
+    # This is the same syntax as np.ma.make_mask returns.
 
     # This section of code generates an 262144x2 array of the
     # 512x512 pixel locations. 262144 = 512^2
@@ -372,10 +373,6 @@ def moon_mask(date, file):
     # 512x512 size.
     mask = circ.contains_points(points)
     mask = mask.reshape(512,512)
-
-    # Inverts since contains_points returns True for inside the cirlce and
-    # False outside.
-    mask = np.invert(mask)
 
     return mask
 
@@ -448,9 +445,18 @@ if __name__ == "__main__":
     for line in f1:
         line = line.rstrip()
         info = line.split(',')
+        
+        path = 'Images/Original/' + info[0] + '/' + info[1]
+        
+        img = ndimage.imread(path + '.png', mode='L')
 
-        cont = moon_mask(info[0], info[1])
+        mask = moon_mask(info[0], info[1])
+        img1 = np.ma.masked_array(img, mask)
+        
+        Histogram.histogram(img, 'Test/' + info[1] + '-1.png')
+        Histogram.histogram(img1, 'Test/' + info[1] + '-2.png')
+        
 
-        ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
+        #ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
 
 
