@@ -102,8 +102,8 @@ def generate_mask(forcenew=False):
 
 # The full mask is the horion objects plus the hot pixels, plus then it blacks
 # out everything that's not in the circular image.
-def generate_full_mask():
-    mask = generate_mask()
+def generate_full_mask(forcenew=False):
+    mask = generate_mask(forcenew)
 
     # Ignore everything outside the circular image.
     y = 0
