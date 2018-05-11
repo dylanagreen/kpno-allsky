@@ -4,6 +4,7 @@ import os
 import Mask
 import ImageIO
 import Moon
+from copy import copy
 from scipy import ndimage
 
 center = (256, 252)
@@ -30,11 +31,33 @@ def histogram(img, path):
     # Turn off the actual visual axes on the image for visual niceness.
     # Then add the image to the left axes with the moon circle.
     ax[0].set_axis_off()
-    ax[0].imshow(img1, cmap='gray')
+    
+    # This new color palette is greyscale for all non masked pixels, and 
+    # red for any pixels that are masked and ignored.
+    # Copied the old palette so I don't accidentally bugger it.
+    palette = copy(plt.cm.gray)
+    palette.set_bad('r', 1.0)
+    ax[0].imshow(img1, cmap=palette)
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     bins = list(range(0, 256))
     hist = ax[1].hist(img1.compressed(), bins=bins, color='blue', log=True)
+
+    # Draws the vertical division line, in red
+    thresh = 160
+    bins = hist[0]
+    
+    # This slice ignores the white column, whereas the slice in total ignores
+    # the black column.
+    bins = bins[:len(bins)-1]
+    total = np.sum(bins[1:])
+    clouds = np.sum(bins[thresh:])
+    frac = clouds/total
+
+    # Writes the fraction on the image
+    ax[0].text(0, -20, str(frac), fontsize=20)
+
+    ax[1].axvline(x=thresh, color='r')
 
     #plt.show()
 
@@ -54,7 +77,7 @@ def histogram(img, path):
     plt.close()
 
     # Return the histogram bin values in case you want to use it somewhere.
-    return hist[0]
+    return bins
 
 
 # Intializes the category defining histograms.

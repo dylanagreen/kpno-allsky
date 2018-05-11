@@ -440,11 +440,20 @@ def generate_plots():
 
 
 if __name__ == "__main__":
-    f1 = open("images.txt", 'r')
+    #f1 = open("images.txt", 'r')
+    
+    date = '20170810'
+    directory = 'Images/Original/' + date + '/'
+    f1 = os.listdir(directory)
 
-    for line in f1:
-        line = line.rstrip()
-        info = line.split(',')
+    #for line in f1:
+    for file in f1:
+        #line = line.rstrip()
+        #info = line.split(',')
+        
+        info = [None] * 2
+        info[0] = date
+        info[1] = file[:-4]
         
         path = 'Images/Original/' + info[0] + '/' + info[1]
         
@@ -453,8 +462,8 @@ if __name__ == "__main__":
         mask = moon_mask(info[0], info[1])
         img1 = np.ma.masked_array(img, mask)
         
-        Histogram.histogram(img, 'Test/' + info[1] + '-1.png')
-        Histogram.histogram(img1, 'Test/' + info[1] + '-2.png')
+        Histogram.histogram(img, info[0] + '/' + info[1] + '-1.png')
+        Histogram.histogram(img1, info[0] + '/' + info[1] + '-2.png')
         
 
         #ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
