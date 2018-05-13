@@ -70,11 +70,12 @@ def generate_mask(forcenew=False):
     # Get the "clean" mask, i.e. the pixels only ignore mask.
     mask = generate_clean_mask()
 
+    hyp = math.hypot
     for y in range(0, ignore.shape[1]):
         for x in range(0, ignore.shape[0]):
             x1 = x - center[0]
             y1 = center[1] - y
-            r = math.hypot(x1, y1)
+            r = hyp(x1, y1)
 
             # Ignore horizon objects (which have been painted pink)
             # Only want the horizon objects actually in the circle.
@@ -94,12 +95,13 @@ def generate_mask(forcenew=False):
 def generate_full_mask(forcenew=False):
     mask = generate_mask(forcenew)
 
+    hyp = math.hypot
     # Ignore everything outside the circular image.
     for y in range(0, mask.shape[1]):
         for x in range(0, mask.shape[0]):
             x1 = x - center[0]
             y1 = center[1] - y
-            r = math.hypot(x1, y1)
+            r = hyp(x1, y1)
             if r > 241:
                 mask[y, x] = 1
 
