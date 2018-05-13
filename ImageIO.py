@@ -74,18 +74,11 @@ class DateHTMLParser(HTMLParser):
 # Downloads all the images for a certain date for a given camera.
 # Currently supports the kpno all sky and the mmto all sky.
 def download_all_date(date, camera="kpno"):
-    
-    links = {'kpno' : 'http://kpasca-archives.tuc.noao.edu/', 
+    links = {'kpno' : 'http://kpasca-archives.tuc.noao.edu/',
              'mmto' : 'http://skycam.mmto.arizona.edu/skycam/'}
-    
+
     # Creates the link
     link = links[camera] + date
-
-    # Prevents clutter by collecting originals in their own folder within Images
-    directory = 'Images/Original/' + camera.upper() + '/' + date
-    # Verifies that an Images folder exists, creates one if it does not.
-    if not os.path.exists(directory):
-        os.makedirs(directory)
 
     # Gets the html for a date page,
     # then parses it to find the image names on that page.
@@ -95,12 +88,12 @@ def download_all_date(date, camera="kpno"):
         htmllink = link
 
     rdate = requests.get(htmllink)
-    
+
     # Makes sure the date exists.
     if rdate.status_code == 404:
         print("Date not found.")
         return
-    
+
     htmldate = rdate.text
     parser = DateHTMLParser()
     parser.feed(htmldate)
@@ -113,7 +106,7 @@ def download_all_date(date, camera="kpno"):
             if item[-4:] == 'fits':
                 imagenames2.append(item)
         imagenames = imagenames2
-    
+
     # Runs through the array of image names and downloads them
     for image in imagenames:
         # We want to ignore the all image animations
@@ -122,18 +115,32 @@ def download_all_date(date, camera="kpno"):
         # Otherwise request the html data of the page for that image
         # and save the image
         else:
-            # I could use my ImageIO save_image here, but this way is quicker
-            # since I don't have to make a plot for every image.
-            imageloc = link + '/' + image
-            imagename = directory + '/' + image
-            rimage = requests.get(imageloc)
-
-            # Saves the image
-            with open(imagename, 'wb') as f:
-                    f.write(rimage.content)
-            print("Downloaded: " + imagename)
+            download_image(date, image, camera)
 
     print('All photos downloaded for ' + date)
+
+
+def download_image(date, image, camera='kpno'):
+    links = {'kpno' : 'http://kpasca-archives.tuc.noao.edu/',
+             'mmto' : 'http://skycam.mmto.arizona.edu/skycam/'}
+
+    # Creates the link
+    link = links[camera] + date
+
+    # Prevents clutter by collecting originals in their own folder within Images
+    directory = 'Images/Original/' + camera.upper() + '/' + date
+    # Verifies that an Images folder exists, creates one if it does not.
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
+    imageloc = link + '/' + image
+    imagename = directory + '/' + image
+    rimage = requests.get(imageloc)
+
+    # Saves the image
+    with open(imagename, 'wb') as f:
+            f.write(rimage.content)
+    print("Downloaded: " + imagename)
 
 
 # Loads all the images for a certain date
