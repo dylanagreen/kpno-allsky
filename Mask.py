@@ -26,19 +26,13 @@ def generate_clean_mask():
         file = fileloc + file
         img = ndimage.imread(file, mode='L')
 
-        y = 0
-        x = 0
-        while y < img.shape[1]:
-            while x < img.shape[0]:
+        for y in range(0, img.shape[1]):
+            for x in range(0, img.shape[0]):
                 # 255 is pure white so accept pixels between
                 # white-tolerance and white
                 # Y is first value as it's the row value
                 if img[y, x] >= (255 - tolerance):
                     mask[y, x] += 1
-
-                x += 1
-            y += 1
-            x = 0
 
     # Get only the pixels that appear as "hot" in ALL of the images.
     # Set those to 0 to mask them.
@@ -76,11 +70,8 @@ def generate_mask(forcenew=False):
     # Get the "clean" mask, i.e. the pixels only ignore mask.
     mask = generate_clean_mask()
 
-    y = 0
-    x = 0
-    while y < ignore.shape[1]:
-        while x < ignore.shape[0]:
-
+    for y in range(0, ignore.shape[1]):
+        for x in range(0, ignore.shape[0]):
             x1 = x - center[0]
             y1 = center[1] - y
             r = math.hypot(x1, y1)
@@ -90,9 +81,7 @@ def generate_mask(forcenew=False):
             # Avoids unnecessary pixels.
             if r < 242 and np.array_equal(ignore[y, x], [244, 66, 235]):
                 mask[y, x] = 1
-            x += 1
-        y += 1
-        x = 0
+
 
     # If we've made a new mask, save it so we can skip the above steps later.
     save_mask(mask)
@@ -106,19 +95,13 @@ def generate_full_mask(forcenew=False):
     mask = generate_mask(forcenew)
 
     # Ignore everything outside the circular image.
-    y = 0
-    x = 0
-    while y < mask.shape[1]:
-        while x < mask.shape[0]:
+    for y in range(0, mask.shape[1]):
+        for x in range(0, mask.shape[0]):
             x1 = x - center[0]
             y1 = center[1] - y
             r = math.hypot(x1, y1)
             if r > 241:
                 mask[y, x] = 1
-
-            x += 1
-        y += 1
-        x = 0
 
     return mask
 
