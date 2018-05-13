@@ -5,8 +5,6 @@ import os
 
 import ImageIO
 
-center = (256, 252)
-
 
 # Looks through the median images to make the mask and returns a mask array.
 # "Clean" in this case means no horizon objects.
@@ -46,6 +44,7 @@ def generate_clean_mask():
 # Pixels that should be masked are returned with a '1' value.
 # Pixels that should be unchanged are returned with a '0' value.
 def generate_mask(forcenew=False):
+    center = (256, 252)
 
     # Read in the ignore image.
     # I read this in first to make sure the Mask.png is the correct dimensions.
@@ -94,6 +93,7 @@ def generate_mask(forcenew=False):
 # out everything that's not in the circular image.
 def generate_full_mask(forcenew=False):
     mask = generate_mask(forcenew)
+    center = (256, 252)
 
     hyp = math.hypot
     # Ignore everything outside the circular image.
