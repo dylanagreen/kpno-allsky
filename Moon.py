@@ -345,8 +345,8 @@ def moon_circle(frac):
 def moon_mask(date, file):
     # Get the fraction visible for interpolation and find the
     # location of the moon.
-    vis = moon_visible(info[0], info[1])
-    x,y = find_moon(info[0],info[1])
+    vis = moon_visible(date, file)
+    x,y = find_moon(date,file)
 
     # Creates the circle patch we use.
     r = moon_circle(vis)
