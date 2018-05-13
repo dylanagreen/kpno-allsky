@@ -31,8 +31,8 @@ def histogram(img, path):
     # Turn off the actual visual axes on the image for visual niceness.
     # Then add the image to the left axes with the moon circle.
     ax[0].set_axis_off()
-    
-    # This new color palette is greyscale for all non masked pixels, and 
+
+    # This new color palette is greyscale for all non masked pixels, and
     # red for any pixels that are masked and ignored.
     # Copied the old palette so I don't accidentally bugger it.
     palette = copy(plt.cm.gray)
@@ -46,10 +46,10 @@ def histogram(img, path):
     # Draws the vertical division line, in red
     thresh = 160
     bins = hist[0]
-    
+
     # This slice ignores the white column, whereas the slice in total ignores
     # the black column.
-    bins = bins[:len(bins)-1]
+    bins = bins[:-1]
     total = np.sum(bins[1:])
     clouds = np.sum(bins[thresh:])
     frac = clouds/total
@@ -58,7 +58,6 @@ def histogram(img, path):
     ax[0].text(0, -20, str(frac), fontsize=20)
 
     ax[1].axvline(x=thresh, color='r')
-
     #plt.show()
 
     # Saving code.
