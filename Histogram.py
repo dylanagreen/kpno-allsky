@@ -15,7 +15,7 @@ date = '20170718'
 # Creates a histogram of the greyscale values in the image and saves it.
 # Saves histogram to passed in path.
 # Returns the histogram bin values.
-def histogram(img, path):
+def histogram(img, path, save=True):
     # Converts the 1/0 array to True/False so it can be used as an index.
     # Then applies it, creating a new "image" array that only has the inside the
     # cicle items, but not the horizon items.
@@ -69,14 +69,15 @@ def histogram(img, path):
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
-    plt.savefig(name, dpi=256)
-    print('Saved: ' + name)
+    if save:
+        plt.savefig(name, dpi=256)
+        print('Saved: ' + name)
 
     # Close the plot at the end.
     plt.close()
 
     # Return the histogram bin values in case you want to use it somewhere.
-    return bins
+    return (bins,frac)
 
 
 # Intializes the category defining histograms.
