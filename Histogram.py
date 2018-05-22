@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 import os
 import Mask
 import ImageIO
@@ -11,37 +12,68 @@ center = (256, 252)
 
 date = '20170718'
 
-
+data = []
+x = []
 # Creates a histogram of the greyscale values in the image and saves it.
 # Saves histogram to passed in path.
 # Returns the histogram bin values.
-def histogram(img, path, save=True):
+# If a mask is passed, it uses that mask in addition to the one generated
+# Mask
+def histogram(img, path, mask=None, save=True):
+    
+    img1 = np.ma.masked_array(img, mask)
+    
+
     # Converts the 1/0 array to True/False so it can be used as an index.
     # Then applies it, creating a new "image" array that only has the inside the
     # cicle items, but not the horizon items.
-    mask = Mask.generate_full_mask()
-    mask = np.ma.make_mask(mask)
-    img1 = np.ma.masked_array(img, mask)
+    mask2 = Mask.generate_full_mask()
+    mask2 = np.ma.make_mask(mask2)
+    img2 = np.ma.masked_array(img1, mask2)
 
     # Sets up the image so that the image is on the left and the histogram is
     # on the right.
-    fig, ax = plt.subplots(1, 2)
+    fig, ax = plt.subplots(2, 2)
     fig.set_size_inches(10, 5)
+    fig.subplots_adjust(hspace=.30, wspace=.07)
 
     # Turn off the actual visual axes on the image for visual niceness.
     # Then add the image to the left axes with the moon circle.
-    ax[0].set_axis_off()
+
+    ax[0,0].set_axis_off()
+    ax[1,0].set_axis_off()
+    
+    # Display the original image underneath for transparency.
+    ax[0,0].imshow(img, cmap='gray')
+    ax[1,0].imshow(img, cmap='gray')
+    
+
+    # Creates the histogram with 256 bins (0-255) and places it on the right.
+    bins = list(range(0, 256))
+    hist = ax[0,1].hist(img2.compressed(), bins=bins, color='blue', log=True)
+    ax[0,1].set_ylabel('Number of Occurrences')
+    ax[0,1].set_xlabel('Pixel Greyscale Value')
+    #ax[0,1].xaxis.set_label_position('top')
+    
+    # Cloudy pixels
+    thresh = 160
+    img2 = np.where(img >= thresh, 400, img)
+    img2 = np.ma.masked_array(img2, mask)
+    img2 = np.ma.masked_array(img2, mask2)
+
 
     # This new color palette is greyscale for all non masked pixels, and
     # red for any pixels that are masked and ignored.
     # Copied the old palette so I don't accidentally bugger it.
     palette = copy(plt.cm.gray)
-    palette.set_bad('r', 1.0)
-    ax[0].imshow(img1, cmap=palette)
 
-    # Creates the histogram with 256 bins (0-255) and places it on the right.
-    bins = list(range(0, 256))
-    hist = ax[1].hist(img1.compressed(), bins=bins, color='blue', log=True)
+    palette.set_bad('r', 0.5)
+    palette.set_over('b', 0.5)
+    
+    # Need a new normalization so that blue pixels don't get clipped to white.
+    ax[1,0].imshow(img2, cmap=palette,norm=colors.Normalize(vmin=0, vmax=255), alpha=1)
+
+
 
     # Draws the vertical division line, in red
     thresh = 160
@@ -49,16 +81,32 @@ def histogram(img, path, save=True):
 
     # This slice ignores the white column, whereas the slice in total ignores
     # the black column.
-    bins = bins[:-1]
-    total = np.sum(bins[1:])
+    #bins = bins[:-1]
+    total = np.sum(bins)
     clouds = np.sum(bins[thresh:])
     frac = clouds/total
+    
+    frac = round(frac,3)
 
     # Writes the fraction on the image
-    ax[0].text(0, -20, str(frac), fontsize=20)
+    ax[0,1].text(170, 2000, str(frac), fontsize=15, color='red')
 
-    ax[1].axvline(x=thresh, color='r')
+    ax[0,1].axvline(x=thresh, color='r')
+    ax[0,1].set_ylim(1, 40000)
     #plt.show()
+    
+    
+    data.append(frac)
+    x.append(len(data) * 4)
+    
+    ax[1,1].scatter(x, data, s=4)
+    ax[1,1].set_ylim(0, 1.0)
+    ax[1,1].set_xlim(0, 149*4)
+    
+    ax[1,1].set_ylabel("Cloudiness Fraction")
+    ax[1,1].set_xlabel("Time After Sundown")
+    
+    ax[1,1].set_xticks([])
 
     # Saving code.
     name = 'Images/Histogram/' + path
@@ -70,7 +118,8 @@ def histogram(img, path, save=True):
         os.makedirs(dirname)
 
     if save:
-        plt.savefig(name, dpi=256)
+        dpi = 351.4
+        plt.savefig(name, dpi=dpi, bbox_inches='tight')
         print('Saved: ' + name)
 
     # Close the plot at the end.

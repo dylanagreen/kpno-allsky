@@ -291,7 +291,7 @@ def generate_eclipse_data(regen=False):
             # For angles this small theta ~ sin(theta), so I dropped the sine
             # to save computation time.
             # Angle between moon and earth's shadow + angle between moon and sun
-            # should add to pi, i.e. the earth's shadow is across from the sun.
+            # should ad d to pi, i.e. the earth's shadow is across from the sun.
             d = R * (np.pi - sep)
 
             size = moon_size(date, img)
@@ -445,6 +445,7 @@ if __name__ == "__main__":
     date = '20170810'
     directory = 'Images/Original/' + date + '/'
     f1 = os.listdir(directory)
+    f1 = sorted(f1)
 
     #for line in f1:
     for file in f1:
@@ -462,8 +463,10 @@ if __name__ == "__main__":
         mask = moon_mask(info[0], info[1])
         img1 = np.ma.masked_array(img, mask)
         
-        Histogram.histogram(img, info[0] + '/' + info[1] + '-1.png')
-        Histogram.histogram(img1, info[0] + '/' + info[1] + '-2.png')
+
+        bins,frac = Histogram.histogram(img, info[0] + '/' + info[1], mask)
+        #Histogram.histogram(img, info[0] + '/' + info[1] + '-2.png')
+
         
 
         #ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
