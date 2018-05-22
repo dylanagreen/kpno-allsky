@@ -129,6 +129,17 @@ def histogram(img, path, mask=None, save=True):
     return (bins,frac)
 
 
+def cloudiness(hist):
+    # Pretty straight forward math here:
+    # Num of pixels > thresh / total num of pixels.
+    thresh = 160
+    total = np.sum(hist)
+    clouds = np.sum(hist[thresh:])
+    frac = clouds/total
+
+    return round(frac,3)
+
+
 # Intializes the category defining histograms.
 # Returns a dictionary where the key is the category number and the value is
 # the defining histogram for that category.
