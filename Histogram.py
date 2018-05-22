@@ -129,6 +129,89 @@ def histogram(img, path, mask=None, save=True):
     return (bins,frac)
 
 
+def plot_histogram(img, hist, mask, path, save=True):
+    # Sets up the image so that the images are on the left 
+    # and the histogram and plot are on the right
+    fig, ax = plt.subplots(2, 2)
+    fig.set_size_inches(10, 5)
+    fig.subplots_adjust(hspace=.30, wspace=.07)
+
+    # Turn off the actual visual axes on the images.
+    ax[0,0].set_axis_off()
+    ax[1,0].set_axis_off()
+    
+    # Display the original image underneath for transparency.
+    ax[0,0].imshow(img, cmap='gray')
+    ax[1,0].imshow(img, cmap='gray')
+
+    # Creates the histogram with 256 bins (0-255) and places it on the right.
+    # Kept this super general in case we want to change the amount of bins.
+    bins = list(range(0, 256))
+    width = 1
+
+    ax[0,1].bar(list(range(0,255)), hist, width=width, align='edge', color='blue', log=True)
+    ax[0,1].set_ylabel('Number of Occurrences')
+    ax[0,1].set_xlabel('Pixel Greyscale Value')
+
+    # Cloudy pixels thresholded first, then the horizon and moon are masked.
+    thresh = 160
+    img2 = np.where(img >= thresh, 400, img)
+    mask2 = Mask.generate_full_mask()
+    mask2 = np.ma.make_mask(mask2)
+    img2 = np.ma.masked_array(img2, mask)
+    img2 = np.ma.masked_array(img2, mask2)
+
+    # This new color palette is greyscale for all non masked pixels, and
+    # red for any pixels that are masked and ignored. It's blue for clouds.
+    # Copied the old palette so I don't accidentally bugger it.
+    palette = copy(plt.cm.gray)
+    palette.set_bad('r', 0.5)
+    palette.set_over('b', 0.5)
+    
+    # Need a new normalization so that blue pixels don't get clipped to white.
+    ax[1,0].imshow(img2, cmap=palette, 
+                   norm=colors.Normalize(vmin=0, vmax=255), alpha=1)
+
+    # Writes the fraction on the image
+    frac = cloudiness(hist)
+    ax[0,1].text(170, 2000, str(frac), fontsize=15, color='red')
+    
+    # Draws the vertical division line, in red
+    ax[0,1].axvline(x=thresh, color='r')
+    
+    # Forces the histogram to always have the same y axis height.
+    ax[0,1].set_ylim(1, 40000)
+    
+    data.append(frac)
+    x.append(len(data) * 4)
+    
+    ax[1,1].scatter(x, data, s=4)
+    ax[1,1].set_ylim(0, 1.0)
+    ax[1,1].set_xlim(0, 149*4)
+    
+    ax[1,1].set_ylabel("Cloudiness Fraction")
+    ax[1,1].set_xlabel("Time After Sundown")
+    
+    ax[1,1].set_xticks([])
+
+    # Saving code.
+    name = 'Images/Histogram/' + path
+
+    # This ensures that the directory you're saving to actually exists.
+    loc = path.rfind('/')
+    dirname = 'Images/Histogram/' + path[0:loc]
+    if not os.path.exists(dirname):
+        os.makedirs(dirname)
+
+    if save:
+        dpi = 351.4
+        plt.savefig(name, dpi=dpi, bbox_inches='tight')
+        print('Saved: ' + name)
+
+    # Close the plot at the end.
+    plt.close()
+
+
 def generate_histogram(img, mask=None):
     # This first applies any passed in mask (like the moon mask)
     img1 = np.ma.masked_array(img, mask)
@@ -142,9 +225,9 @@ def generate_histogram(img, mask=None):
     # Pixels from 0-255, so with 256 bins the histogram will give each pixel
     # value its own bin.
     bins = list(range(0, 256))
-    hist = np.histogram(img2.compressed(), bins)
+    hist,bins = np.histogram(img1.compressed(), bins)
 
-    return hist
+    return (hist,bins)
 
 
 def cloudiness(hist):
