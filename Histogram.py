@@ -129,6 +129,24 @@ def histogram(img, path, mask=None, save=True):
     return (bins,frac)
 
 
+def generate_histogram(img, mask=None):
+    # This first applies any passed in mask (like the moon mask)
+    img1 = np.ma.masked_array(img, mask)
+
+    # This then applies the horizon/circle mask.
+    # Converts the 1/0 array to True/False so it can be used as an index.
+    mask2 = Mask.generate_full_mask()
+    mask2 = np.ma.make_mask(mask2)
+    img1 = np.ma.masked_array(img1, mask2)
+
+    # Pixels from 0-255, so with 256 bins the histogram will give each pixel
+    # value its own bin.
+    bins = list(range(0, 256))
+    hist = np.histogram(img2.compressed(), bins)
+
+    return hist
+
+
 def cloudiness(hist):
     # Pretty straight forward math here:
     # Num of pixels > thresh / total num of pixels.
