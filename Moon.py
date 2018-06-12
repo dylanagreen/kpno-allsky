@@ -87,11 +87,7 @@ def moon_visible(date, file):
     time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
     formatdate = formatdate + ' ' + time
 
-    # Sets up a pyephem object for the camera.
-    camera = ephem.Observer()
-    camera.lat = '31.959417'
-    camera.lon = '-111.598583'
-    camera.elevation = 2120
+    # Sets the calculation date.
     camera.date = formatdate
 
     # Makes a moon object and calculates it for the observation location/time
