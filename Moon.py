@@ -143,20 +143,29 @@ def moon_size(date, file):
 
 # Finds the x,y coordinates of the moon's center in a given image.
 def find_moon(date, file):
+    
+    # Nicked this time formatting code from timestring to object.
+    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
+    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
+    formatdate = formatdate + ' ' + time
+    
+    # Sets up a pyephem object for the camera.
+    camera = ephem.Observer()
+    camera.lat = '31.959417'
+    camera.lon = '-111.598583'
 
-    # Sets up location and time variables.
-    time = Coordinates.timestring_to_obj(date, file)
-    camera = (31.959417 * u.deg, -111.598583 * u.deg)
-    cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
-                                height=2120 * u.meter)
+    # This basically hacks us to use the center of the earth as our
+    # observation point.
+    camera.elevation = 2120
+    camera.date = formatdate
 
-    # Gets a SkyCoord with the moon position.
-    moon = astropy.coordinates.get_moon(time, cameraearth)
+    # Calculates the sun and moon positions.
+    moon = ephem.Moon()
+    moon.compute(camera)
 
     # Conversion to x,y positions on the image.
-    altazcoord = moon.transform_to(AltAz(obstime=time, location=cameraearth))
-    alt = altazcoord.alt.degree
-    az = altazcoord.az.degree
+    alt = np.degrees(moon.alt)
+    az = np.degrees(moon.az)
     x, y = Coordinates.altaz_to_xy(alt, az)
     x, y = Coordinates.galactic_conv(x, y, az)
 
