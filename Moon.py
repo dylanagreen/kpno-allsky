@@ -29,6 +29,12 @@ from matplotlib.patches import Circle
 R_moon = 1737
 R_earth = 4500
 
+# Sets up a pyephem object for the camera.
+camera = ephem.Observer()
+camera.lat = '31.959417'
+camera.lon = '-111.598583'
+camera.elevation = 2120
+
 
 # Returns the amount of the moon that is lit up still by the sun, and not
 # shaded by the earth.
@@ -143,20 +149,13 @@ def moon_size(date, file):
 
 # Finds the x,y coordinates of the moon's center in a given image.
 def find_moon(date, file):
-    
+
     # Nicked this time formatting code from timestring to object.
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
     time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
     formatdate = formatdate + ' ' + time
-    
-    # Sets up a pyephem object for the camera.
-    camera = ephem.Observer()
-    camera.lat = '31.959417'
-    camera.lon = '-111.598583'
 
-    # This basically hacks us to use the center of the earth as our
-    # observation point.
-    camera.elevation = 2120
+    # Sets the date of calculation.
     camera.date = formatdate
 
     # Calculates the sun and moon positions.
@@ -170,6 +169,28 @@ def find_moon(date, file):
     x, y = Coordinates.galactic_conv(x, y, az)
 
     return (x, y)
+
+
+# Finds the x,y coordinates of the moon's center in a given image.
+def find_sun(date, file):
+
+    # Nicked this time formatting code from timestring to object.
+    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
+    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
+    formatdate = formatdate + ' ' + time
+
+    # Sets the date of calculation.
+    camera.date = formatdate
+
+    # Calculates the sun and moon positions.
+    sun = ephem.Sun()
+    sun.compute(camera)
+
+    # Conversion to x,y positions on the image.
+    alt = np.degrees(sun.alt)
+    az = np.degrees(sun.az)
+
+    return (alt,az)
 
 
 # Fits a Moffat fit to the moon and returns the estimated radius of the moon.
@@ -274,11 +295,6 @@ def generate_eclipse_data(regen=False):
             formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
             time = img[4:6] + ':' + img[6:8] + ':' + img[8:10]
             formatdate = formatdate + ' ' + time
-
-            # Sets up a pyephem object for the camera.
-            camera = ephem.Observer()
-            camera.lat = '31.959417'
-            camera.lon = '-111.598583'
 
             # This basically hacks us to use the center of the earth as our
             # observation point.
@@ -450,7 +466,7 @@ def generate_plots():
 
 if __name__ == "__main__":
     #f1 = open("images.txt", 'r')
-    
+
     date = '20170810'
     directory = 'Images/Original/' + date + '/'
     f1 = os.listdir(directory)
@@ -460,23 +476,23 @@ if __name__ == "__main__":
     for file in f1:
         #line = line.rstrip()
         #info = line.split(',')
-        
+
         info = [None] * 2
         info[0] = date
         info[1] = file[:-4]
-        
+
         path = 'Images/Original/' + info[0] + '/' + info[1]
-        
+
         img = ndimage.imread(path + '.png', mode='L')
 
         mask = moon_mask(info[0], info[1])
         img1 = np.ma.masked_array(img, mask)
-        
+
 
         bins,frac = Histogram.histogram(img, info[0] + '/' + info[1], mask)
         #Histogram.histogram(img, info[0] + '/' + info[1] + '-2.png')
 
-        
+
 
         #ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
 
