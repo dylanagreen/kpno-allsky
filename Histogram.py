@@ -8,132 +8,26 @@ import Moon
 from copy import copy
 from scipy import ndimage
 
+import Coordinates
+
 center = (256, 252)
 
 date = '20170718'
 
 data = []
 x = []
+d1 = Coordinates.timestring_to_obj('20171001','r_ut013603s08160').plot_date
+d2 = Coordinates.timestring_to_obj('20171031','r_ut132350s57840').plot_date
 # Creates a histogram of the greyscale values in the image and saves it.
 # Saves histogram to passed in path.
 # Returns the histogram bin values.
 # If a mask is passed, it uses that mask in addition to the one generated
 # Mask
-def histogram(img, path, mask=None, save=True):
-    
-    img1 = np.ma.masked_array(img, mask)
-    
-
-    # Converts the 1/0 array to True/False so it can be used as an index.
-    # Then applies it, creating a new "image" array that only has the inside the
-    # cicle items, but not the horizon items.
-    mask2 = Mask.generate_full_mask()
-    mask2 = np.ma.make_mask(mask2)
-    img2 = np.ma.masked_array(img1, mask2)
-
-    # Sets up the image so that the image is on the left and the histogram is
-    # on the right.
-    fig, ax = plt.subplots(2, 2)
-    fig.set_size_inches(10, 5)
-    fig.subplots_adjust(hspace=.30, wspace=.07)
-
-    # Turn off the actual visual axes on the image for visual niceness.
-    # Then add the image to the left axes with the moon circle.
-
-    ax[0,0].set_axis_off()
-    ax[1,0].set_axis_off()
-    
-    # Display the original image underneath for transparency.
-    ax[0,0].imshow(img, cmap='gray')
-    ax[1,0].imshow(img, cmap='gray')
-    
-
-    # Creates the histogram with 256 bins (0-255) and places it on the right.
-    bins = list(range(0, 256))
-    hist = ax[0,1].hist(img2.compressed(), bins=bins, color='blue', log=True)
-    ax[0,1].set_ylabel('Number of Occurrences')
-    ax[0,1].set_xlabel('Pixel Greyscale Value')
-    #ax[0,1].xaxis.set_label_position('top')
-    
-    # Cloudy pixels
-    thresh = 160
-    img2 = np.where(img >= thresh, 400, img)
-    img2 = np.ma.masked_array(img2, mask)
-    img2 = np.ma.masked_array(img2, mask2)
-
-
-    # This new color palette is greyscale for all non masked pixels, and
-    # red for any pixels that are masked and ignored.
-    # Copied the old palette so I don't accidentally bugger it.
-    palette = copy(plt.cm.gray)
-
-    palette.set_bad('r', 0.5)
-    palette.set_over('b', 0.5)
-    
-    # Need a new normalization so that blue pixels don't get clipped to white.
-    ax[1,0].imshow(img2, cmap=palette,norm=colors.Normalize(vmin=0, vmax=255), alpha=1)
-
-
-
-    # Draws the vertical division line, in red
-    thresh = 160
-    bins = hist[0]
-
-    # This slice ignores the white column, whereas the slice in total ignores
-    # the black column.
-    #bins = bins[:-1]
-    total = np.sum(bins)
-    clouds = np.sum(bins[thresh:])
-    frac = clouds/total
-    
-    frac = round(frac,3)
-
-    # Writes the fraction on the image
-    ax[0,1].text(170, 2000, str(frac), fontsize=15, color='red')
-
-    ax[0,1].axvline(x=thresh, color='r')
-    ax[0,1].set_ylim(1, 40000)
-    #plt.show()
-    
-    
-    data.append(frac)
-    x.append(len(data) * 4)
-    
-    ax[1,1].scatter(x, data, s=4)
-    ax[1,1].set_ylim(0, 1.0)
-    ax[1,1].set_xlim(0, 149*4)
-    
-    ax[1,1].set_ylabel("Cloudiness Fraction")
-    ax[1,1].set_xlabel("Time After Sundown")
-    
-    ax[1,1].set_xticks([])
-
-    # Saving code.
-    name = 'Images/Histogram/' + path
-
-    # This ensures that the directory you're saving to actually exists.
-    loc = path.rfind('/')
-    dirname = 'Images/Histogram/' + path[0:loc]
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
-    if save:
-        dpi = 351.4
-        plt.savefig(name, dpi=dpi, bbox_inches='tight')
-        print('Saved: ' + name)
-
-    # Close the plot at the end.
-    plt.close()
-
-    # Return the histogram bin values in case you want to use it somewhere.
-    return (bins,frac)
-
-
-def plot_histogram(img, hist, mask, path, save=True):
+def plot_histogram(img, hist, mask, path, date, save=True):
     # Sets up the image so that the images are on the left 
     # and the histogram and plot are on the right
     fig, ax = plt.subplots(2, 2)
-    fig.set_size_inches(10, 5)
+    fig.set_size_inches(10, 5.1)
     fig.subplots_adjust(hspace=.30, wspace=.07)
 
     # Turn off the actual visual axes on the images.
@@ -183,16 +77,25 @@ def plot_histogram(img, hist, mask, path, save=True):
     ax[0,1].set_ylim(1, 40000)
     
     data.append(frac)
-    x.append(len(data) * 4)
+    x.append(date)
     
-    ax[1,1].scatter(x, data, s=4)
+    ax[1,1].plot_date(x, data, xdate=True, markersize=1)
     ax[1,1].set_ylim(0, 1.0)
-    ax[1,1].set_xlim(0, 149*4)
+    
     
     ax[1,1].set_ylabel("Cloudiness Fraction")
-    ax[1,1].set_xlabel("Time After Sundown")
+    ax[1,1].set_xlabel("Time after 01/01/2018")
     
-    ax[1,1].set_xticks([])
+    xt = []
+    for i in range(20180101, 20180132):
+        x1 = Coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
+        xt.append(x1)
+    
+    ax[1,1].set_xticks(xt)
+    d2 = Coordinates.timestring_to_obj('20180131','r_ut230000s00000').plot_date
+    ax[1,1].set_xlim(xt[0], xt[-1])
+    ax[1,1].xaxis.grid(True)
+    ax[1,1].xaxis.set_ticklabels([])
 
     # Saving code.
     name = 'Images/Histogram/' + path
@@ -204,12 +107,16 @@ def plot_histogram(img, hist, mask, path, save=True):
         os.makedirs(dirname)
 
     if save:
-        dpi = 351.4
+        dpi = 350.3
         plt.savefig(name, dpi=dpi, bbox_inches='tight')
         print('Saved: ' + name)
 
     # Close the plot at the end.
     plt.close()
+    
+    f = open('data.txt', 'a+')
+    f.write(str(date) + ',' + str(frac) + '\n')
+    f.close()
 
 
 def generate_histogram(img, mask=None):
