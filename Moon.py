@@ -122,8 +122,8 @@ def moon_size(date, file):
     # Following code calculates d, the distance between the center of
     # Earth's shadow and the center of the moon. Basically just d = v*t.
 
-    # Use astropy to find the labeled region that the moon is in.
-    posx, posy = find_moon(date, file)
+    # Use pyephem to find the labeled region that the moon is in.
+    posx, posy, alt = find_moon(date, file)
     posx = math.floor(posx)
     posy = math.floor(posy)
 
@@ -141,6 +141,7 @@ def moon_size(date, file):
 
 
 # Finds the x,y coordinates of the moon's center in a given image.
+# Also returns the moon's altitude, to check that it is even up.
 def find_moon(date, file):
 
     # Nicked this time formatting code from timestring to object.
@@ -161,7 +162,7 @@ def find_moon(date, file):
     x, y = Coordinates.altaz_to_xy(alt, az)
     x, y = Coordinates.galactic_conv(x, y, az)
 
-    return (x, y)
+    return (x, y, alt)
 
 
 # Finds the x,y coordinates of the moon's center in a given image.
@@ -364,7 +365,7 @@ def moon_mask(date, file):
     # Get the fraction visible for interpolation and find the
     # location of the moon.
     vis = moon_visible(date, file)
-    x,y = find_moon(date,file)
+    x,y,alt = find_moon(date,file)
 
     # Creates the circle patch we use.
     r = moon_circle(vis)
