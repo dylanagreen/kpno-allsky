@@ -62,6 +62,7 @@ class DateHTMLParser(HTMLParser):
         HTMLParser.__init__(self)
         self.data = []
 
+
     def handle_starttag(self, tag, attrs):
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
@@ -69,6 +70,10 @@ class DateHTMLParser(HTMLParser):
                 # If the first attribute is href we need to ignore it
                 if attr[0] == 'href':
                     self.data.append(attr[1])
+
+
+    def clear_data(self):
+        self.data = []
 
 
 # Downloads all the images for a certain date for a given camera.
@@ -264,5 +269,6 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    date = '20150404'
-    download_all_date(date)
+    for i in range(20180101, 20180132):
+        date = str(i)
+        download_all_date(date)
