@@ -13,9 +13,6 @@ import matplotlib.pyplot as plt
 import astropy.coordinates
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 import astropy.units as u
-from astropy.modeling import models, fitting
-from astropy.modeling.models import custom_model
-from astropy.modeling.powerlaws import PowerLaw1D
 
 import Coordinates
 import ImageIO
