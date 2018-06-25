@@ -92,46 +92,48 @@ for date in datelinks:
         os.makedirs(monthloc)
 
     datafile = monthloc + d + '.txt'
-    f = open(datafile, 'w')
+    #f = open(datafile, 'w')
 
-    for name in imagenames:
-        # This ignores all the blue filter images, since we don't want to
-        # process those.
-        if name[:1] == 'b':
-            continue
-        # We want to ignore the all image animations
-        if name == 'allblue.gif' or name == 'allred.gif':
-            continue
+    with open(datafile, 'w') as f:
 
-
-        # Finds the moon and the sun in the image. We don't need to download it
-        # if we won't process it.
-        # We only process images where the moon is visble (moon alt > 0)
-        # And the sun is low enough to not wash out the image (sun alt < -17)
-        moonx, moony, moonalt = Moon.find_moon(d, name)
-        sunalt, sunaz = Moon.find_sun(d, name)
+        for name in imagenames:
+            # This ignores all the blue filter images, since we don't want to
+            # process those.
+            if name[:1] == 'b':
+                continue
+            # We want to ignore the all image animations
+            if name == 'allblue.gif' or name == 'allred.gif':
+                continue
 
 
+            # Finds the moon and the sun in the image. We don't need to
+            # download it
+            # if we won't process it.
+            # We only process images where the moon is visble (moon alt > 0)
+            # And the sun is low enough to not wash out the image 
+            # (sun alt < -17)
+            moonx, moony, moonalt = Moon.find_moon(d, name)
+            sunalt, sunaz = Moon.find_sun(d, name)
 
-        # Checks that the analysis conditions are met.
-        if moonalt > 0 and sunalt < -17:
-            # Here is where the magic happens.
-            # First we download the image.
-            ImageIO.download_image(d, name)
+            # Checks that the analysis conditions are met.
+            if moonalt > 0 and sunalt < -17:
+                # Here is where the magic happens.
+                # First we download the image.
+                ImageIO.download_image(d, name)
 
-            # Then we make a histogram and a "cloudiness fraction"
-            path = 'Images/Original/KPNO/' + d + '/' + name
-            img = ndimage.imread(path, mode='L')
+                # Then we make a histogram and a "cloudiness fraction"
+                path = 'Images/Original/KPNO/' + d + '/' + name
+                img = ndimage.imread(path, mode='L')
 
-            # Generates the moon mask.
-            mask = Moon.moon_mask(d, name)
-            hist, bins = Histogram.generate_histogram(img, mask)
+                # Generates the moon mask.
+                mask = Moon.moon_mask(d, name)
+                hist, bins = Histogram.generate_histogram(img, mask)
 
-            frac = Histogram.cloudiness(hist)
+                frac = Histogram.cloudiness(hist)
 
-            # Then we save the cloudiness fraction to the file for that date.
-            dataline = name + ',' + str(frac) + '\n'
-            print(dataline)
-            f.write(dataline)
-    f.close()
+                # Then we save the cloudiness fraction to the file for that
+                # date.
+                dataline = name + ',' + str(frac) + '\n'
+                print(dataline)
+                f.write(dataline)
 
