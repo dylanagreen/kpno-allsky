@@ -145,7 +145,7 @@ def analyze():
     print(t2-t1)
 
 
-def plot():
+def month_plot():
     # Gets the downloaded months
     directory = 'Data/'
     months = sorted(os.listdir(directory))
@@ -225,4 +225,4 @@ def plot():
     
 
 
-plot()
+month_plot()
