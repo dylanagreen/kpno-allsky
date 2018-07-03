@@ -2,6 +2,7 @@ import requests
 from scipy import ndimage
 from html.parser import HTMLParser
 import matplotlib.pyplot as plt
+import numpy as np
 
 import ImageIO
 import Moon
@@ -152,9 +153,6 @@ def month_plot():
 
     # Macs are dumb
     months.remove('.DS_Store')
-
-    # Just plotting the last month analyzed right now
-    month = months[-1]
     
     for month in months:
         # Gets the days that were analyzed for that month
@@ -223,6 +221,73 @@ def month_plot():
         plt.savefig('Images/scatter-' + month + '.png', dpi=256, bbox_inches='tight')
         plt.close()
     
+
+
+def week_plot():
+    # Gets the downloaded months
+    directory = 'Data/'
+    months = sorted(os.listdir(directory))
+
+    # Macs are dumb
+    months.remove('.DS_Store')
+    
+    # Sets up the two lists
+    data = [0]*52
+    x = list(range(0,52))
+    temp = []
+    w = 0
+    
+    for month in months:
+        # Gets the days that were analyzed for that month
+        directory = 'Data/' + month + '/'
+        days = sorted(os.listdir(directory))
+        
+        day1 = Coordinates.timestring_to_obj(str(20170101), 'r_ut000000s00000')
+        
+
+        # Reads the data for each day.
+        for day in days:
+            d1 = directory + day
+            f1 = open(d1, 'r')
+
+            # Strips off the .txt so we can make a Time object.
+            day = day[:-4]
+            for line in f1:
+                line = line.rstrip()
+                line = line.split(',')
+
+                # Gets the plot date for the timestring object.
+                d = Coordinates.timestring_to_obj(day, line[0])
+
+                # Finds the difference since the beginning of the year to find
+                # The week number.
+                diff = d - day1
+                week = int(diff.value) // 7
+                
+                temp.append(float(line[1]))
+                
+                # Once the date clicks to the next week, average up the stuff
+                # and add it to the data list.
+                if not week == w:
+                    av = np.mean(temp)
+                    data[week - 1] = av
+                    w = week
+                    temp = []
+
+            f1.close()
+    
+    # Sets up the plot
+    fig, ax = plt.subplots()
+    ax.set_ylim(0, 1.0)
+    
+    ax.scatter(x, data, s=2)
+    
+
+    plt.savefig('Images/week.png', dpi=256, bbox_inches='tight')
+    plt.close()
+
+
+#def sunset_plot():
 
 
 month_plot()
