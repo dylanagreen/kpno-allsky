@@ -152,7 +152,7 @@ def find_moon(date, file):
     # Sets the date of calculation.
     camera.date = formatdate
 
-    # Calculates the sun and moon positions.
+    # Calculates the moon position.
     moon = ephem.Moon()
     moon.compute(camera)
 
@@ -176,7 +176,7 @@ def find_sun(date, file):
     # Sets the date of calculation.
     camera.date = formatdate
 
-    # Calculates the sun and moon positions.
+    # Calculates the sun position.
     sun = ephem.Sun()
     sun.compute(camera)
 
