@@ -262,13 +262,17 @@ def plot():
     tweek = {}
     tweek2 = {}
     
+    tmoon = {}
+    
     for year in years:
         tphase[year] = [[] for i in range(0, phasenum)]
         tphase2[year] = [[] for i in range(0, phasenum)]
         tsunset[year] = [[] for i in range(0, sunsetnum)]
         tsunset2[year] = [[] for i in range(0, sunsetnum)]
-        tweek[year] = [[] for i in range(0, 53)]
-        tweek2[year] = [[] for i in range(0, 53)]
+        tweek[year] = [[] for i in range(0, 366)]
+        tweek2[year] = [[] for i in range(0, 366)]
+        
+        tmoon[year] = [[] for i in range(0, 366)]
     
     for month in months:
         # Gets the days that were analyzed for that month
@@ -329,9 +333,12 @@ def plot():
                 # Finds the difference since the beginning of the year to find
                 # The week number.
                 diff = date - day1
-                week = int(diff.value // 7)
+                week = int(diff.value // 1)
                 tweek[year][week].append(val)
                 tweek2[year][week].append(val*val)
+                
+                vis = Moon.moon_visible(day, name)
+                tmoon[year][week].append(vis)
     
     # Plotting and averaging code
     # Moon phase
@@ -354,17 +361,17 @@ def plot():
             data[year].append(np.mean(tphase[year][i]))
             rms[year].append(np.sqrt(np.mean(tphase2[year][i])))
             
-        plt.scatter(x, data[year], s=2, label='Mean-' + year)
-        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+        plt.plot(x, data[year], label='Mean-' + year)
+        plt.plot(x, rms[year], label='RMS-' + year)
 
     plt.legend()
 
-    plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
     plt.close()
     
     # Sunset
     x = np.asarray((range(0,sunsetnum)))
-    x = x * sunsetdiv
+    x = x * sunsetdiv * 24
     
     # Sets up the plot before we plot the things
     plt.ylim(0, 1.0)
@@ -379,36 +386,46 @@ def plot():
             data[year].append(np.mean(tsunset[year][i]))
             rms[year].append(np.sqrt(np.mean(tsunset2[year][i])))
             
-        plt.scatter(x, data[year], s=2, label='Mean-' + year)
-        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+        plt.plot(x, data[year], label='Mean-' + year)
+        plt.plot(x, rms[year], label='RMS-' + year)
 
     plt.legend()
 
-    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
     
     # Week
-    x = np.asarray((range(1,54)))
-    # Sets up the plot before we plot the things
-    plt.ylim(0, 1.0)
-    plt.ylabel('Average Cloudiness Fraction')
-    plt.xlabel('Week Number')
     
+    
+    moon = {}
     for year in years:
+        
+        x = np.asarray((range(1,367)))
+        # Sets up the plot before we plot the things
+        plt.ylim(0, 1.0)
+        plt.ylabel('Average Cloudiness Fraction')
+        plt.xlabel('Day Number')
+        
         data[year] = []
         rms[year] = []
+        moon[year] = []
         
         for i in range(0,len(tweek[year])):
             data[year].append(np.mean(tweek[year][i]))
             rms[year].append(np.sqrt(np.mean(tweek2[year][i])))
+            moon[year].append(np.mean(tmoon[year][i]))
             
-        plt.scatter(x, data[year], s=2, label='Mean-' + year)
-        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+        plt.plot(x, data[year], label='Mean-' + year)
+        plt.plot(x, rms[year], label='RMS-' + year)
+        
+        plt.plot(x, moon[year], label='Moon Phase-' + year)
+        
+        plt.legend()
 
-    plt.legend()
+        plt.savefig('Images/Plots/day' + year + '.png', dpi=256, bbox_inches='tight')
+        plt.close()
 
-    plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
-    plt.close()
+
 
 
 plot()
