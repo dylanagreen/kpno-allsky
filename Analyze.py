@@ -11,6 +11,7 @@ import Coordinates
 
 import os
 import time
+import ephem
 
 
 def get_start():
@@ -202,7 +203,12 @@ def month_plot():
 
         # Need the right end to be the start of next month.
         # Adding 100 increments the month number.
-        end = str(start + 100)
+        # First if statement checks if this is december in which case we need
+        # to roll over the year and reset the month.
+        if str(start)[4:6] == '12':
+            end = str(start + 8900)
+        else:
+            end = str(start + 100)
         d2 = Coordinates.timestring_to_obj(end, 'r_ut000000s00000').plot_date
 
         # Sets the limits and division ticks.
@@ -232,10 +238,12 @@ def week_plot():
     months.remove('.DS_Store')
     
     # Sets up the two lists
-    data = [0]*52
-    x = list(range(0,52))
-    temp = []
-    w = 0
+    data = [0]*53
+    rms = [0]*53
+    x = list(range(1,54))
+    
+    temp = [[] for i in range(0, 53)]
+    temp2 = [[] for i in range(0, 53)]
     
     for month in months:
         # Gets the days that were analyzed for that month
@@ -262,32 +270,192 @@ def week_plot():
                 # Finds the difference since the beginning of the year to find
                 # The week number.
                 diff = d - day1
-                week = int(diff.value) // 7
+                week = int(diff.value // 7)
                 
-                temp.append(float(line[1]))
+                val = float(line[1])
+                temp[week].append(val)
+                temp2[week].append(val*val)
                 
-                # Once the date clicks to the next week, average up the stuff
-                # and add it to the data list.
-                if not week == w:
-                    av = np.mean(temp)
-                    data[week - 1] = av
-                    w = week
-                    temp = []
 
             f1.close()
+    
+    for i in range(0,len(temp)):
+        data[i] = np.mean(temp[i])
+        rms[i] = np.sqrt(np.mean(temp2[i]))
     
     # Sets up the plot
     fig, ax = plt.subplots()
     ax.set_ylim(0, 1.0)
     
-    ax.scatter(x, data, s=2)
+    print(data)
+    
+    plt.scatter(x, data, s=2, label='Mean')
+    plt.scatter(x, rms, s=2, c='r', label='RMS')
+    
+    plt.ylabel('Average Cloudiness Fraction')
+    plt.xlabel('Week Number')
+    
+    plt.legend()
     
 
     plt.savefig('Images/week.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
-#def sunset_plot():
+
+# Sets up a pyephem object for the camera.
+camera = ephem.Observer()
+camera.lat = '31.959417'
+camera.lon = '-111.598583'
+camera.elevation = 2120
+
+camera.horizon='-17'
 
 
-month_plot()
+def sunset_plot():
+    # Gets the downloaded months
+    directory = 'Data/'
+    months = sorted(os.listdir(directory))
+
+    # Macs are dumb
+    months.remove('.DS_Store')
+    
+    temp = [[] for i in range(0, 50)]
+    temp2 = [[] for i in range(0, 50)]
+    
+    for month in months:
+        # Gets the days that were analyzed for that month
+        directory = 'Data/' + month + '/'
+        days = sorted(os.listdir(directory))
+
+        # Reads the data for each day.
+        for day in days:
+            d1 = directory + day
+            f1 = open(d1, 'r')
+
+            # Strips off the .txt so we can make a Time object.
+            day = day[:-4]
+            for line in f1:
+                line = line.rstrip()
+                line = line.split(',')
+                
+                # Nicked this time formatting code from timestring to object.
+                formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:]
+                time = line[0][4:6] + ':' + line[0][6:8] + ':' + line[0][8:10]
+                formatdate = formatdate + ' ' + time
+
+                # Sets the date of calculation.
+                camera.date = formatdate
+                
+                d = ephem.Date(formatdate)
+
+                # Calculates the sun position.
+                sun = ephem.Sun()
+                
+                setting = camera.previous_setting(sun, use_center=True)
+                
+                diff = d - setting
+                
+                #print('Date: ' + formatdate)
+                #print('Next set: ' + str(setting))
+                #print('Diff: ' + str(diff))
+                #print()
+                
+                b = int(diff // 0.01)
+                
+                val = float(line[1])
+                temp[b].append(val)
+                temp2[b].append(val * val)
+        
+    data = [0 for i in range(0, 50)]
+    rms = [0 for i in range(0, 50)]
+    for i in range(0,len(temp)):
+        data[i] = np.mean(temp[i])
+        rms[i] = np.sqrt(np.mean(temp2[i]))
+
+    x = np.asarray((range(0,50)))
+    x = x * 0.01 * 24
+    
+    # Sets up the plot
+    fig, ax = plt.subplots()
+    ax.set_ylim(0, 1.0)
+    
+    plt.scatter(x, data, s=2, label='Mean')
+    plt.scatter(x, rms, s=2, c='r', label='RMS')
+    
+    plt.ylabel('Average Cloudiness Fraction')
+    plt.xlabel('Hours since Sunset')
+    
+    plt.legend()
+    
+
+    plt.savefig('Images/sunset.png', dpi=256, bbox_inches='tight')
+    plt.close()
+
+def phase_plot():
+    # Gets the downloaded months
+    directory = 'Data/'
+    months = sorted(os.listdir(directory))
+
+    # Macs are dumb
+    months.remove('.DS_Store')
+    
+    temp = [[] for i in range(0, 50)]
+    temp2 = [[] for i in range(0, 50)]
+    
+    
+    
+    for month in months:
+        # Gets the days that were analyzed for that month
+        directory = 'Data/' + month + '/'
+        days = sorted(os.listdir(directory))
+
+        # Reads the data for each day.
+        for day in days:
+            d1 = directory + day
+            f1 = open(d1, 'r')
+
+            # Strips off the .txt so we can make a Time object.
+            day = day[:-4]
+            for line in f1:
+                line = line.rstrip()
+                line = line.split(',')
+                
+                phase = Moon.moon_visible(day, line[0])
+                
+                b = int(phase // 0.02)
+                val = float(line[1])
+                temp[b].append(val)
+                temp2[b].append(val * val)
+                
+    #print(temp)
+    
+    data = [0 for i in range(0, 50)]
+    rms = [0 for i in range(0, 50)]
+    for i in range(0,len(temp)):
+        data[i] = np.mean(temp[i])
+        rms[i] = np.sqrt(np.mean(temp2[i]))
+        
+    #print(data)
+    
+    x = np.asarray((range(0,50)))
+    x = x * 0.02
+    
+    # Sets up the plot
+    fig, ax = plt.subplots()
+    ax.set_ylim(0, 1.0)
+    
+    plt.scatter(x, data, s=2, label='Mean')
+    plt.scatter(x, rms, s=2, c='r', label='RMS')
+    
+    plt.ylabel('Average Cloudiness Fraction')
+    plt.xlabel('Moon Phase')
+    
+    plt.legend()
+    
+
+    plt.savefig('Images/phase.png', dpi=256, bbox_inches='tight')
+    plt.close()
+
+
+sunset_plot()
