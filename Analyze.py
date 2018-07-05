@@ -75,7 +75,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not(20170101 <= int(d) <= 20171231):
+        if not(20160101 <= int(d) <= 20161231):
             continue
 
         print(d)
@@ -223,7 +223,7 @@ def month_plot():
         # Puts the date in a nice form for the plot axis.
         date = month[-2:] + '/01/' + month[:-2]
         ax.set_xlabel('Time After ' + date)
-        plt.savefig('Images/scatter-' + month + '.png', dpi=256, bbox_inches='tight')
+        plt.savefig('Images/Plots/scatter-' + month + '.png', dpi=256, bbox_inches='tight')
         plt.close()
 
 
@@ -243,30 +243,45 @@ def plot():
     # Macs are dumb
     months.remove('.DS_Store')
     
+    # Gets the years and removes the duplicates by converting to a set .
+    years = set([x[:4] for x in months])
+    
     # Temporary arrays for moon phase plots
     phasenum = 50
     phasediv = 1 / phasenum  # Phase ranges from 0-1 so divisions is 1/num divs
-    tphase = [[] for i in range(0, phasenum)]
-    tphase2 = [[] for i in range(0, phasenum)]
+    tphase = {}
+    tphase2 = {}
     
     # Temporary arrays for sunset plots
     sunsetnum = 50
     sunsetdiv = 0.5 / sunsetnum # Up to 12 hours after sunset = 0.5 day / divs
-    tsunset = [[] for i in range(0, sunsetnum)]
-    tsunset2 = [[] for i in range(0, sunsetnum)]
+    tsunset = {}
+    tsunset2 = {}
     
     # Temporary arrays for week plots
-    tweek = [[] for i in range(0, 53)]
-    tweek2 = [[] for i in range(0, 53)]
+    tweek = {}
+    tweek2 = {}
+    
+    for year in years:
+        tphase[year] = [[] for i in range(0, phasenum)]
+        tphase2[year] = [[] for i in range(0, phasenum)]
+        tsunset[year] = [[] for i in range(0, sunsetnum)]
+        tsunset2[year] = [[] for i in range(0, sunsetnum)]
+        tweek[year] = [[] for i in range(0, 53)]
+        tweek2[year] = [[] for i in range(0, 53)]
     
     for month in months:
         # Gets the days that were analyzed for that month
         directory = 'Data/' + month + '/'
         days = sorted(os.listdir(directory))
 
+        # Strips out the year from the month
+        year = month[:4]
+
         # Day 1 of 2017, for week calculation.
-        day1 = Coordinates.timestring_to_obj(str(20170101), 'r_ut000000s00000')
-        
+        yearstart = year + '0101'
+        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+
         # Reads the data for each day.
         for day in days:
             loc = directory + day
@@ -284,8 +299,8 @@ def plot():
                 # Moon phase calculation. 
                 phase = Moon.moon_visible(day, name)
                 b = int(phase // phasediv)
-                tphase[b].append(val)
-                tphase2[b].append(val * val)
+                tphase[year][b].append(val)
+                tphase2[year][b].append(val * val)
                 
                 # Sunset time calculation.
                 # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
@@ -304,8 +319,8 @@ def plot():
                 # Finds the difference and bins it into the correct bin.
                 diff = date - setting
                 b = int(diff // sunsetdiv)
-                tsunset[b].append(val)
-                tsunset2[b].append(val * val)
+                tsunset[year][b].append(val)
+                tsunset2[year][b].append(val * val)
                 
                 # Week of the year calculation.
                 # Gets the date object for the image
@@ -315,76 +330,83 @@ def plot():
                 # The week number.
                 diff = date - day1
                 week = int(diff.value // 7)
-                tweek[week].append(val)
-                tweek2[week].append(val*val)
+                tweek[year][week].append(val)
+                tweek2[year][week].append(val*val)
     
     # Plotting and averaging code
     # Moon phase
-    dphase = [0 for i in range(0, 50)]
-    rmsphase = [0 for i in range(0, 50)]
-    for i in range(0,len(tphase)):
-        dphase[i] = np.mean(tphase[i])
-        rmsphase[i] = np.sqrt(np.mean(tphase2[i]))
-        
+    data = {}
+    rms = {}
+    
     x = np.asarray((range(0,phasenum)))
     x = x * phasediv
-
+    
+    # Sets up the plot before we plot the things
     plt.ylim(0, 1.0)
-    
-    plt.scatter(x, dphase, s=2, label='Mean')
-    plt.scatter(x, rmsphase, s=2, c='r', label='RMS')
-    
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Moon Phase')
     
-    plt.legend()
-    
-    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
-    plt.close()
-    
-    # Sunset
-    dsunset = [0 for i in range(0, 50)]
-    rmssunset = [0 for i in range(0, 50)]
-    for i in range(0,len(tsunset)):
-        dsunset[i] = np.mean(tsunset[i])
-        rmssunset[i] = np.sqrt(np.mean(tsunset2[i]))
+    for year in years:
+        data[year] = []
+        rms[year] = []
         
-    x = np.asarray((range(0,sunsetnum)))
-    x = x * sunsetdiv * 24
-    
-    plt.ylim(0, 1.0)
-    
-    plt.scatter(x, dsunset, s=2, label='Mean')
-    plt.scatter(x, rmssunset, s=2, c='r', label='RMS')
-    
-    plt.ylabel('Average Cloudiness Fraction')
-    plt.xlabel('Hours since Sunset')
-    
+        for i in range(0,len(tphase[year])):
+            data[year].append(np.mean(tphase[year][i]))
+            rms[year].append(np.sqrt(np.mean(tphase2[year][i])))
+            
+        plt.scatter(x, data[year], s=2, label='Mean-' + year)
+        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+
     plt.legend()
-    
+
     plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
     
-    # Week
-    dweek = [0 for i in range(0, 53)]
-    rmsweek = [0 for i in range(0, 53)]
-    for i in range(0,len(tweek)):
-        dweek[i] = np.mean(tweek[i])
-        rmsweek[i] = np.sqrt(np.mean(tweek2[i]))
+    # Sunset
+    x = np.asarray((range(0,sunsetnum)))
+    x = x * sunsetdiv
     
-    # Sets up the plot
-    x = np.asarray((range(1,54)))
-    
+    # Sets up the plot before we plot the things
     plt.ylim(0, 1.0)
+    plt.ylabel('Average Cloudiness Fraction')
+    plt.xlabel('Hours since sunset')
     
-    plt.scatter(x, dweek, s=2, label='Mean')
-    plt.scatter(x, rmsweek, s=2, c='r', label='RMS')
+    for year in years:
+        data[year] = []
+        rms[year] = []
+        
+        for i in range(0,len(tsunset[year])):
+            data[year].append(np.mean(tsunset[year][i]))
+            rms[year].append(np.sqrt(np.mean(tsunset2[year][i])))
+            
+        plt.scatter(x, data[year], s=2, label='Mean-' + year)
+        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+
+    plt.legend()
+
+    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
+    plt.close()
     
+    # Week
+    x = np.asarray((range(1,54)))
+    # Sets up the plot before we plot the things
+    plt.ylim(0, 1.0)
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Week Number')
     
+    for year in years:
+        data[year] = []
+        rms[year] = []
+        
+        for i in range(0,len(tweek[year])):
+            data[year].append(np.mean(tweek[year][i]))
+            rms[year].append(np.sqrt(np.mean(tweek2[year][i])))
+            
+        plt.scatter(x, data[year], s=2, label='Mean-' + year)
+        plt.scatter(x, rms[year], s=2, label='RMS-' + year)
+
     plt.legend()
-    
+
     plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
     plt.close()
 
