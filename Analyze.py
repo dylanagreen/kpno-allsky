@@ -244,12 +244,16 @@ def plot():
     months.remove('.DS_Store')
     
     # Temporary arrays for moon phase plots
-    tphase = [[] for i in range(0, 50)]
-    tphase2 = [[] for i in range(0, 50)]
+    phasenum = 50
+    phasediv = 1 / phasenum  # Phase ranges from 0-1 so divisions is 1/num divs
+    tphase = [[] for i in range(0, phasenum)]
+    tphase2 = [[] for i in range(0, phasenum)]
     
     # Temporary arrays for sunset plots
-    tsunset = [[] for i in range(0, 50)]
-    tsunset2 = [[] for i in range(0, 50)]
+    sunsetnum = 50
+    sunsetdiv = 0.5 / sunsetnum # Up to 12 hours after sunset = 0.5 day / divs
+    tsunset = [[] for i in range(0, sunsetnum)]
+    tsunset2 = [[] for i in range(0, sunsetnum)]
     
     # Temporary arrays for week plots
     tweek = [[] for i in range(0, 53)]
@@ -278,9 +282,8 @@ def plot():
                 name = line[0]
                 
                 # Moon phase calculation. 
-                # Phase from 0-1 for 50 bins = 0.02 per bin.
                 phase = Moon.moon_visible(day, name)
-                b = int(phase // 0.02)
+                b = int(phase // phasediv)
                 tphase[b].append(val)
                 tphase2[b].append(val * val)
                 
@@ -300,7 +303,7 @@ def plot():
                 
                 # Finds the difference and bins it into the correct bin.
                 diff = date - setting
-                b = int(diff // 0.01)
+                b = int(diff // sunsetdiv)
                 tsunset[b].append(val)
                 tsunset2[b].append(val * val)
                 
@@ -323,8 +326,8 @@ def plot():
         dphase[i] = np.mean(tphase[i])
         rmsphase[i] = np.sqrt(np.mean(tphase2[i]))
         
-    x = np.asarray((range(0,50)))
-    x = x * 0.02
+    x = np.asarray((range(0,phasenum)))
+    x = x * phasediv
 
     fig, ax = plt.subplots()
     ax.set_ylim(0, 1.0)
@@ -347,11 +350,8 @@ def plot():
         dsunset[i] = np.mean(tsunset[i])
         rmssunset[i] = np.sqrt(np.mean(tsunset2[i]))
         
-    x = np.asarray((range(0,50)))
-    x = x * 0.01 * 24
-
-    fig, ax = plt.subplots()
-    ax.set_ylim(0, 1.0)
+    x = np.asarray((range(0,sunsetnum)))
+    x = x * sunsetdiv * 24
     
     plt.scatter(x, dsunset, s=2, label='Mean')
     plt.scatter(x, rmssunset, s=2, c='r', label='RMS')
@@ -373,9 +373,6 @@ def plot():
     
     # Sets up the plot
     x = np.asarray((range(1,54)))
-    
-    fig, ax = plt.subplots()
-    ax.set_ylim(0, 1.0)
     
     plt.scatter(x, dweek, s=2, label='Mean')
     plt.scatter(x, rmsweek, s=2, c='r', label='RMS')
