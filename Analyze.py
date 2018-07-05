@@ -329,8 +329,7 @@ def plot():
     x = np.asarray((range(0,phasenum)))
     x = x * phasediv
 
-    fig, ax = plt.subplots()
-    ax.set_ylim(0, 1.0)
+    plt.ylim(0, 1.0)
     
     plt.scatter(x, dphase, s=2, label='Mean')
     plt.scatter(x, rmsphase, s=2, c='r', label='RMS')
@@ -340,7 +339,7 @@ def plot():
     
     plt.legend()
     
-    plt.savefig('Images/phase.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
     plt.close()
     
     # Sunset
@@ -353,6 +352,8 @@ def plot():
     x = np.asarray((range(0,sunsetnum)))
     x = x * sunsetdiv * 24
     
+    plt.ylim(0, 1.0)
+    
     plt.scatter(x, dsunset, s=2, label='Mean')
     plt.scatter(x, rmssunset, s=2, c='r', label='RMS')
     
@@ -361,7 +362,7 @@ def plot():
     
     plt.legend()
     
-    plt.savefig('Images/sunset.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
     
     # Week
@@ -374,6 +375,8 @@ def plot():
     # Sets up the plot
     x = np.asarray((range(1,54)))
     
+    plt.ylim(0, 1.0)
+    
     plt.scatter(x, dweek, s=2, label='Mean')
     plt.scatter(x, rmsweek, s=2, c='r', label='RMS')
     
@@ -382,7 +385,7 @@ def plot():
     
     plt.legend()
     
-    plt.savefig('Images/week.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
