@@ -4,8 +4,6 @@ from html.parser import HTMLParser
 import matplotlib.pyplot as plt
 import numpy as np
 
-from astropy.modeling import models, fitting
-
 import ImageIO
 import Moon
 import Histogram
@@ -456,6 +454,9 @@ def model():
     
     data = []
     
+    # Reads in the phase and cloudiness information.
+    # Literal eval makes it so that it reads the list as a list rather than 
+    # a string.
     with open(loc, 'r') as f:
         for line in f:
             line = line.rstrip()
@@ -466,7 +467,6 @@ def model():
     x.pop(0)
     x = np.asarray(x)
     
-    print(len(x))
     
     # Just need to convert to floats including the nan.
     for i in range(1, len(data)):
@@ -481,11 +481,13 @@ def model():
     coeffs2 = []
     for i in range(1, len(data)):
         data[i].pop(0)
+        
+        # This line is to avoid hard coding in case I add more years of data.
         year = 2017 - len(data) + 1 + i
         
         # We do the fitting manually using the least squares algorithm.
         # This forces the fit to go through 0,0 since we do not pass a constant
-        # coefficient, only the x^2.
+        # coefficient, only the x^2 and x terms.
         A = np.vstack([x*x, x]).T
         b,c = np.linalg.lstsq(A, data[i])[0]
         
@@ -495,15 +497,16 @@ def model():
         plt.plot(x, data[i], label='Mean-' + str(year))
         plt.plot(x, b*x*x + c*x, label='Fit-' + str(year))
     
+    # An average of the year wise fits.
     m = np.mean(coeffs1)
     n = np.mean(coeffs2)
     plt.plot(x, m*x*x + n*x, label='Mean Fit')
     
+    # Writes the coefficients to a file for later use.
     with open('clouds.txt', 'w') as f:
         f.write(str(m) + ',' + str(n))
     
     plt.legend()
-
     plt.savefig('Images/temp.png', dpi=256, bbox_inches='tight')
     plt.close()
 
