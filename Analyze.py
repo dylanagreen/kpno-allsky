@@ -451,7 +451,7 @@ def plot():
 
     # Sets up the plot before we plot the things
     plt.ylim(0, 10.0)
-    plt.ylabel('Average Cloudiness Fraction')
+    plt.ylabel('Corrected Cloudiness Fraction')
     plt.xlabel('Moon Phase')
 
     with open('phase.txt', 'w') as f:
@@ -484,7 +484,7 @@ def plot():
 
     # Sets up the plot before we plot the things
     plt.ylim(0, 10.0)
-    plt.ylabel('Average Cloudiness Fraction')
+    plt.ylabel('Corrected Cloudiness Fraction')
     plt.xlabel('Hours since sunset')
 
     for year in years:
@@ -510,8 +510,8 @@ def plot():
         x = np.asarray((range(1,54)))
         # Sets up the plot before we plot the things
         plt.ylim(0, 10.0)
-        plt.ylabel('Average Cloudiness Fraction')
-        plt.xlabel('Day Number')
+        plt.ylabel('Corrected Cloudiness Fraction')
+        plt.xlabel('Week Number')
 
         data[year] = []
         rms[year] = []
@@ -529,7 +529,7 @@ def plot():
 
         plt.legend()
 
-        plt.savefig('Images/Plots/day' + year + '.png', dpi=256, bbox_inches='tight')
+        plt.savefig('Images/Plots/week' + year + '.png', dpi=256, bbox_inches='tight')
         plt.close()
 
 
@@ -598,6 +598,4 @@ def model():
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     #link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    link =
-    data = get_link(link)
-    print(data)
+    plot()
