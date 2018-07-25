@@ -8,6 +8,8 @@ from scipy import ndimage
 from astropy.io import fits
 from astropy.utils.data import download_file
 
+import Analyze
+
 
 # Saves an input image with the given name in the folder denoted by location.
 # If the image is greyscale, cmap should be 'gray'
@@ -92,7 +94,11 @@ def download_all_date(date, camera="kpno"):
     else:
         htmllink = link
 
-    rdate = requests.get(htmllink)
+    rdate = Analyze.download_url(htmllink)
+
+    if rdate is None:
+        print('Failed to download dates.')
+        return
 
     # Makes sure the date exists.
     if rdate.status_code == 404:
@@ -140,7 +146,13 @@ def download_image(date, image, camera='kpno'):
 
     imageloc = link + '/' + image
     imagename = directory + '/' + image
-    rimage = requests.get(imageloc)
+
+
+    rimage = Analyze.download_url(imageloc)
+
+    if rimage is None:
+        print('Failed: ' + imagename)
+        return
 
     # Saves the image
     with open(imagename, 'wb') as f:

@@ -3,6 +3,7 @@ from scipy import ndimage
 from html.parser import HTMLParser
 import matplotlib.pyplot as plt
 import numpy as np
+from requests.exceptions import TooManyRedirects, HTTPError, ConnectionError, Timeout, RequestException
 
 import ImageIO
 import Moon
@@ -40,15 +41,70 @@ def get_start():
     return start
 
 
+# Reads a link, with exception handling and error checking built in.
+# Returns a requests.Response object if it succeeds, returns None if it fails.
+def download_url(link):
+
+    tries = 0
+    read = False
+
+    while not read:
+        try:
+            # Tries to connect for 5 seconds.
+            data = requests.get(link, timeout=5)
+
+            # Raises the HTTP error if it occurs.
+            data.raise_for_status()
+
+            read = True
+        # Too many redirects is when the link redirects you too much.
+        except TooManyRedirects:
+            print('Too many redirects.')
+            return None
+        # HTTPError is an error in the http code.
+        except HTTPError:
+            print('HTTP error with status code ' + str(data.status_code))
+            return None
+        # This is a failure in the connection unrelated to a timeout.
+        except ConnectionError:
+            print('Failed to establish a connection to the link.')
+            return None
+        # Timeouts are either server side (too long to respond) or client side
+        # (when requests doesn't get a response before the timeout timer is up)
+        # I have set the timeout to 5 seconds
+        except Timeout:
+            tries += 1
+
+            if tries >= 3:
+                print('Timed out after three attempts.')
+                return None
+
+            # Tries again after 5 seconds.
+            time.sleep(5)
+
+        # Covers every other possible exceptions.
+        except RequestException as err:
+            print('Unable to read link')
+            print(err)
+            return None
+        else:
+            print(link + ' read with no errors.')
+            return data
+
+
 def analyze():
     t1 = time.perf_counter()
     link = 'http://kpasca-archives.tuc.noao.edu/'
 
-    rlink = requests.get(link)
+    rlink = download_url(link)
+
+    if rlink is None:
+        print('Getting dates failed.')
+        return
 
     html = rlink.text
-    # This parser was designed to work with image names but it works just the same
-    # For dates so why make a new one?
+    # This parser was designed to work with image names but it works the same
+    # for dates so why make a new one?
     parser = ImageIO.DateHTMLParser()
     parser.feed(html)
     parser.close()
@@ -57,7 +113,6 @@ def analyze():
 
     # 20080306 is the first date the camera is located correctly
     # 20080430 is the first date the images are printed correctly
-
     #print(datelinks)
 
     startdate = 0#int(get_start())
@@ -70,6 +125,7 @@ def analyze():
             b = float(line[0])
             c = float(line[1])
 
+    fails = []
     for date in datelinks:
 
         # Strips the /index from the date so we have just the date
@@ -87,7 +143,13 @@ def analyze():
 
         print(d)
 
-        rdate = requests.get(link + date)
+        rdate = download_url(link + date)
+
+        # If we fail to get the data for the date, log it and move to the next.
+        if rdate is None:
+            fails.append(date)
+            print('Failed to retrieve data for ' + date)
+            continue
 
         # Extracting the image names.
         htmldate = rdate.text
@@ -162,6 +224,8 @@ def analyze():
     t2 = time.perf_counter()
 
     print(t2-t1)
+
+    print('The following dates failed to download: ' + str(fails))
 
 
 def month_plot():
@@ -530,4 +594,10 @@ def model():
     plt.savefig('Images/temp.png', dpi=256, bbox_inches='tight')
     plt.close()
 
-analyze()
+
+if __name__ == "__main__":
+    # This link has a redirect loop for testing.
+    #link = 'https://demo.cyotek.com/features/redirectlooptest.php'
+    link =
+    data = get_link(link)
+    print(data)
