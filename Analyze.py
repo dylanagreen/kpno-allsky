@@ -62,6 +62,7 @@ def analyze():
 
     startdate = 0#int(get_start())
     
+    # Reads in the model coefficients.
     with open('clouds.txt', 'r') as f:
         for line in f:
             line = line.rstrip()
@@ -169,7 +170,8 @@ def month_plot():
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    months.remove('.DS_Store')
+    if '.DS_Store' in months:
+        months.remove('.DS_Store')
 
     for month in months:
         # Gets the days that were analyzed for that month
@@ -258,7 +260,8 @@ def plot():
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    months.remove('.DS_Store')
+    if '.DS_Store' in months:
+        months.remove('.DS_Store')
 
     # Gets the years and removes the duplicates by converting to a set .
     years = set([x[:4] for x in months])
