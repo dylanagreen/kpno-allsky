@@ -4,6 +4,8 @@ from html.parser import HTMLParser
 import matplotlib.pyplot as plt
 import numpy as np
 
+from astropy.modeling import models, fitting
+
 import ImageIO
 import Moon
 import Histogram
@@ -12,6 +14,7 @@ import Coordinates
 import os
 import time
 import ephem
+import ast
 
 
 def get_start():
@@ -59,7 +62,14 @@ def analyze():
 
     #print(datelinks)
 
-    startdate = int(get_start())
+    startdate = 0#int(get_start())
+    
+    with open('clouds.txt', 'r') as f:
+        for line in f:
+            line = line.rstrip()
+            line = line.split(',')
+            b = float(line[0])
+            c = float(line[1])
 
     for date in datelinks:
 
@@ -73,7 +83,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not(20160101 <= int(d) <= 20161231):
+        if not(20160101 <= int(d) <= 20171231):
             continue
 
         print(d)
@@ -95,7 +105,6 @@ def analyze():
             os.makedirs(monthloc)
 
         datafile = monthloc + d + '.txt'
-        #f = open(datafile, 'w')
 
         with open(datafile, 'w') as f:
 
@@ -107,7 +116,6 @@ def analyze():
                 # We want to ignore the all image animations
                 if name == 'allblue.gif' or name == 'allred.gif':
                     continue
-
 
                 # Finds the moon and the sun in the image. We don't need to
                 # download it
@@ -137,6 +145,15 @@ def analyze():
                     hist, bins = Histogram.generate_histogram(img, mask)
 
                     frac = Histogram.cloudiness(hist)
+                    
+                    # Correction for moon phase.
+                    phase = Moon.moon_visible(d, name)
+                    val = b*phase*phase + c*phase
+                    
+                    with open('values.txt', 'a') as f2:
+                        f2.write(str(phase) + ',' + str(val) + ',' + str(frac) + '\n')
+                    
+                    frac = frac/val
 
                     # Then we save the cloudiness fraction to the file for that
                     # date.
@@ -271,10 +288,10 @@ def plot():
         tphase2[year] = [[] for i in range(0, phasenum)]
         tsunset[year] = [[] for i in range(0, sunsetnum)]
         tsunset2[year] = [[] for i in range(0, sunsetnum)]
-        tweek[year] = [[] for i in range(0, 366)]
-        tweek2[year] = [[] for i in range(0, 366)]
+        tweek[year] = [[] for i in range(0, 53)]
+        tweek2[year] = [[] for i in range(0, 53)]
 
-        tmoon[year] = [[] for i in range(0, 366)]
+        tmoon[year] = [[] for i in range(0, 53)]
 
     for month in months:
         # Gets the days that were analyzed for that month
@@ -284,7 +301,7 @@ def plot():
         # Strips out the year from the month
         year = month[:4]
 
-        # Day 1 of 2017, for week calculation.
+        # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
         day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
 
@@ -335,7 +352,7 @@ def plot():
                 # Finds the difference since the beginning of the year to find
                 # The week number.
                 diff = date - day1
-                week = int(diff.value // 1)
+                week = int(diff.value // 7)
                 tweek[year][week].append(val)
                 tweek2[year][week].append(val*val)
 
@@ -351,20 +368,28 @@ def plot():
     x = x * phasediv
 
     # Sets up the plot before we plot the things
-    plt.ylim(0, 1.0)
+    plt.ylim(0, 10.0)
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Moon Phase')
 
-    for year in years:
-        data[year] = []
-        rms[year] = []
+    with open('phase.txt', 'w') as f:
+        f.write(str(list(x)) + '\n')
+        for year in years:
+            data[year] = []
+            rms[year] = []
 
-        for i in range(0,len(tphase[year])):
-            data[year].append(np.mean(tphase[year][i]))
-            rms[year].append(np.sqrt(np.mean(tphase2[year][i])))
+            # Averages each bin.
+            for i in range(0,len(tphase[year])):
+                data[year].append(np.mean(tphase[year][i]))
+                rms[year].append(np.sqrt(np.mean(tphase2[year][i])))
 
-        plt.plot(x, data[year], label='Mean-' + year)
-        plt.plot(x, rms[year], label='RMS-' + year)
+            plt.plot(x, data[year], label='Mean-' + year)
+            plt.plot(x, rms[year], label='RMS-' + year)
+
+            line = str(data[year])
+            line = line.replace('nan', '\'nan\'')
+            f.write(line + '\n')
+
 
     plt.legend()
 
@@ -376,7 +401,7 @@ def plot():
     x = x * sunsetdiv * 24
 
     # Sets up the plot before we plot the things
-    plt.ylim(0, 1.0)
+    plt.ylim(0, 10.0)
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Hours since sunset')
 
@@ -397,14 +422,12 @@ def plot():
     plt.close()
 
     # Week
-
-
     moon = {}
     for year in years:
 
-        x = np.asarray((range(1,367)))
+        x = np.asarray((range(1,54)))
         # Sets up the plot before we plot the things
-        plt.ylim(0, 1.0)
+        plt.ylim(0, 10.0)
         plt.ylabel('Average Cloudiness Fraction')
         plt.xlabel('Day Number')
 
@@ -428,6 +451,60 @@ def plot():
         plt.close()
 
 
+def model():
+    loc = 'phase.txt'
+    
+    data = []
+    
+    with open(loc, 'r') as f:
+        for line in f:
+            line = line.rstrip()
+            b = ast.literal_eval(line)
+            
+            data.append(b)
+    x = data[0]
+    x.pop(0)
+    x = np.asarray(x)
+    
+    print(len(x))
+    
+    # Just need to convert to floats including the nan.
+    for i in range(1, len(data)):
+        data[i] = [float(j) for j in data[i]]
+    
+    plt.ylim(0, 1.0)
+    plt.ylabel('Average Cloudiness Fraction')
+    plt.xlabel('Moon Phase')
+    
 
+    coeffs1 = []
+    coeffs2 = []
+    for i in range(1, len(data)):
+        data[i].pop(0)
+        year = 2017 - len(data) + 1 + i
+        
+        # We do the fitting manually using the least squares algorithm.
+        # This forces the fit to go through 0,0 since we do not pass a constant
+        # coefficient, only the x^2.
+        A = np.vstack([x*x, x]).T
+        b,c = np.linalg.lstsq(A, data[i])[0]
+        
+        coeffs1.append(b)
+        coeffs2.append(c)
+        
+        plt.plot(x, data[i], label='Mean-' + str(year))
+        plt.plot(x, b*x*x + c*x, label='Fit-' + str(year))
+    
+    m = np.mean(coeffs1)
+    n = np.mean(coeffs2)
+    plt.plot(x, m*x*x + n*x, label='Mean Fit')
+    
+    with open('clouds.txt', 'w') as f:
+        f.write(str(m) + ',' + str(n))
+    
+    plt.legend()
 
-month_plot()
+    plt.savefig('Images/temp.png', dpi=256, bbox_inches='tight')
+    plt.close()
+
+analyze()
