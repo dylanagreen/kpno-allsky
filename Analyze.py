@@ -61,7 +61,7 @@ def analyze():
     #print(datelinks)
 
     startdate = 0#int(get_start())
-    
+
     # Reads in the model coefficients.
     with open('clouds.txt', 'r') as f:
         for line in f:
@@ -128,7 +128,7 @@ def analyze():
                 # Checks that the analysis conditions are met.
                 if moonalt > 0 and sunalt < -17:
                     # This is the path the image is saved to.
-                    # We need to check if it exists first, just in case. 
+                    # We need to check if it exists first, just in case.
                     path = 'Images/Original/KPNO/' + d + '/' + name
 
                     # Here is where the magic happens.
@@ -144,14 +144,14 @@ def analyze():
                     hist, bins = Histogram.generate_histogram(img, mask)
 
                     frac = Histogram.cloudiness(hist)
-                    
+
                     # Correction for moon phase.
                     phase = Moon.moon_visible(d, name)
                     val = b*phase*phase + c*phase
-                    
+
                     with open('values.txt', 'a') as f2:
                         f2.write(str(phase) + ',' + str(val) + ',' + str(frac) + '\n')
-                    
+
                     frac = frac/val
 
                     # Then we save the cloudiness fraction to the file for that
@@ -167,6 +167,12 @@ def analyze():
 def month_plot():
     # Gets the downloaded months
     directory = 'Data/'
+
+    # If the data directory doesn't exist we should exit here.
+    if not os.path.exists(directory):
+        print('No data found.')
+        return
+
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
@@ -242,7 +248,12 @@ def month_plot():
         # Puts the date in a nice form for the plot axis.
         date = month[-2:] + '/01/' + month[:-2]
         ax.set_xlabel('Time After ' + date)
-        plt.savefig('Images/Plots/scatter-' + month + '.png', dpi=256, bbox_inches='tight')
+
+        plotloc = 'Images/Plots/'
+        if not os.path.exists(plotloc):
+            os.makedirs(plotloc)
+
+        plt.savefig(plotloc + 'scatter-' + month + '.png', dpi=256, bbox_inches='tight')
         plt.close()
 
 
@@ -257,6 +268,12 @@ camera.horizon='-17'
 def plot():
     # Gets the downloaded months
     directory = 'Data/'
+
+    # If the data directory doesn't exist we should exit here.
+    if not os.path.exists(directory):
+        print('No data found.')
+        return
+
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
@@ -454,61 +471,61 @@ def plot():
 
 def model():
     loc = 'phase.txt'
-    
+
     data = []
-    
+
     # Reads in the phase and cloudiness information.
-    # Literal eval makes it so that it reads the list as a list rather than 
+    # Literal eval makes it so that it reads the list as a list rather than
     # a string.
     with open(loc, 'r') as f:
         for line in f:
             line = line.rstrip()
             b = ast.literal_eval(line)
-            
+
             data.append(b)
     x = data[0]
     x.pop(0)
     x = np.asarray(x)
-    
-    
+
+
     # Just need to convert to floats including the nan.
     for i in range(1, len(data)):
         data[i] = [float(j) for j in data[i]]
-    
+
     plt.ylim(0, 1.0)
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Moon Phase')
-    
+
 
     coeffs1 = []
     coeffs2 = []
     for i in range(1, len(data)):
         data[i].pop(0)
-        
+
         # This line is to avoid hard coding in case I add more years of data.
         year = 2017 - len(data) + 1 + i
-        
+
         # We do the fitting manually using the least squares algorithm.
         # This forces the fit to go through 0,0 since we do not pass a constant
         # coefficient, only the x^2 and x terms.
         A = np.vstack([x*x, x]).T
         b,c = np.linalg.lstsq(A, data[i])[0]
-        
+
         coeffs1.append(b)
         coeffs2.append(c)
-        
+
         plt.plot(x, data[i], label='Mean-' + str(year))
         plt.plot(x, b*x*x + c*x, label='Fit-' + str(year))
-    
+
     # An average of the year wise fits.
     m = np.mean(coeffs1)
     n = np.mean(coeffs2)
     plt.plot(x, m*x*x + n*x, label='Mean Fit')
-    
+
     # Writes the coefficients to a file for later use.
     with open('clouds.txt', 'w') as f:
         f.write(str(m) + ',' + str(n))
-    
+
     plt.legend()
     plt.savefig('Images/temp.png', dpi=256, bbox_inches='tight')
     plt.close()
