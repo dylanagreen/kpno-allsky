@@ -403,6 +403,10 @@ def plot():
 
                 # Moon phase calculation.
                 phase = Moon.moon_visible(day, name)
+                
+                if phase < 0.2:
+                    continue
+                
                 b = int(phase // phasediv)
                 tphase[year][b].append(val)
                 tphase2[year][b].append(val * val)
@@ -450,8 +454,8 @@ def plot():
     x = x * phasediv
 
     # Sets up the plot before we plot the things
-    plt.ylim(0, 10.0)
-    plt.ylabel('Corrected Cloudiness Fraction')
+    plt.ylim(0, 4.0)
+    plt.ylabel('Cloudiness Relative to Mean')
     plt.xlabel('Moon Phase')
 
     with open('phase.txt', 'w') as f:
@@ -483,8 +487,8 @@ def plot():
     x = x * sunsetdiv * 24
 
     # Sets up the plot before we plot the things
-    plt.ylim(0, 10.0)
-    plt.ylabel('Corrected Cloudiness Fraction')
+    plt.ylim(0, 4.0)
+    plt.ylabel('Cloudiness Relative to Mean')
     plt.xlabel('Hours since sunset')
 
     for year in years:
@@ -509,8 +513,8 @@ def plot():
 
         x = np.asarray((range(1,54)))
         # Sets up the plot before we plot the things
-        plt.ylim(0, 10.0)
-        plt.ylabel('Corrected Cloudiness Fraction')
+        plt.ylim(0, 4.0)
+        plt.ylabel('Cloudiness Relative to Mean')
         plt.xlabel('Week Number')
 
         data[year] = []
