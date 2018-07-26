@@ -351,27 +351,24 @@ def plot():
     phasenum = 50
     phasediv = 1 / phasenum  # Phase ranges from 0-1 so divisions is 1/num divs
     tphase = {}
-    tphase2 = {}
+    #tphase2 = {}
 
     # Temporary arrays for sunset plots
     sunsetnum = 50
     sunsetdiv = 0.5 / sunsetnum # Up to 12 hours after sunset = 0.5 day / divs
     tsunset = {}
-    tsunset2 = {}
+    #tsunset2 = {}
 
     # Temporary arrays for week plots
     tweek = {}
-    tweek2 = {}
+    #tweek2 = {}
 
     tmoon = {}
 
     for year in years:
         tphase[year] = [[] for i in range(0, phasenum)]
-        tphase2[year] = [[] for i in range(0, phasenum)]
         tsunset[year] = [[] for i in range(0, sunsetnum)]
-        tsunset2[year] = [[] for i in range(0, sunsetnum)]
         tweek[year] = [[] for i in range(0, 53)]
-        tweek2[year] = [[] for i in range(0, 53)]
 
         tmoon[year] = [[] for i in range(0, 53)]
 
@@ -403,13 +400,12 @@ def plot():
 
                 # Moon phase calculation.
                 phase = Moon.moon_visible(day, name)
-                
+
                 if phase < 0.2:
                     continue
-                
+
                 b = int(phase // phasediv)
                 tphase[year][b].append(val)
-                tphase2[year][b].append(val * val)
 
                 # Sunset time calculation.
                 # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
@@ -429,7 +425,6 @@ def plot():
                 diff = date - setting
                 b = int(diff // sunsetdiv)
                 tsunset[year][b].append(val)
-                tsunset2[year][b].append(val * val)
 
                 # Week of the year calculation.
                 # Gets the date object for the image
@@ -440,7 +435,6 @@ def plot():
                 diff = date - day1
                 week = int(diff.value // 7)
                 tweek[year][week].append(val)
-                tweek2[year][week].append(val*val)
 
                 vis = Moon.moon_visible(day, name)
                 tmoon[year][week].append(vis)
@@ -448,7 +442,6 @@ def plot():
     # Plotting and averaging code
     # Moon phase
     data = {}
-    rms = {}
 
     x = np.asarray((range(0,phasenum)))
     x = x * phasediv
@@ -458,27 +451,30 @@ def plot():
     plt.ylabel('Cloudiness Relative to Mean')
     plt.xlabel('Moon Phase')
 
-    with open('phase.txt', 'w') as f:
-        f.write(str(list(x)) + '\n')
-        for year in years:
-            data[year] = []
-            rms[year] = []
+    percents = ['25', '50', '75']
 
-            # Averages each bin.
-            for i in range(0,len(tphase[year])):
-                data[year].append(np.mean(tphase[year][i]))
-                rms[year].append(np.sqrt(np.mean(tphase2[year][i])))
+    # Nan array for if there's no data for that bin.
+    nanarray = np.asarray([[float('nan'), float('nan'), float('nan')]])
 
-            plt.plot(x, data[year], label='Mean-' + year)
-            plt.plot(x, rms[year], label='RMS-' + year)
+    for year in years:
+        # We only need this so the axis shape works out. We delete it later.
+        data = np.asarray([[0, 0, 0]])
 
-            line = str(data[year])
-            line = line.replace('nan', '\'nan\'')
-            f.write(line + '\n')
+        for i in range(0,len(tphase[year])):
+            temp = np.asarray(tphase[year][i])
 
+            if temp.size == 0:
+                data = np.append(data, nanarray, axis=0)
+            else:
+                d = np.reshape(np.percentile(temp, [25,50,75]), (1,3))
+                data = np.append(data, d, axis=0)
+
+        # Deletes the first 0,0,0 array.
+        data = np.delete(data, 0, 0)
+        for i in range(0, len(percents)):
+            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '% - ' + year)
 
     plt.legend()
-
     plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
     plt.close()
 
@@ -492,23 +488,26 @@ def plot():
     plt.xlabel('Hours since sunset')
 
     for year in years:
-        data[year] = []
-        rms[year] = []
+        data = np.asarray([[0, 0, 0]])
 
         for i in range(0,len(tsunset[year])):
-            data[year].append(np.mean(tsunset[year][i]))
-            rms[year].append(np.sqrt(np.mean(tsunset2[year][i])))
+            temp = np.asarray(tsunset[year][i])
 
-        plt.plot(x, data[year], label='Mean-' + year)
-        plt.plot(x, rms[year], label='RMS-' + year)
+            if temp.size == 0:
+                data = np.append(data, nanarray, axis=0)
+            else:
+                d = np.reshape(np.percentile(temp, [25,50,75]), (1,3))
+                data = np.append(data, d, axis=0)
+
+        data = np.delete(data, 0, 0)
+        for i in range(0, len(percents)):
+            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '% - ' + year)
 
     plt.legend()
-
     plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
 
     # Week
-    moon = {}
     for year in years:
 
         x = np.asarray((range(1,54)))
@@ -517,22 +516,28 @@ def plot():
         plt.ylabel('Cloudiness Relative to Mean')
         plt.xlabel('Week Number')
 
-        data[year] = []
-        rms[year] = []
-        moon[year] = []
+        data = np.asarray([[0, 0, 0]])
+        moon = []
 
         for i in range(0,len(tweek[year])):
-            data[year].append(np.mean(tweek[year][i]))
-            rms[year].append(np.sqrt(np.mean(tweek2[year][i])))
-            moon[year].append(np.mean(tmoon[year][i]))
+            temp = np.asarray(tweek[year][i])
 
-        plt.plot(x, data[year], label='Mean-' + year)
-        plt.plot(x, rms[year], label='RMS-' + year)
+            if temp.size == 0:
+                data = np.append(data, nanarray, axis=0)
+            else:
+                d = np.reshape(np.percentile(temp, [25,50,75]), (1,3))
+                data = np.append(data, d, axis=0)
 
-        plt.plot(x, moon[year], label='Moon Phase-' + year)
+            moon.append(np.mean(tmoon[year][i]))
+
+        data = np.delete(data, 0, 0)
+
+        for i in range(0, len(percents)):
+            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '% - ' + year)
+
+        plt.plot(x, moon, label='Moon Phase-' + year)
 
         plt.legend()
-
         plt.savefig('Images/Plots/week' + year + '.png', dpi=256, bbox_inches='tight')
         plt.close()
 
