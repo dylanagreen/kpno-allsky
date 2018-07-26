@@ -401,6 +401,7 @@ def plot():
                 # Moon phase calculation.
                 phase = Moon.moon_visible(day, name)
 
+                # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
                     continue
 
