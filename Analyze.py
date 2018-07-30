@@ -348,10 +348,15 @@ def plot():
     sunsetdiv = 0.5 / sunsetnum # Up to 12 hours after sunset = 0.5 day / divs
     tsunset = [[] for i in range(0, sunsetnum)]
     
-    # Temporary arrays for sunset plots
+    # Temporary arrays for sunrise plots
     sunrisenum = 50
     sunrisediv = 0.5 / sunrisenum # 12 hours before sunrise = 0.5 day / divs
     tsunrise = [[] for i in range(0, sunrisenum)]
+    
+    # Temp other stuff
+    normalnum = 50
+    normaldiv = 1. / normalnum
+    tnormal = [[] for i in range(0, normalnum)]
 
     # Temporary arrays for week plots
     tweek = [[] for i in range(0, 53)]
@@ -416,13 +421,19 @@ def plot():
 
                 # Finds the difference and bins it into the correct bin.
                 diff = date - setting
+                length = rising - setting
                 b = int(diff // sunsetdiv)
+                #b2 = int((diff / length) // normaldiv)
                 tsunset[b].append(val)
+                #   tnormal[b2].append(val)
                 
                 # Finds the difference and bins it into the correct bin.
                 diff = rising - date
                 b = int(diff // sunrisediv)
+                b2 = int((diff / length) // normaldiv)
                 tsunrise[b].append(val)
+
+                tnormal[b2].append(val)
 
                 # Week of the year calculation.
                 # Gets the date object for the image
@@ -507,6 +518,37 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
+    
+    # Sunset
+    x = np.asarray((range(0,normalnum)))
+    x = x * normaldiv
+
+    # Sets up the plot before we plot the things
+    plt.ylim(0, 4.0)
+    plt.ylabel('Cloudiness Relative to Mean')
+    plt.xlabel('Normalized time before sunrise')
+
+    data = np.asarray([[0, 0, 0]])
+
+    for i in range(0,len(tnormal)):
+        temp = np.asarray(tnormal[i])
+
+        if temp.size == 0:
+            data = np.append(data, nanarray, axis=0)
+        else:
+            d = np.reshape(np.percentile(temp, [25,50,75]), (1,3))
+            data = np.append(data, d, axis=0)
+
+    data = np.delete(data, 0, 0)
+    for i in range(0, len(percents)):
+        plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '%', color=colors[i])
+        
+    plt.fill_between(x, data[0:data.shape[0], 0], data[0:data.shape[0], -1], color=(1, 0.5, 0, 0.5))
+
+    plt.legend()
+    plt.savefig('Images/Plots/normalized-2.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
     
     # Sunrise
     x = np.asarray((range(0,sunrisenum)))
