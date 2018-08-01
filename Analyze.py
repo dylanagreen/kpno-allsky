@@ -542,12 +542,12 @@ def plot():
 
     setup_plot(x, tweek)
     #plt.plot(x, moon, label='Moon Phase', color=(0, 1, 0, 1))
-    
+
 
     nums = np.asarray(nums)
-    
+
     nums = nums * 1 / (np.amax(nums))
-    
+
     plt.plot(x, nums, label='Normalized number of images', color=(0, 1, 0, 1))
 
     # We have to re add the legend to get the moon phase label.
@@ -620,7 +620,7 @@ def model():
 
 def histo():
     directory = 'Data/'
-    
+
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
@@ -629,9 +629,9 @@ def histo():
 
 
     tweek = [[] for i in range(0, 53)]
-    
+
     for month in months:
-        
+
         # Gets the days that were analyzed for that month
         directory = 'Data/' + month + '/'
         days = sorted(os.listdir(directory))
@@ -656,51 +656,52 @@ def histo():
                 line = line.split(',')
                 val = float(line[1])
                 name = line[0]
-                
+
                 # Moon phase calculation.
                 phase = Moon.moon_visible(day, name)
 
                 # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
                     continue
-                    
+
                 date = Coordinates.timestring_to_obj(day, name)
-                
+
                 # Finds the difference since the beginning of the year to find
                 # The week number.
                 diff = date - day1
                 week = int(diff.value // 7)
                 tweek[week].append(val)
-                
+
     # Creates the histogram
     hist, bins = np.histogram(tweek[0])
-    
+
     # Rounds the bin edges and finds the width of the bins.
     bins = np.asarray(bins)
     bins = np.around(bins, decimals=2)
     w = bins[1] - bins[0]
-    
+
     # Makes the divs again, since rounding causes the decimal values to be off
     divs = np.asarray(range(0, len(bins) - 1))
     divs = divs * w
-    
+
     # Plotting code.
     plt.title('Week 1')
+    plt.ylim(0, 700)
     plt.ylabel('Number of Occurrences')
     plt.xlabel('Cloudiness Relative to Mean')
     plt.bar(bins[:-1], hist, width=w, align='edge', tick_label=divs)
     plt.savefig('Images/Plots/hist-1.png', dpi=256, bbox_inches='tight')
-    
+
     # Gets the size to increase the size of the next plot to fit the things
     fig = plt.figure()
     size = fig.get_size_inches()
     plt.close()
-    
+
     # Starts by finding the divs because we want the width to be the same.
     num = np.amax(tweek[2]) / w
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
-    
+
     # Finds the histogram with the same bin divisions as the previous histogram.
     hist, bins = np.histogram(tweek[2], bins=divs)
 
@@ -708,12 +709,12 @@ def histo():
     # I shave off a lot of 0 value bins later as well (in the plotting slice)
     fig = plt.figure()
     fig.set_size_inches(size[0] + 3.5, size[1])
-    
+
     size = fig.get_size_inches()
-    print(size)
-    
+
     # Plotting code.
     plt.title('Week 3')
+    plt.ylim(0, 700)
     plt.ylabel('Number of Occurrences')
     plt.xlabel('Cloudiness Relative to Mean')
     plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
