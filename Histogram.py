@@ -132,9 +132,9 @@ def generate_histogram(img, mask=None):
     # Pixels from 0-255, so with 256 bins the histogram will give each pixel
     # value its own bin.
     bins = list(range(0, 256))
-    hist,bins = np.histogram(img1.compressed(), bins)
+    hist, bins = np.histogram(img1.compressed(), bins)
 
-    return (hist,bins)
+    return (hist, bins)
 
 
 def cloudiness(hist):
