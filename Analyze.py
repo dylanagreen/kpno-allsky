@@ -672,45 +672,22 @@ def histo():
                 week = int(diff.value // 7)
                 tweek[week].append(val)
 
-    # Creates the histogram
-    hist, bins = np.histogram(tweek[0])
-
-    # Rounds the bin edges and finds the width of the bins.
-    bins = np.asarray(bins)
-    bins = np.around(bins, decimals=2)
-    w = bins[1] - bins[0]
-
-    # Makes the divs again, since rounding causes the decimal values to be off
-    divs = np.asarray(range(0, len(bins) - 1))
-    divs = divs * w
-
-    # Plotting code.
-    plt.title('Week 1')
-    plt.ylim(0, 700)
-    plt.ylabel('Number of Occurrences')
-    plt.xlabel('Cloudiness Relative to Mean')
-    plt.bar(bins[:-1], hist, width=w, align='edge', tick_label=divs)
-    plt.savefig('Images/Plots/hist-1.png', dpi=256, bbox_inches='tight')
-
-    # Gets the size to increase the size of the next plot to fit the things
-    fig = plt.figure()
-    size = fig.get_size_inches()
-    plt.close()
+    w = 0.61
 
     # Starts by finding the divs because we want the width to be the same.
     num = np.amax(tweek[2]) / w
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
 
-    # Finds the histogram with the same bin divisions as the previous histogram.
+    # Finds the histogram.
     hist, bins = np.histogram(tweek[2], bins=divs)
 
     # Sets the size wider than th eprevious to fit all the bins.
     # I shave off a lot of 0 value bins later as well (in the plotting slice)
     fig = plt.figure()
-    fig.set_size_inches(size[0] + 3.5, size[1])
+    fig.set_size_inches(10.1, 6.4)
 
-    size = fig.get_size_inches()
+    #size = fig.get_size_inches()
 
     # Plotting code.
     plt.title('Week 3')
@@ -720,6 +697,30 @@ def histo():
     plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
     plt.savefig('Images/Plots/hist-2.png', dpi=256, bbox_inches='tight')
     plt.close()
+
+    # Creates the histogram, same bins as the last.
+    hist, bins = np.histogram(tweek[0], bins=bins)
+
+    fig = plt.figure()
+    fig.set_size_inches(10.1, 6.4)
+
+    # Rounds the bin edges and finds the width of the bins.
+    bins = np.asarray(bins)
+    bins = np.around(bins, decimals=2)
+
+    # Plotting code.
+    plt.title('Week 1')
+    plt.ylim(0, 700)
+    plt.ylabel('Number of Occurrences')
+    plt.xlabel('Cloudiness Relative to Mean')
+    plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
+    plt.savefig('Images/Plots/hist-1.png', dpi=256, bbox_inches='tight')
+
+    # Gets the size to increase the size of the next plot to fit the things
+    fig = plt.figure()
+    size = fig.get_size_inches()
+    plt.close()
+
 
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
