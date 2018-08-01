@@ -442,6 +442,7 @@ def plot():
                 week = int(diff.value // 7)
                 tweek[week].append(val)
 
+                # Moon phase
                 vis = Moon.moon_visible(day, name)
                 tmoon[week].append(vis)
 
@@ -489,7 +490,7 @@ def plot():
     plt.xlabel('Moon Phase')
 
     x = np.asarray((range(0, phasenum)))
-    x = x * phasediv
+    x = x * phasediv + (phasediv / 2.)
     setup_plot(x, tphase)
     plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
     plt.close()
@@ -499,7 +500,7 @@ def plot():
     plt.xlabel('Hours since sunset')
 
     x = np.asarray((range(0, sunsetnum)))
-    x = x * sunsetdiv * 24
+    x = x * sunsetdiv * 24 + (sunsetdiv * 12)
     setup_plot(x, tsunset)
     plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
     plt.close()
@@ -509,14 +510,14 @@ def plot():
     plt.xlabel('Normalized time after sunset')
 
     x = np.asarray((range(0, normalnum)))
-    x = x * normaldiv
+    x = x * normaldiv + (normaldiv / 2.)
     setup_plot(x, tnormal)
-    plt.savefig('Images/Plots/normalized-1.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/normalized-0.png', dpi=256, bbox_inches='tight')
     plt.close()
 
     # Sunrise
     x = np.asarray((range(0, sunrisenum)))
-    x = x * sunrisediv * 24
+    x = x * sunrisediv * 24 + (sunrisediv * 12)
 
     # Sets up the plot before we plot the things
     plt.ylabel('Cloudiness Relative to Mean')
@@ -533,11 +534,21 @@ def plot():
 
     # Moon phase averages.
     moon = []
+    nums = []
     for i in range(0, len(tweek)):
         moon.append(np.mean(tmoon[i]))
+        print(str(i + 1) + ': ' + str(len(tweek[i])))
+        nums.append(len(tweek[i]))
 
     setup_plot(x, tweek)
-    plt.plot(x, moon, label='Moon Phase', color=(0, 1, 0, 1))
+    #plt.plot(x, moon, label='Moon Phase', color=(0, 1, 0, 1))
+    
+
+    nums = np.asarray(nums)
+    
+    nums = nums * 1 / (np.amax(nums))
+    
+    plt.plot(x, nums, label='Normalized number of images', color=(0, 1, 0, 1))
 
     # We have to re add the legend to get the moon phase label.
     plt.legend()
@@ -607,7 +618,109 @@ def model():
     plt.close()
 
 
+def histo():
+    directory = 'Data/'
+    
+    months = sorted(os.listdir(directory))
+
+    # Macs are dumb
+    if '.DS_Store' in months:
+        months.remove('.DS_Store')
+
+
+    tweek = [[] for i in range(0, 53)]
+    
+    for month in months:
+        
+        # Gets the days that were analyzed for that month
+        directory = 'Data/' + month + '/'
+        days = sorted(os.listdir(directory))
+
+        # Strips out the year from the month
+        year = month[:4]
+
+        # Day 1 of the year, for week calculation.
+        yearstart = year + '0101'
+        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+
+        # Reads the data for each day.
+        for day in days:
+            loc = directory + day
+            f1 = open(loc, 'r')
+
+            # Strips off the .txt so we can make a Time object.
+            day = day[:-4]
+            for line in f1:
+                # Splits out the value and file.
+                line = line.rstrip()
+                line = line.split(',')
+                val = float(line[1])
+                name = line[0]
+                
+                # Moon phase calculation.
+                phase = Moon.moon_visible(day, name)
+
+                # Ignores cloudiness with moon phase less than 0.2
+                if phase < 0.2:
+                    continue
+                    
+                date = Coordinates.timestring_to_obj(day, name)
+                
+                # Finds the difference since the beginning of the year to find
+                # The week number.
+                diff = date - day1
+                week = int(diff.value // 7)
+                tweek[week].append(val)
+                
+    # Creates the histogram
+    hist, bins = np.histogram(tweek[0])
+    
+    # Rounds the bin edges and finds the width of the bins.
+    bins = np.asarray(bins)
+    bins = np.around(bins, decimals=2)
+    w = bins[1] - bins[0]
+    
+    # Makes the divs again, since rounding causes the decimal values to be off
+    divs = np.asarray(range(0, len(bins) - 1))
+    divs = divs * w
+    
+    # Plotting code.
+    plt.title('Week 1')
+    plt.ylabel('Number of Occurrences')
+    plt.xlabel('Cloudiness Relative to Mean')
+    plt.bar(bins[:-1], hist, width=w, align='edge', tick_label=divs)
+    plt.savefig('Images/Plots/hist-1.png', dpi=256, bbox_inches='tight')
+    
+    # Gets the size to increase the size of the next plot to fit the things
+    fig = plt.figure()
+    size = fig.get_size_inches()
+    plt.close()
+    
+    # Starts by finding the divs because we want the width to be the same.
+    num = np.amax(tweek[2]) / w
+    divs = np.asarray(range(0, int(num) + 1))
+    divs = divs * w
+    
+    # Finds the histogram with the same bin divisions as the previous histogram.
+    hist, bins = np.histogram(tweek[2], bins=divs)
+
+    # Sets the size wider than th eprevious to fit all the bins.
+    # I shave off a lot of 0 value bins later as well (in the plotting slice)
+    fig = plt.figure()
+    fig.set_size_inches(size[0] + 3.5, size[1])
+    
+    size = fig.get_size_inches()
+    print(size)
+    
+    # Plotting code.
+    plt.title('Week 3')
+    plt.ylabel('Number of Occurrences')
+    plt.xlabel('Cloudiness Relative to Mean')
+    plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
+    plt.savefig('Images/Plots/hist-2.png', dpi=256, bbox_inches='tight')
+    plt.close()
+
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     #link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    plot()
+    histo()
