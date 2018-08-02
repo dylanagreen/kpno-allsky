@@ -682,6 +682,10 @@ def histo():
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
 
+    saveloc = 'Images/Plots/Weeks'
+    if not os.path.exists(saveloc):
+        os.makedirs(saveloc)
+
     for i in range(0, len(tweek)):
 
         # Finds the histograms.
