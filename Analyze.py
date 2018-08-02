@@ -627,8 +627,8 @@ def histo():
     if '.DS_Store' in months:
         months.remove('.DS_Store')
 
-
     tweek = [[] for i in range(0, 53)]
+    tweek2 = [[] for i in range(0, 53)]
 
     for month in months:
 
@@ -671,6 +671,9 @@ def histo():
                 diff = date - day1
                 week = int(diff.value // 7)
                 tweek[week].append(val)
+                
+                if year == '2016':
+                    tweek2[week].append(val)
 
     w = 0.61
 
@@ -679,48 +682,35 @@ def histo():
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
 
-    # Finds the histogram.
-    hist, bins = np.histogram(tweek[2], bins=divs)
+    for i in range(0, len(tweek)):
+        
+        # Finds the histograms.
+        hist1, bins1 = np.histogram(tweek[i], bins=divs)
+        hist2, bins2 = np.histogram(tweek2[i], bins=divs)
+        
+        n2 = len(tweek2[i])
+        n1 = len(tweek[i]) - n2
 
-    # Sets the size wider than th eprevious to fit all the bins.
-    # I shave off a lot of 0 value bins later as well (in the plotting slice)
-    fig = plt.figure()
-    fig.set_size_inches(10.1, 6.4)
-
-    #size = fig.get_size_inches()
-
-    # Plotting code.
-    plt.title('Week 3')
-    plt.ylim(0, 700)
-    plt.ylabel('Number of Occurrences')
-    plt.xlabel('Cloudiness Relative to Mean')
-    plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
-    plt.savefig('Images/Plots/hist-2.png', dpi=256, bbox_inches='tight')
-    plt.close()
-
-    # Creates the histogram, same bins as the last.
-    hist, bins = np.histogram(tweek[0], bins=bins)
-
-    fig = plt.figure()
-    fig.set_size_inches(10.1, 6.4)
-
-    # Rounds the bin edges and finds the width of the bins.
-    bins = np.asarray(bins)
-    bins = np.around(bins, decimals=2)
-
-    # Plotting code.
-    plt.title('Week 1')
-    plt.ylim(0, 700)
-    plt.ylabel('Number of Occurrences')
-    plt.xlabel('Cloudiness Relative to Mean')
-    plt.bar(bins[:-16], hist[:-15], width=w, align='edge', tick_label=bins[:-16])
-    plt.savefig('Images/Plots/hist-1.png', dpi=256, bbox_inches='tight')
-
-    # Gets the size to increase the size of the next plot to fit the things
-    fig = plt.figure()
-    size = fig.get_size_inches()
-    plt.close()
-
+        # Sets the size wider than th eprevious to fit all the bins.
+        # I shave off a lot of 0 value bins later as well (in the plotting slice)
+        fig = plt.figure()
+        fig.set_size_inches(11.4, 8.4)
+        
+        # Plotting code.
+        plt.title('Week ' + str(i+1))
+        plt.ylim(0, 900)
+        plt.ylabel('Number of Occurrences')
+        plt.xlabel('Cloudiness Relative to Mean')
+        plt.bar(bins1[:-16], hist1[:-15], width=w, align='edge', 
+        tick_label=bins1[:-16], label='2017 (' + str(n1) + ')')
+        plt.bar(bins2[:-16], hist2[:-15], width=w, align='edge', 
+        tick_label=bins2[:-16], color='red', label='2016 (' + str(n2) + ')')
+        plt.legend()
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i+1)+ '.png', dpi=256, bbox_inches='tight')
+        plt.close()
+        
+        print('Saved: Week ' + str(i+1))
+        
 
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
