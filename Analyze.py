@@ -671,7 +671,7 @@ def histo():
                 diff = date - day1
                 week = int(diff.value // 7)
                 tweek[week].append(val)
-                
+
                 if year == '2016':
                     tweek2[week].append(val)
 
@@ -683,11 +683,11 @@ def histo():
     divs = divs * w
 
     for i in range(0, len(tweek)):
-        
+
         # Finds the histograms.
         hist1, bins1 = np.histogram(tweek[i], bins=divs)
         hist2, bins2 = np.histogram(tweek2[i], bins=divs)
-        
+
         n2 = len(tweek2[i])
         n1 = len(tweek[i]) - n2
 
@@ -695,22 +695,22 @@ def histo():
         # I shave off a lot of 0 value bins later as well (in the plotting slice)
         fig = plt.figure()
         fig.set_size_inches(11.4, 8.4)
-        
+
         # Plotting code.
         plt.title('Week ' + str(i+1))
         plt.ylim(0, 900)
         plt.ylabel('Number of Occurrences')
         plt.xlabel('Cloudiness Relative to Mean')
-        plt.bar(bins1[:-16], hist1[:-15], width=w, align='edge', 
+        plt.bar(bins1[:-16], hist1[:-15], width=w, align='edge',
         tick_label=bins1[:-16], label='2017 (' + str(n1) + ')')
-        plt.bar(bins2[:-16], hist2[:-15], width=w, align='edge', 
+        plt.bar(bins2[:-16], hist2[:-15], width=w, align='edge',
         tick_label=bins2[:-16], color='red', label='2016 (' + str(n2) + ')')
         plt.legend()
         plt.savefig('Images/Plots/Weeks/hist-' + str(i+1)+ '.png', dpi=256, bbox_inches='tight')
         plt.close()
-        
+
         print('Saved: Week ' + str(i+1))
-        
+
 
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
