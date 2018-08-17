@@ -3,7 +3,7 @@ import numpy as np
 import math
 import os
 
-import ImageIO
+import io_util
 
 
 # Looks through the median images to make the mask and returns a mask array.
@@ -110,7 +110,7 @@ def generate_full_mask(forcenew=False):
 
 # Saves a given mask as in image in the Images folder.
 def save_mask(mask):
-    ImageIO.save_image(mask, 'Mask.png', 'Images/', 'gray')
+    io_util.save_image(mask, 'Mask.png', 'Images/', 'gray')
 
 
 # Applies the mask to the image

@@ -14,9 +14,9 @@ import astropy.coordinates
 from astropy.coordinates import EarthLocation, AltAz, SkyCoord
 import astropy.units as u
 
-import Coordinates
-import ImageIO
-import Histogram
+import coordinates
+import io_util
+import histogram
 
 from matplotlib.patches import Circle
 
@@ -159,8 +159,8 @@ def find_moon(date, file):
     # Conversion to x,y positions on the image.
     alt = np.degrees(moon.alt)
     az = np.degrees(moon.az)
-    x, y = Coordinates.altaz_to_xy(alt, az)
-    x, y = Coordinates.galactic_conv(x, y, az)
+    x, y = coordinates.altaz_to_xy(alt, az)
+    x, y = coordinates.galactic_conv(x, y, az)
 
     return (x, y, alt)
 
@@ -483,11 +483,11 @@ if __name__ == "__main__":
         img1 = np.ma.masked_array(img, mask)
 
 
-        bins,frac = Histogram.histogram(img, info[0] + '/' + info[1], mask)
-        #Histogram.histogram(img, info[0] + '/' + info[1] + '-2.png')
+        bins,frac = histogram.histogram(img, info[0] + '/' + info[1], mask)
+        #histogram.histogram(img, info[0] + '/' + info[1] + '-2.png')
 
 
 
-        #ImageIO.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
+        #io_util.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
 
 

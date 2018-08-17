@@ -6,8 +6,8 @@ import matplotlib.pyplot as plot
 from scipy import ndimage
 from matplotlib.patches import Polygon
 
-import Coordinates
-import Mask
+import coordinates
+import mask
 
 
 center = (256, 252)
@@ -19,14 +19,14 @@ center = (256, 252)
 def transform(file, date):
     # Read in the file on given date.
     img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
-    time = Coordinates.timestring_to_obj(date, file)
+    time = coordinates.timestring_to_obj(date, file)
 
     #img = Clouds.cloud_contrast(img)
 
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
-    mask = Mask.generate_mask()
-    img = Mask.apply_mask(mask, img)
+    mask = mask.generate_mask()
+    img = mask.apply_mask(mask, img)
 
     # Sets up the figure and axes objects
     fig = plot.figure(frameon=False)
@@ -80,7 +80,7 @@ def transform(file, date):
     # Convert the alt az to x,y
     x = np.add(np.asarray(xpoints), 0.5)
     y = np.add(np.asarray(ypoints), 0.5)
-    rapoints, decpoints = Coordinates.xy_to_radec(x, y, time)
+    rapoints, decpoints = coordinates.xy_to_radec(x, y, time)
 
     # Finds colors for dots.
     colors = []
@@ -157,7 +157,7 @@ def contours(axis, time):
             altpoints.append(alt)
             azpoints.append(az)
 
-        rapoints, decpoints = Coordinates.altaz_to_radec(altpoints, azpoints, time)
+        rapoints, decpoints = coordinates.altaz_to_radec(altpoints, azpoints, time)
 
         # Rotation block
         # Centers contours at 60 degrees ra.

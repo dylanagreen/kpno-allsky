@@ -10,10 +10,9 @@ from matplotlib.patches import Circle, Rectangle
 import matplotlib.pyplot as plot
 from scipy import ndimage
 
-import Mask
+import mask
 
 # Globals
-
 # Center of the circle found using super accurate photoshop layering technique
 center = (256, 252)
 
@@ -429,7 +428,7 @@ def conv_test():
 
     loc = 'Images/Find-Star/'
 
-    mask = Mask.find_mask()
+    mask = mask.find_mask()
     for file in files:
         f.write(file + '\n')
         split = file.split('-')
@@ -438,7 +437,7 @@ def conv_test():
         tempfile = split[1][:-4]
 
         img = load_image(date, tempfile)
-        img = Mask.apply_mask(mask, img)
+        img = mask.apply_mask(mask, img)
         xlist = []
         ylist = []
 

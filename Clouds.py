@@ -3,8 +3,8 @@ import os
 import numpy as np
 from scipy import ndimage
 
-import Mask
-import ImageIO
+import mask
+import io_util
 
 
 center = (256, 252)
@@ -12,7 +12,7 @@ center = (256, 252)
 
 # This method is essentially a switch block for different exposures.
 def cloud_contrast(img):
-    exposure = ImageIO.get_exposure(img)
+    exposure = io_util.get_exposure(img)
     print(exposure)
 
     if exposure == 0.3:
@@ -40,7 +40,7 @@ def zero_three_cloud_contrast(img):
 
     # Subtracts standard image from current image.
     # Performs closing to clean up some speckling in lower band of image.
-    test = ImageIO.image_diff(img, img2)
+    test = io_util.image_diff(img, img2)
     test = ndimage.grey_closing(test, size=(2, 2))
 
     # Clouds are regions above the average value of the completed transform.
@@ -53,8 +53,8 @@ def zero_three_cloud_contrast(img):
     final = np.multiply(img3, cond)
 
     # Find the mask and black out those pixels.
-    mask = Mask.generate_mask()
-    final = Mask.apply_mask(mask, final)
+    mask = mask.generate_mask()
+    final = mask.apply_mask(mask, final)
 
     return final
 
@@ -65,8 +65,8 @@ def zero_three_cloud_contrast(img):
 def six_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
-    mask = Mask.generate_mask()
-    img = Mask.apply_mask(mask, img)
+    mask = mask.generate_mask()
+    img = mask.apply_mask(mask, img)
 
     # Inverts and subtracts 4 * the original image. This replicates the previous
     # behaviour in one step.
@@ -87,7 +87,7 @@ def six_cloud_contrast(img):
     binimg = ndimage.binary_opening(binimg)
 
     # Mask out the horizon objects so they don't mess with cloud calculations.
-    binimg = Mask.apply_mask(mask, binimg)
+    binimg = mask.apply_mask(mask, binimg)
 
     # Expand the white areas to make sure they cover the items they represent
     # from the inverted image.
@@ -172,4 +172,4 @@ if __name__ == "__main__":
     for file in files:
         img = ndimage.imread(directory + file, mode='L')
         img = cloud_contrast(img)
-        ImageIO.save_image(img, file, 'Images/Cloud/' + date + '/', 'gray')
+        io_util.save_image(img, file, 'Images/Cloud/' + date + '/', 'gray')

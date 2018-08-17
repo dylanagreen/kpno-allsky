@@ -8,7 +8,7 @@ import Moon
 from copy import copy
 from scipy import ndimage
 
-import Coordinates
+import coordinates
 
 center = (256, 252)
 
@@ -16,8 +16,8 @@ date = '20170718'
 
 data = []
 x = []
-d1 = Coordinates.timestring_to_obj('20171001','r_ut013603s08160').plot_date
-d2 = Coordinates.timestring_to_obj('20171031','r_ut132350s57840').plot_date
+d1 = coordinates.timestring_to_obj('20171001','r_ut013603s08160').plot_date
+d2 = coordinates.timestring_to_obj('20171031','r_ut132350s57840').plot_date
 # Creates a histogram of the greyscale values in the image and saves it.
 # Saves histogram to passed in path.
 # Returns the histogram bin values.
@@ -88,11 +88,11 @@ def plot_histogram(img, hist, mask, path, date, save=True):
     
     xt = []
     for i in range(20180101, 20180132):
-        x1 = Coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
+        x1 = coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
         xt.append(x1)
     
     ax[1,1].set_xticks(xt)
-    d2 = Coordinates.timestring_to_obj('20180131','r_ut230000s00000').plot_date
+    d2 = coordinates.timestring_to_obj('20180131','r_ut230000s00000').plot_date
     ax[1,1].set_xlim(xt[0], xt[-1])
     ax[1,1].xaxis.grid(True)
     ax[1,1].xaxis.set_ticklabels([])

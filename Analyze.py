@@ -6,10 +6,10 @@ import numpy as np
 import pandas as pd
 from requests.exceptions import TooManyRedirects, HTTPError, ConnectionError, Timeout, RequestException
 
-import ImageIO
-import Moon
-import Histogram
-import Coordinates
+import io_util
+import moon
+import histogram
+import coordinates
 
 import os
 import time
@@ -46,7 +46,7 @@ def analyze():
     t1 = time.perf_counter()
     link = 'http://kpasca-archives.tuc.noao.edu/'
 
-    rlink = ImageIO.download_url(link)
+    rlink = io_util.download_url(link)
 
     if rlink is None:
         print('Getting dates failed.')
@@ -55,7 +55,7 @@ def analyze():
     html = rlink.text
     # This parser was designed to work with image names but it works the same
     # for dates so why make a new one?
-    parser = ImageIO.DateHTMLParser()
+    parser = io_util.DateHTMLParser()
     parser.feed(html)
     parser.close()
     datelinks = parser.data
@@ -93,7 +93,7 @@ def analyze():
 
         print(d)
 
-        rdate = ImageIO.download_url(link + date)
+        rdate = io_util.download_url(link + date)
 
         # If we fail to get the data for the date, log it and move to the next.
         if rdate is None:
@@ -134,8 +134,8 @@ def analyze():
                 # We only process images where the moon is visble (moon alt > 0)
                 # And the sun is low enough to not wash out the image
                 # (sun alt < -17)
-                moonx, moony, moonalt = Moon.find_moon(d, name)
-                sunalt, sunaz = Moon.find_sun(d, name)
+                moonx, moony, moonalt = moon.find_moon(d, name)
+                sunalt, sunaz = moon.find_sun(d, name)
 
                 # Checks that the analysis conditions are met.
                 if moonalt > 0 and sunalt < -17:
@@ -146,19 +146,19 @@ def analyze():
                     # Here is where the magic happens.
                     # First we download the image, if it hasn't been downloaded.
                     if not os.path.isfile(path):
-                        ImageIO.download_image(d, name)
+                        io_util.download_image(d, name)
 
                     # Then we make a histogram and a "cloudiness fraction"
                     img = ndimage.imread(path, mode='L')
 
                     # Generates the moon mask.
-                    mask = Moon.moon_mask(d, name)
-                    hist, bins = Histogram.generate_histogram(img, mask)
+                    mask = moon.moon_mask(d, name)
+                    hist, bins = histogram.generate_histogram(img, mask)
 
-                    frac = Histogram.cloudiness(hist)
+                    frac = histogram.cloudiness(hist)
 
                     # Correction for moon phase.
-                    phase = Moon.moon_visible(d, name)
+                    phase = moon.moon_visible(d, name)
                     val = b*phase*phase + c*phase
 
                     with open('values.txt', 'a') as f2:
@@ -213,12 +213,12 @@ def month_plot():
                 line = line.split(',')
 
                 # Gets the plot date for the timestring object.
-                d = Coordinates.timestring_to_obj(day, line[0]).plot_date
+                d = coordinates.timestring_to_obj(day, line[0]).plot_date
 
                 data.append(float(line[1]))
                 x.append(d)
 
-                vis = Moon.moon_visible(day, line[0])
+                vis = moon.moon_visible(day, line[0])
                 illum.append(vis)
 
             f1.close()
@@ -236,7 +236,7 @@ def month_plot():
         end = int(days[-1][:-4]) + 1
         for i in range(start, end):
             # Finds the plot_date for the start of the day.
-            x1 = Coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
+            x1 = coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
             xt.append(x1)
 
         # Need the right end to be the start of next month.
@@ -247,7 +247,7 @@ def month_plot():
             end = str(start + 8900)
         else:
             end = str(start + 100)
-        d2 = Coordinates.timestring_to_obj(end, 'r_ut000000s00000').plot_date
+        d2 = coordinates.timestring_to_obj(end, 'r_ut000000s00000').plot_date
 
         # Sets the limits and division ticks.
         ax.set_ylim(0, 1.0)
@@ -328,7 +328,7 @@ def plot():
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
-        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
 
         # Reads the data for each day.
         for day in days:
@@ -345,7 +345,7 @@ def plot():
                 name = line[0]
 
                 # Moon phase calculation.
-                phase = Moon.moon_visible(day, name)
+                phase = moon.moon_visible(day, name)
 
                 # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
@@ -384,7 +384,7 @@ def plot():
 
                 # Week of the year calculation.
                 # Gets the date object for the image
-                date = Coordinates.timestring_to_obj(day, name)
+                date = coordinates.timestring_to_obj(day, name)
 
                 # Finds the difference since the beginning of the year to find
                 # The week number.
@@ -393,7 +393,7 @@ def plot():
                 tweek[week].append(val)
 
                 # Moon phase
-                vis = Moon.moon_visible(day, name)
+                vis = moon.moon_visible(day, name)
                 tmoon[week].append(vis)
 
     percents = ['25', '50', '75']
@@ -591,7 +591,7 @@ def histo():
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
-        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
 
         # Reads the data for each day.
         for day in days:
@@ -608,13 +608,13 @@ def histo():
                 name = line[0]
 
                 # Moon phase calculation.
-                phase = Moon.moon_visible(day, name)
+                phase = moon.moon_visible(day, name)
 
                 # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
                     continue
 
-                date = Coordinates.timestring_to_obj(day, name)
+                date = coordinates.timestring_to_obj(day, name)
 
                 # Finds the difference since the beginning of the year to find
                 # The week number.
@@ -692,7 +692,7 @@ def to_csv():
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
-        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
 
         # Reads the data for each day.
         for day in days:
@@ -711,13 +711,13 @@ def to_csv():
                 name = line[0]
 
                 # Moon phase calculation.
-                phase = Moon.moon_visible(day, name)
+                phase = moon.moon_visible(day, name)
 
                 # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
                     continue
 
-                date = Coordinates.timestring_to_obj(day, name)
+                date = coordinates.timestring_to_obj(day, name)
 
                 # Finds the difference since the beginning of the year to find
                 # The week number.

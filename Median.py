@@ -2,7 +2,7 @@ import numpy as np
 import os
 from scipy import ndimage
 
-import ImageIO
+import io_util
 
 
 # This is necessary.
@@ -102,7 +102,7 @@ def median_all_date(date, color=False):
             img = ndimage.imread(file, mode='L')
             temp = img.reshape(img.shape[0], img.shape[1], 1)
 
-            exposure = ImageIO.get_exposure(img)
+            exposure = io_util.get_exposure(img)
 
             # All Median
             # Make the super image have the correct
@@ -124,7 +124,7 @@ def median_all_date(date, color=False):
                 superimg[exposure] = temp
                 exists[exposure] = True
     else:
-        superimg['All'] = ImageIO.load_all_date(date)
+        superimg['All'] = io_util.load_all_date(date)
 
     print("Loaded images")
 
@@ -175,14 +175,14 @@ def save_medians(medians, date, color=False):
 
         # If blocks to only save the ones with actual data
         if not color and not np.array_equal(median, np.zeros((1, 1))):
-            ImageIO.save_image(median, name, loc, cmap)
+            io_util.save_image(median, name, loc, cmap)
 
         elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
-            ImageIO.save_image(np.uint8(median), name, loc)
+            io_util.save_image(np.uint8(median), name, loc)
 
 
 if __name__ == "__main__":
     date = '1'
-    #ImageIO.download_all_date(date)
+    #io_util.download_all_date(date)
     medians = median_all_date(date, True)
     save_medians(medians, date, True)
