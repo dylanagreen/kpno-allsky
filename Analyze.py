@@ -3,6 +3,7 @@ from scipy import ndimage
 from html.parser import HTMLParser
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 from requests.exceptions import TooManyRedirects, HTTPError, ConnectionError, Timeout, RequestException
 
 import ImageIO
@@ -41,62 +42,11 @@ def get_start():
     return start
 
 
-# Reads a link, with exception handling and error checking built in.
-# Returns a requests.Response object if it succeeds, returns None if it fails.
-def download_url(link):
-
-    tries = 0
-    read = False
-
-    while not read:
-        try:
-            # Tries to connect for 5 seconds.
-            data = requests.get(link, timeout=5)
-
-            # Raises the HTTP error if it occurs.
-            data.raise_for_status()
-
-            read = True
-        # Too many redirects is when the link redirects you too much.
-        except TooManyRedirects:
-            print('Too many redirects.')
-            return None
-        # HTTPError is an error in the http code.
-        except HTTPError:
-            print('HTTP error with status code ' + str(data.status_code))
-            return None
-        # This is a failure in the connection unrelated to a timeout.
-        except ConnectionError:
-            print('Failed to establish a connection to the link.')
-            return None
-        # Timeouts are either server side (too long to respond) or client side
-        # (when requests doesn't get a response before the timeout timer is up)
-        # I have set the timeout to 5 seconds
-        except Timeout:
-            tries += 1
-
-            if tries >= 3:
-                print('Timed out after three attempts.')
-                return None
-
-            # Tries again after 5 seconds.
-            time.sleep(5)
-
-        # Covers every other possible exceptions.
-        except RequestException as err:
-            print('Unable to read link')
-            print(err)
-            return None
-        else:
-            print(link + ' read with no errors.')
-            return data
-
-
 def analyze():
     t1 = time.perf_counter()
     link = 'http://kpasca-archives.tuc.noao.edu/'
 
-    rlink = download_url(link)
+    rlink = ImageIO.download_url(link)
 
     if rlink is None:
         print('Getting dates failed.')
@@ -143,7 +93,7 @@ def analyze():
 
         print(d)
 
-        rdate = download_url(link + date)
+        rdate = ImageIO.download_url(link + date)
 
         # If we fail to get the data for the date, log it and move to the next.
         if rdate is None:
@@ -716,7 +666,102 @@ def histo():
         print('Saved: Week ' + str(i+1))
 
 
+def to_csv():
+    directory = 'Data/'
+
+    months = sorted(os.listdir(directory))
+
+    # Macs are dumb
+    if '.DS_Store' in months:
+        months.remove('.DS_Store')
+
+    # Temp other stuff
+    normalnum = 50
+    normaldiv = 1. / normalnum
+
+    data = []
+
+    for month in months:
+
+        # Gets the days that were analyzed for that month
+        directory = 'Data/' + month + '/'
+        days = sorted(os.listdir(directory))
+
+        # Strips out the year from the month
+        year = month[:4]
+
+        # Day 1 of the year, for week calculation.
+        yearstart = year + '0101'
+        day1 = Coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+
+        # Reads the data for each day.
+        for day in days:
+            loc = directory + day
+            f1 = open(loc, 'r')
+
+            # Strips off the .txt so we can make a Time object.
+            day = day[:-4]
+            for line in f1:
+                linedata = []
+                
+                # Splits out the value and file.
+                line = line.rstrip()
+                line = line.split(',')
+                val = float(line[1])
+                name = line[0]
+
+                # Moon phase calculation.
+                phase = Moon.moon_visible(day, name)
+
+                # Ignores cloudiness with moon phase less than 0.2
+                if phase < 0.2:
+                    continue
+
+                date = Coordinates.timestring_to_obj(day, name)
+
+                # Finds the difference since the beginning of the year to find
+                # The week number.
+                diff = date - day1
+                week = int(diff.value // 7)
+                
+                # Sunset time calculation.
+                # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
+                formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:]
+                time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
+                formatdate = formatdate + ' ' + time
+                
+                linedata.append(formatdate)
+                linedata.append(year)
+                linedata.append(week)
+
+                # Sets the date of calculation.
+                camera.date = formatdate
+                date = ephem.Date(formatdate)
+                
+                # Calculates the previous setting and next rising of the sun.
+                sun = ephem.Sun()
+                setting = camera.previous_setting(sun, use_center=True)
+                rising = camera.next_rising(sun, use_center=True)
+
+                # Finds the difference and bins it into the correct bin.
+                diff = date - setting
+                length = rising - setting
+                normalize = int((diff / length) // normaldiv)
+                
+                linedata.append(normalize)
+                linedata.append(val)
+                
+                data.append(np.asarray(linedata))
+    
+    data = np.asarray(data)
+    
+    d2 = pd.DataFrame(data, columns=['Date & Time', 'Year', 'Week Number', 'Normlaized Time after Sunset', 'Cloudiness Relative to the Mean'])
+    
+    d2.to_csv('data.csv')
+
+
+
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     #link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    histo()
+    to_csv()

@@ -8,7 +8,56 @@ from scipy import ndimage
 from astropy.io import fits
 from astropy.utils.data import download_file
 
-import Analyze
+
+# Reads a link, with exception handling and error checking built in.
+# Returns a requests.Response object if it succeeds, returns None if it fails.
+def download_url(link):
+
+    tries = 0
+    read = False
+
+    while not read:
+        try:
+            # Tries to connect for 5 seconds.
+            data = requests.get(link, timeout=5)
+
+            # Raises the HTTP error if it occurs.
+            data.raise_for_status()
+
+            read = True
+        # Too many redirects is when the link redirects you too much.
+        except TooManyRedirects:
+            print('Too many redirects.')
+            return None
+        # HTTPError is an error in the http code.
+        except HTTPError:
+            print('HTTP error with status code ' + str(data.status_code))
+            return None
+        # This is a failure in the connection unrelated to a timeout.
+        except ConnectionError:
+            print('Failed to establish a connection to the link.')
+            return None
+        # Timeouts are either server side (too long to respond) or client side
+        # (when requests doesn't get a response before the timeout timer is up)
+        # I have set the timeout to 5 seconds
+        except Timeout:
+            tries += 1
+
+            if tries >= 3:
+                print('Timed out after three attempts.')
+                return None
+
+            # Tries again after 5 seconds.
+            time.sleep(5)
+
+        # Covers every other possible exceptions.
+        except RequestException as err:
+            print('Unable to read link')
+            print(err)
+            return None
+        else:
+            print(link + ' read with no errors.')
+            return data
 
 
 # Saves an input image with the given name in the folder denoted by location.
@@ -94,7 +143,7 @@ def download_all_date(date, camera="kpno"):
     else:
         htmllink = link
 
-    rdate = Analyze.download_url(htmllink)
+    rdate = download_url(htmllink)
 
     if rdate is None:
         print('Failed to download dates.')
@@ -148,7 +197,7 @@ def download_image(date, image, camera='kpno'):
     imagename = directory + '/' + image
 
 
-    rimage = Analyze.download_url(imageloc)
+    rimage = download_url(imageloc)
 
     if rimage is None:
         print('Failed: ' + imagename)
