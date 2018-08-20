@@ -18,7 +18,7 @@ center = (256, 252)
 # TODO Refactor this to take in a numpy image and read in the image elsewhere.
 def transform(file, date):
     # Read in the file on given date.
-    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
+    img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
     time = coordinates.timestring_to_obj(date, file)
 
     #img = Clouds.cloud_contrast(img)
@@ -54,7 +54,7 @@ def transform(file, date):
     # Scatter for the background
     # (i.e. fills in the rest of the globular shape with black)
     x, y = eckertiv(rapoints, decpoints)
-    sax1.scatter(x, y, s=2, color='black')
+    ax1.scatter(x, y, s=2, color='black')
 
     # This is the image conversion
     xpoints = []
@@ -84,17 +84,17 @@ def transform(file, date):
 
     # Finds colors for dots.
     colors = []
-    for i in range(0, len(rapoints)):
+    for i, ra in enumerate(rapoints):
 
         # This block changes the ra so that the projection is centered at
         # ra = 360-rot.
         # The reason for this is so the outline survey area is 2 rather than 3
         # polygons.
         rot = 60
-        if rapoints[i] > (360-rot):
-            rapoints[i] = rapoints[i] + rot - 360
+        if ra > (360-rot):
+            ra = ra + rot - 360
         else:
-            rapoints[i] = rapoints[i] + rot
+            ra = ra + rot
 
         x = xpoints[i]
         y = ypoints[i]
@@ -161,19 +161,19 @@ def contours(axis, time):
 
         # Rotation block
         # Centers contours at 60 degrees ra.
-        for i in range(0, len(rapoints)):
+        for i, ra in enumerate(rapoints):
             rot = 60
-            if rapoints[i] > (360 - rot):
-                rapoints[i] = rapoints[i] + rot - 360
+            if ra > (360 - rot):
+                ra = ra + rot - 360
             else:
-                rapoints[i] = rapoints[i] + rot
+                ra = ra + rot
 
         # Don't sort the 60 contour since it's a complete circle.
         if not alt == 60:
             # Sorting by ra so that the left and right edges don't connect.
             points = []
-            for i in range(0, len(rapoints)):
-                points.append((rapoints[i], decpoints[i]))
+            for i, ra in enumerate(rapoints):
+                points.append((ra, decpoints[i]))
 
             points = sorted(points)
 
@@ -197,12 +197,12 @@ def contours(axis, time):
                 lowerdec = []
                 upperra = []
                 upperdec = []
-                for i in range(0, len(rapoints)):
+                for i, ra in enumerate(rapoints):
                     if rapoints[i] < 180:
-                        lowerra.append(rapoints[i])
+                        lowerra.append(ra)
                         lowerdec.append(decpoints[i])
                     else:
-                        upperra.append(rapoints[i])
+                        upperra.append(ra)
                         upperdec.append(decpoints[i])
 
                 # Clockwise sorting is necessary here to prevent the top and
@@ -396,7 +396,7 @@ def clockwise_sort(ra, dec, positive=False):
 
 if __name__ == "__main__":
     date = '20171108'
-    directory = 'Images/Original/' + date + '/'
+    directory = 'Images/Original/KPNO/' + date + '/'
     files = os.listdir(directory)
 
     # Loop for transforming a whole day.

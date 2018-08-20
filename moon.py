@@ -9,7 +9,6 @@ from matplotlib.patches import Circle
 from astropy.modeling import models, fitting
 
 import coordinates
-import io_util
 import histogram
 
 
@@ -89,7 +88,7 @@ def moon_visible(date, file):
 # Finds the size of the moon region (approximately) by taking pixels that are
 # "close to white" (in this case, > 255 - threshold)
 def moon_size(date, file):
-    img = ndimage.imread('Images/Original/' + date + '/' + file, mode='L')
+    img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
     thresh = 5
     img = np.where(img >= 255 - thresh, 1, 0)
 
@@ -192,6 +191,9 @@ def fit_moon(img, x, y):
     size = 0
     xfloor = math.floor(x)
     start = xfloor
+    
+    # The only reason we have this if block is to ensure we don't run for 
+    # moon radii greater than 35 in this case.
     for i in range(0, 35):
         start += 1
 
@@ -206,7 +208,7 @@ def fit_moon(img, x, y):
             break
 
     # Add some buffer pixels in case the center is black and the edges of the
-    # moon are fuzzed.
+    # moon are fuzzed and then convert radius to diameter.
     size = (size + 10) * 2
 
     # Makes sure the lower/upper slices don't out of bounds error.
@@ -271,7 +273,7 @@ def generate_eclipse_data(regen=False):
             return (truevis, imvis)
 
         # If we're regenerating the data we do it here.
-        directory = 'Images/Original/' + date + '/'
+        directory = 'Images/Original/KPNO/' + date + '/'
         images = sorted(os.listdir(directory))
 
         # Finds the size of the moon in each image.
@@ -454,7 +456,7 @@ if __name__ == "__main__":
     #f1 = open("images.txt", 'r')
 
     date = '20170810'
-    directory = 'Images/Original/' + date + '/'
+    directory = 'Images/Original/KPNO/' + date + '/'
     f1 = os.listdir(directory)
     f1 = sorted(f1)
 

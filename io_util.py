@@ -4,8 +4,8 @@ import time
 from html.parser import HTMLParser
 import numpy as np
 import matplotlib.pyplot as plot
-import requests
 from scipy import ndimage
+import requests
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
 
@@ -13,7 +13,6 @@ from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
 # Reads a link, with exception handling and error checking built in.
 # Returns a requests.Response object if it succeeds, returns None if it fails.
 def download_url(link):
-
     tries = 0
     read = False
 
@@ -290,7 +289,6 @@ def gray_and_color_image(file):
 # The second pixel is yellow in .03 and .002
 # but due to magic of if blocks that's ok.
 def get_exposure(image):
-
     # Handles separate cases for greyscale and RGB images.
     if len(image.shape) == 2:
         pix1 = image[19, 174]
@@ -309,8 +307,7 @@ def get_exposure(image):
         return 0.3
     if pix2 == 225:
         return 0.02
-    else:
-        return 6
+    return 6
 
 
 # Returns the difference image between two images.

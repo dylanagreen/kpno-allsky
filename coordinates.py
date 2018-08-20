@@ -68,7 +68,7 @@ def xy_to_altaz(x, y):
 
 # Returns a tuple of form (ra, dec)
 def altaz_to_radec(alt, az, time):
-    assert type(time) is aptime.Time, "Time should be an astropy Time Object."
+    assert isinstance(time, aptime.Time), "Time should be an astropy Time Object."
 
     # This is the latitude/longitude of the camera
     camera = (31.959417 * u.deg, -111.598583 * u.deg)
@@ -87,7 +87,7 @@ def altaz_to_radec(alt, az, time):
 
 # Returns a tuple of form (alt, az)
 def radec_to_altaz(ra, dec, time):
-    assert type(time) is aptime.Time, "Time should be an astropy Time Object."
+    assert isinstance(time, aptime.Time), "Time should be an astropy Time Object."
 
     # This is the latitude/longitude of the camera
     camera = (31.959417 * u.deg, -111.598583 * u.deg)
@@ -444,9 +444,9 @@ def conv_test():
         ylist2 = []
 
         # Assemble the list of expected star points
-        for star in stars.keys():
+        for key, val in stars.items():
             time = timestring_to_obj(date, tempfile)
-            point = radec_to_xy(stars[star][0], stars[star][1], time)
+            point = radec_to_xy(val[0], val[1], time)
             xlist.append(point[0])
             ylist.append(point[1])
 

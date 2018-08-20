@@ -1,17 +1,16 @@
+import os
+import time
+import ast
 from scipy import ndimage
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+import ephem
 
 import io_util
 import moon
 import histogram
 import coordinates
-
-import os
-import time
-import ephem
-import ast
 
 
 def get_start():
@@ -128,8 +127,8 @@ def analyze():
                 # We only process images where the moon is visble (alt > 0)
                 # And the sun is low enough to not wash out the image
                 # (sun alt < -17)
-                moonx, moony, moonalt = moon.find_moon(d, name)
-                sunalt, sunaz = moon.find_sun(d, name)
+                moonalt = moon.find_moon(d, name)[2]
+                sunalt = moon.find_sun(d, name)[0]
 
                 # Checks that the analysis conditions are met.
                 if moonalt > 0 and sunalt < -17:
@@ -147,7 +146,7 @@ def analyze():
 
                     # Generates the moon mask.
                     mask = moon.moon_mask(d, name)
-                    hist, bins = histogram.generate_histogram(img, mask)
+                    bins = histogram.generate_histogram(img, mask)[1]
 
                     frac = histogram.cloudiness(hist)
 
@@ -402,8 +401,8 @@ def plot():
         # We only need this so the axis shape works out. We delete it later.
         data = np.asarray([[0, 0, 0]])
 
-        for i in range(0, len(dataset)):
-            temp = np.asarray(dataset[i])
+        for i, val in enumerate(dataset):
+            temp = np.asarray(val)
 
             # Percentile returns an array of each of the three values.
             # We're creating a data array where each column is all the
@@ -421,8 +420,8 @@ def plot():
 
         # This sets up the individual plots. You can just pass the data
         # multiararay but I need each line to be individually labeled.
-        for i in range(0, len(percents)):
-            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '%',
+        for i, val in enumerate(percents):
+            plt.plot(x, data[0:data.shape[0], i], label=val + '%',
                      color=colors[i])
 
         # This fills between the lowest and top percentiles.
@@ -481,10 +480,10 @@ def plot():
     # Moon phase averages.
     moon_avgs = []
     num_imgs = []
-    for i in range(0, len(tweek)):
+    for i, val in enumerate(tweek):
         moon_avgs.append(np.mean(tmoon[i]))
-        print(str(i + 1) + ': ' + str(len(tweek[i])))
-        num_imgs.append(len(tweek[i]))
+        print(str(i + 1) + ': ' + str(len(val)))
+        num_imgs.append(len(val))
 
     setup_plot(x, tweek)
     # plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
@@ -630,14 +629,13 @@ def histo():
     if not os.path.exists(saveloc):
         os.makedirs(saveloc)
 
-    for i in range(0, len(tweek)):
-
+    for i, val in enumerate(tweek):
         # Finds the histograms.
-        hist1, bins1 = np.histogram(tweek[i], bins=divs)
+        hist1, bins1 = np.histogram(val, bins=divs)
         hist2, bins2 = np.histogram(tweek2[i], bins=divs)
 
         n2 = len(tweek2[i])
-        n1 = len(tweek[i]) - n2
+        n1 = len(val) - n2
 
         # Sets the size wider than th eprevious to fit all the bins.
         # I shave off a lot of 0 value bins later as well (in the plotting
@@ -764,4 +762,4 @@ def to_csv():
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    to_csv()
+    plot()

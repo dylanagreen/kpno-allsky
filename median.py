@@ -58,7 +58,7 @@ def median_of_medians(arr, i):
 # Returns a dictionary of median images, with keys being exposures.
 def median_all_date(date, color=False):
     # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/Original/' + date + '/'
+    directory = 'Images/Original/KPNO/' + date + '/'
 
     # Gotta make sure those images exist.
     try:

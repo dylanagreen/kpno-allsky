@@ -62,7 +62,6 @@ def zero_three_cloud_contrast(img):
 
 # Takes in an image as an np ndarray.
 # Name and date are for saving purposes
-# TODO Refactor to return image, save elsewhere
 def six_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
@@ -120,7 +119,7 @@ def six_cloud_contrast(img):
                 x = column - center[0]
                 y = center[1] - row
                 r = math.hypot(x, y)
-                if(r <= 240):
+                if r <= 240:
                     regionnum = labeled[row, column]
                     starnums[regionnum] += 1
 
