@@ -1,12 +1,13 @@
+import os
+import math
+import time
+from html.parser import HTMLParser
 import numpy as np
 import matplotlib.pyplot as plot
 import requests
-import os
-import math
-from html.parser import HTMLParser
 from scipy import ndimage
-from astropy.io import fits
-from astropy.utils.data import download_file
+from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
+                                 Timeout, RequestException)
 
 
 # Reads a link, with exception handling and error checking built in.
@@ -23,8 +24,8 @@ def download_url(link):
 
             # Raises the HTTP error if it occurs.
             data.raise_for_status()
-
             read = True
+
         # Too many redirects is when the link redirects you too much.
         except TooManyRedirects:
             print('Too many redirects.')
@@ -113,7 +114,6 @@ class DateHTMLParser(HTMLParser):
         HTMLParser.__init__(self)
         self.data = []
 
-
     def handle_starttag(self, tag, attrs):
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
@@ -122,7 +122,6 @@ class DateHTMLParser(HTMLParser):
                 if attr[0] == 'href':
                     self.data.append(attr[1])
 
-
     def clear_data(self):
         self.data = []
 
@@ -130,8 +129,8 @@ class DateHTMLParser(HTMLParser):
 # Downloads all the images for a certain date for a given camera.
 # Currently supports the kpno all sky and the mmto all sky.
 def download_all_date(date, camera="kpno"):
-    links = {'kpno' : 'http://kpasca-archives.tuc.noao.edu/',
-             'mmto' : 'http://skycam.mmto.arizona.edu/skycam/'}
+    links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
+             'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
 
     # Creates the link
     link = links[camera] + date
@@ -161,6 +160,7 @@ def download_all_date(date, camera="kpno"):
     imagenames = parser.data
 
     # Strips everything that's not a fits image.
+    imagenames2 = []
     if camera == 'mmto':
         for item in imagenames:
             if item[-4:] == 'fits':
@@ -181,13 +181,13 @@ def download_all_date(date, camera="kpno"):
 
 
 def download_image(date, image, camera='kpno'):
-    links = {'kpno' : 'http://kpasca-archives.tuc.noao.edu/',
-             'mmto' : 'http://skycam.mmto.arizona.edu/skycam/'}
+    links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
+             'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
 
     # Creates the link
     link = links[camera] + date
 
-    # Prevents clutter by collecting originals in their own folder within Images
+    # Collects originals in their own folder within Images
     directory = 'Images/Original/' + camera.upper() + '/' + date
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
@@ -195,7 +195,6 @@ def download_image(date, image, camera='kpno'):
 
     imageloc = link + '/' + image
     imagename = directory + '/' + image
-
 
     rimage = download_url(imageloc)
 
@@ -205,7 +204,7 @@ def download_image(date, image, camera='kpno'):
 
     # Saves the image
     with open(imagename, 'wb') as f:
-            f.write(rimage.content)
+        f.write(rimage.content)
     print("Downloaded: " + imagename)
 
 

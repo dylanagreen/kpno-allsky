@@ -1,5 +1,5 @@
-import numpy as np
 import os
+import numpy as np
 from scipy import ndimage
 
 import io_util
@@ -51,8 +51,7 @@ def median_of_medians(arr, i):
         return median_of_medians(low, i)
     elif i < identnum + lownum:
         return pivot
-    else:
-        return median_of_medians(high, i - (lownum + identnum))
+    return median_of_medians(high, i - (lownum + identnum))
 
 
 # Finds all median images for a given date

@@ -332,8 +332,7 @@ def find_star(img, centerx, centery, square=6):
     # Don't ask me why, I don't understand it either.
     if square > 2:
         return find_star(img, star[0], star[1], square - 2)
-    else:
-        return star
+    return star
 
 
 # Returns a tuple of the form (rexpected, ractual, deltar)
@@ -428,7 +427,7 @@ def conv_test():
 
     loc = 'Images/Find-Star/'
 
-    mask = mask.find_mask()
+    masking = mask.find_mask()
     for file in files:
         f.write(file + '\n')
         split = file.split('-')
@@ -437,7 +436,7 @@ def conv_test():
         tempfile = split[1][:-4]
 
         img = load_image(date, tempfile)
-        img = mask.apply_mask(mask, img)
+        img = mask.apply_mask(masking, img)
         xlist = []
         ylist = []
 
@@ -470,9 +469,6 @@ def conv_test():
                 altaz2 = xy_to_altaz(point[0], point[1])
 
                 #deltaaz = altaz2[1] - altaz1[1]
-
-                # Radius stuff
-                #s = s + ', ' + str(altaz1[1]) + ', ' + str(altaz2[1]) + ', ' + str(deltaaz)
 
                 # X-Y / Alt-Az stuff
                 xy1 = str(point[0]) + ', ' + str(point[1])

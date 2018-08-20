@@ -1,7 +1,7 @@
+import os
+import math
 from scipy import ndimage
 import numpy as np
-import math
-import os
 
 import io_util
 
@@ -81,7 +81,6 @@ def generate_mask(forcenew=False):
             # Avoids unnecessary pixels.
             if r < 242 and np.array_equal(ignore[y, x], [244, 66, 235]):
                 mask[y, x] = 1
-
 
     # If we've made a new mask, save it so we can skip the above steps later.
     save_mask(mask)

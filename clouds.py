@@ -26,7 +26,8 @@ def cloud_contrast(img):
 # Takes in an image as an np ndarray.
 def zero_three_cloud_contrast(img):
     # Temprary, I intend to change this slightly later.
-    img2 = ndimage.imread('Images/Original/20171108/r_ut052936s31200.png', mode='L')
+    img2 = ndimage.imread('Images/Original/20171108/r_ut052936s31200.png',
+                          mode='L')
 
     img3 = np.copy(img)
     img = np.int16(img)
@@ -53,8 +54,8 @@ def zero_three_cloud_contrast(img):
     final = np.multiply(img3, cond)
 
     # Find the mask and black out those pixels.
-    mask = mask.generate_mask()
-    final = mask.apply_mask(mask, final)
+    masking = mask.generate_mask()
+    final = mask.apply_mask(masking, final)
 
     return final
 
@@ -65,10 +66,10 @@ def zero_three_cloud_contrast(img):
 def six_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
-    mask = mask.generate_mask()
-    img = mask.apply_mask(mask, img)
+    masking = mask.generate_mask()
+    img = mask.apply_mask(masking, img)
 
-    # Inverts and subtracts 4 * the original image. This replicates the previous
+    # Inverts and subtracts 4 * the original image. This replicates previous
     # behaviour in one step.
     # Previous work flow: Invert, subtract, subtract, subtract.
     # If it goes negative I want it to be 0 rather than positive abs of num.

@@ -1,10 +1,7 @@
-import requests
 from scipy import ndimage
-from html.parser import HTMLParser
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from requests.exceptions import TooManyRedirects, HTTPError, ConnectionError, Timeout, RequestException
 
 import io_util
 import moon
@@ -63,9 +60,8 @@ def analyze():
 
     # 20080306 is the first date the camera is located correctly
     # 20080430 is the first date the images are printed correctly
-    #print(datelinks)
 
-    startdate = 0#int(get_start())
+    startdate = 0
 
     # Reads in the model coefficients.
     with open('clouds.txt', 'r') as f:
@@ -108,8 +104,6 @@ def analyze():
         imagenames = parser.data
         parser.clear_data()
 
-        #print(imagenames)
-
         monthloc = 'Data/' + month + '/'
 
         if not os.path.exists(monthloc):
@@ -131,7 +125,7 @@ def analyze():
                 # Finds the moon and the sun in the image. We don't need to
                 # download it
                 # if we won't process it.
-                # We only process images where the moon is visble (moon alt > 0)
+                # We only process images where the moon is visble (alt > 0)
                 # And the sun is low enough to not wash out the image
                 # (sun alt < -17)
                 moonx, moony, moonalt = moon.find_moon(d, name)
@@ -144,7 +138,7 @@ def analyze():
                     path = 'Images/Original/KPNO/' + d + '/' + name
 
                     # Here is where the magic happens.
-                    # First we download the image, if it hasn't been downloaded.
+                    # First we download the image, if it hasn't been downloaded
                     if not os.path.isfile(path):
                         io_util.download_image(d, name)
 
@@ -162,7 +156,8 @@ def analyze():
                     val = b*phase*phase + c*phase
 
                     with open('values.txt', 'a') as f2:
-                        f2.write(str(phase) + ',' + str(val) + ',' + str(frac) + '\n')
+                        towrite = str(phase) + ',' + str(val) + ',' + str(frac)
+                        f2.write(towrite + '\n')
 
                     frac = frac/val
 
@@ -173,7 +168,7 @@ def analyze():
                     f.write(dataline)
     t2 = time.perf_counter()
 
-    print(t2-t1)
+    print(t2 - t1)
 
     print('The following dates failed to download: ' + str(fails))
 
@@ -225,7 +220,7 @@ def month_plot():
 
         # Sets up the plot
         fig, ax = plt.subplots()
-        fig.set_size_inches(20,5)
+        fig.set_size_inches(20, 5)
         ax.plot_date(x, data, xdate=True, markersize=1)
 
         ax.plot_date(x, illum, xdate=True, markersize=1, color='red')
@@ -236,7 +231,8 @@ def month_plot():
         end = int(days[-1][:-4]) + 1
         for i in range(start, end):
             # Finds the plot_date for the start of the day.
-            x1 = coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
+            x1 = coordinates.timestring_to_obj(str(i),
+                                               'r_ut000000s00000').plot_date
             xt.append(x1)
 
         # Need the right end to be the start of next month.
@@ -267,7 +263,8 @@ def month_plot():
         if not os.path.exists(plotloc):
             os.makedirs(plotloc)
 
-        plt.savefig(plotloc + 'scatter-' + month + '.png', dpi=256, bbox_inches='tight')
+        plt.savefig(plotloc + 'scatter-' + month + '.png',
+                    dpi=256, bbox_inches='tight')
         plt.close()
 
 
@@ -276,7 +273,7 @@ camera = ephem.Observer()
 camera.lat = '31.959417'
 camera.lon = '-111.598583'
 camera.elevation = 2120
-camera.horizon='-17'
+camera.horizon = '-17'
 
 
 def plot():
@@ -295,12 +292,12 @@ def plot():
 
     # Temporary arrays for sunset plots
     sunsetnum = 50
-    sunsetdiv = 0.5 / sunsetnum # Up to 12 hours after sunset = 0.5 day / divs
+    sunsetdiv = 0.5 / sunsetnum  # Up to 12 hours after sunset = 0.5 day / divs
     tsunset = [[] for i in range(0, sunsetnum)]
 
     # Temporary arrays for sunrise plots
     sunrisenum = 50
-    sunrisediv = 0.5 / sunrisenum # 12 hours before sunrise = 0.5 day / divs
+    sunrisediv = 0.5 / sunrisenum  # 12 hours before sunrise = 0.5 day / divs
     tsunrise = [[] for i in range(0, sunrisenum)]
 
     # Temp other stuff
@@ -391,10 +388,7 @@ def plot():
                 diff = date - day1
                 week = int(diff.value // 7)
                 tweek[week].append(val)
-
-                # Moon phase
-                vis = moon.moon_visible(day, name)
-                tmoon[week].append(vis)
+                tmoon[week].append(phase)
 
     percents = ['25', '50', '75']
     colors = [(1, 0, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1)]
@@ -408,7 +402,7 @@ def plot():
         # We only need this so the axis shape works out. We delete it later.
         data = np.asarray([[0, 0, 0]])
 
-        for i in range(0,len(dataset)):
+        for i in range(0, len(dataset)):
             temp = np.asarray(dataset[i])
 
             # Percentile returns an array of each of the three values.
@@ -417,7 +411,7 @@ def plot():
             if temp.size == 0:
                 data = np.append(data, nanarray, axis=0)
             else:
-                d = np.reshape(np.percentile(temp, [25,50,75]), (1,3))
+                d = np.reshape(np.percentile(temp, [25, 50, 75]), (1, 3))
                 data = np.append(data, d, axis=0)
 
         # Deletes the first 0,0,0 array.
@@ -428,10 +422,12 @@ def plot():
         # This sets up the individual plots. You can just pass the data
         # multiararay but I need each line to be individually labeled.
         for i in range(0, len(percents)):
-            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '%', color=colors[i])
+            plt.plot(x, data[0:data.shape[0], i], label=percents[i] + '%',
+                     color=colors[i])
 
         # This fills between the lowest and top percentiles.
-        plt.fill_between(x, data[0:data.shape[0], 0], data[0:data.shape[0], -1], color=(1, 0.5, 0, 0.5))
+        plt.fill_between(x, data[0:data.shape[0], 0],
+                         data[0:data.shape[0], -1], color=(1, 0.5, 0, 0.5))
         plt.legend()
 
     # Plotting and averaging code
@@ -483,22 +479,22 @@ def plot():
     plt.xlabel('Week Number')
 
     # Moon phase averages.
-    moon = []
-    nums = []
+    moon_avgs = []
+    num_imgs = []
     for i in range(0, len(tweek)):
-        moon.append(np.mean(tmoon[i]))
+        moon_avgs.append(np.mean(tmoon[i]))
         print(str(i + 1) + ': ' + str(len(tweek[i])))
-        nums.append(len(tweek[i]))
+        num_imgs.append(len(tweek[i]))
 
     setup_plot(x, tweek)
-    #plt.plot(x, moon, label='Moon Phase', color=(0, 1, 0, 1))
+    # plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
 
+    num_imgs = np.asarray(num_imgs)
 
-    nums = np.asarray(nums)
+    num_imgs = num_imgs * 1 / (np.amax(num_imgs))
 
-    nums = nums * 1 / (np.amax(nums))
-
-    plt.plot(x, nums, label='Normalized number of images', color=(0, 1, 0, 1))
+    plt.plot(x, num_imgs, label='Normalized number of images',
+             color=(0, 1, 0, 1))
 
     # We have to re add the legend to get the moon phase label.
     plt.legend()
@@ -524,7 +520,6 @@ def model():
     x.pop(0)
     x = np.asarray(x)
 
-
     # Just need to convert to floats including the nan.
     for i in range(1, len(data)):
         data[i] = [float(j) for j in data[i]]
@@ -532,7 +527,6 @@ def model():
     plt.ylim(0, 1.0)
     plt.ylabel('Average Cloudiness Fraction')
     plt.xlabel('Moon Phase')
-
 
     coeffs1 = []
     coeffs2 = []
@@ -546,7 +540,7 @@ def model():
         # This forces the fit to go through 0,0 since we do not pass a constant
         # coefficient, only the x^2 and x terms.
         A = np.vstack([x*x, x]).T
-        b,c = np.linalg.lstsq(A, data[i])[0]
+        b, c = np.linalg.lstsq(A, data[i])[0]
 
         coeffs1.append(b)
         coeffs2.append(c)
@@ -646,7 +640,8 @@ def histo():
         n1 = len(tweek[i]) - n2
 
         # Sets the size wider than th eprevious to fit all the bins.
-        # I shave off a lot of 0 value bins later as well (in the plotting slice)
+        # I shave off a lot of 0 value bins later as well (in the plotting
+        # slice)
         fig = plt.figure()
         fig.set_size_inches(11.4, 8.4)
 
@@ -656,11 +651,15 @@ def histo():
         plt.ylabel('Number of Occurrences')
         plt.xlabel('Cloudiness Relative to Mean')
         plt.bar(bins1[:-16], hist1[:-15], width=w, align='edge',
-        tick_label=bins1[:-16], label='2017 (' + str(n1) + ')')
+                tick_label=bins1[:-16], label='2017 (' + str(n1) + ')')
+
         plt.bar(bins2[:-16], hist2[:-15], width=w, align='edge',
-        tick_label=bins2[:-16], color='red', label='2016 (' + str(n2) + ')')
+                tick_label=bins2[:-16], color='red',
+                label='2016 (' + str(n2) + ')')
+
         plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i+1)+ '.png', dpi=256, bbox_inches='tight')
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '.png',
+                    dpi=256, bbox_inches='tight')
         plt.close()
 
         print('Saved: Week ' + str(i+1))
@@ -703,7 +702,7 @@ def to_csv():
             day = day[:-4]
             for line in f1:
                 linedata = []
-                
+
                 # Splits out the value and file.
                 line = line.rstrip()
                 line = line.split(',')
@@ -723,13 +722,13 @@ def to_csv():
                 # The week number.
                 diff = date - day1
                 week = int(diff.value // 7)
-                
+
                 # Sunset time calculation.
                 # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
                 formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:]
                 time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
                 formatdate = formatdate + ' ' + time
-                
+
                 linedata.append(formatdate)
                 linedata.append(year)
                 linedata.append(week)
@@ -737,7 +736,7 @@ def to_csv():
                 # Sets the date of calculation.
                 camera.date = formatdate
                 date = ephem.Date(formatdate)
-                
+
                 # Calculates the previous setting and next rising of the sun.
                 sun = ephem.Sun()
                 setting = camera.previous_setting(sun, use_center=True)
@@ -747,21 +746,22 @@ def to_csv():
                 diff = date - setting
                 length = rising - setting
                 normalize = int((diff / length) // normaldiv)
-                
+
                 linedata.append(normalize)
                 linedata.append(val)
-                
-                data.append(np.asarray(linedata))
-    
-    data = np.asarray(data)
-    
-    d2 = pd.DataFrame(data, columns=['Date & Time', 'Year', 'Week Number', 'Normlaized Time after Sunset', 'Cloudiness Relative to the Mean'])
-    
-    d2.to_csv('data.csv')
 
+                data.append(np.asarray(linedata))
+
+    data = np.asarray(data)
+
+    d2 = pd.DataFrame(data, columns=['Date & Time', 'Year', 'Week Number',
+                                     'Normlaized Time after Sunset',
+                                     'Cloudiness Relative to the Mean'])
+
+    d2.to_csv('data.csv')
 
 
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
-    #link = 'https://demo.cyotek.com/features/redirectlooptest.php'
+    # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     to_csv()

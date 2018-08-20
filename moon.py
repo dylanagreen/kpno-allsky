@@ -1,24 +1,16 @@
 import os
 import math
 import warnings
-
 import ephem
-
 import numpy as np
-
 from scipy import ndimage
-
 import matplotlib.pyplot as plt
-
-import astropy.coordinates
-from astropy.coordinates import EarthLocation, AltAz, SkyCoord
-import astropy.units as u
+from matplotlib.patches import Circle
+from astropy.modeling import models, fitting
 
 import coordinates
 import io_util
 import histogram
-
-from matplotlib.patches import Circle
 
 
 # Radii in kilometers
@@ -184,7 +176,7 @@ def find_sun(date, file):
     alt = np.degrees(sun.alt)
     az = np.degrees(sun.az)
 
-    return (alt,az)
+    return (alt, az)
 
 
 # Fits a Moffat fit to the moon and returns the estimated radius of the moon.
@@ -365,11 +357,11 @@ def moon_mask(date, file):
     # Get the fraction visible for interpolation and find the
     # location of the moon.
     vis = moon_visible(date, file)
-    x,y,alt = find_moon(date,file)
+    x, y, alt = find_moon(date, file)
 
     # Creates the circle patch we use.
     r = moon_circle(vis)
-    circ = Circle((x, y),r, fill=False)
+    circ = Circle((x, y), r, fill=False)
 
     # The following code converts the patch to a 512x512 mask array, with True
     # for values outside the circle and False for those inside.
@@ -377,21 +369,21 @@ def moon_mask(date, file):
 
     # This section of code generates an 262144x2 array of the
     # 512x512 pixel locations. 262144 = 512^2
-    points = np.zeros((512**2,2))
+    points = np.zeros((512**2, 2))
     index = 0
-    for i in range(0,512):
-        for j in range(0,512):
+    for i in range(0, 512):
+        for j in range(0, 512):
             # These are backwards as expected due to how reshape works later.
             # Points is in x,y format, but reshape reshapes such that
             # it needs to be in y,x format.
-            points[index,0] = j
-            points[index,1] = i
+            points[index, 0] = j
+            points[index, 1] = i
             index += 1
 
     # Checks all the points are inside the circle, then reshapes it to the
     # 512x512 size.
     mask = circ.contains_points(points)
-    mask = mask.reshape(512,512)
+    mask = mask.reshape(512, 512)
 
     return mask
 
@@ -482,12 +474,5 @@ if __name__ == "__main__":
         mask = moon_mask(info[0], info[1])
         img1 = np.ma.masked_array(img, mask)
 
-
-        bins,frac = histogram.histogram(img, info[0] + '/' + info[1], mask)
-        #histogram.histogram(img, info[0] + '/' + info[1] + '-2.png')
-
-
-
-        #io_util.save_image(cont, info[1], 'Images/Moontest', cmap='gray')
-
-
+        hist, bins = histogram.generate_histogram(img, mask)
+        histogram.plot_hisogram(img, hist, mask, path, date)

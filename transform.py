@@ -3,8 +3,8 @@ import os
 import ast
 import numpy as np
 import matplotlib.pyplot as plot
-from scipy import ndimage
 from matplotlib.patches import Polygon
+from scipy import ndimage
 
 import coordinates
 import mask
@@ -25,8 +25,8 @@ def transform(file, date):
 
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
-    mask = mask.generate_mask()
-    img = mask.apply_mask(mask, img)
+    masking = mask.generate_mask()
+    img = mask.apply_mask(masking, img)
 
     # Sets up the figure and axes objects
     fig = plot.figure(frameon=False)
@@ -54,7 +54,7 @@ def transform(file, date):
     # Scatter for the background
     # (i.e. fills in the rest of the globular shape with black)
     x, y = eckertiv(rapoints, decpoints)
-    scatter = ax1.scatter(x, y, s=2, color='black')
+    sax1.scatter(x, y, s=2, color='black')
 
     # This is the image conversion
     xpoints = []
@@ -68,7 +68,7 @@ def transform(file, date):
             r = math.hypot(x, y)
 
             # Zeros out ignorable objects first
-            if(r > 241):
+            if r > 241:
                 img[row, column] = 0
             # Only want points in the circle to convert
             else:
@@ -103,7 +103,7 @@ def transform(file, date):
 
     # Scatter for the image conversion
     x, y = eckertiv(rapoints, decpoints)
-    scatter = ax1.scatter(x, y, s=1, c=colors, cmap='gray')
+    ax1.scatter(x, y, s=1, c=colors, cmap='gray')
 
     # Add the contours
     ax1 = contours(ax1, time)
@@ -184,7 +184,7 @@ def contours(axis, time):
             x, y = eckertiv(rapoints, decpoints)
 
             # 42f44e is super bright green.
-            scatter = axis.plot(x, y, c='#42f44e')
+            axis.plot(x, y, c='#42f44e')
 
         # The 60 contour needs to be two plots if it gets seperated by the edge.
         else:
@@ -210,16 +210,16 @@ def contours(axis, time):
                 # Left needs to be sorted from negative x.
                 lowerra, lowerdec = clockwise_sort(lowerra, lowerdec)
                 x, y = eckertiv(lowerra, lowerdec)
-                scatter = axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c='#42f44e')
 
                 # Right needs to be sorted from the positive x.
                 upperra, upperdec = clockwise_sort(upperra, upperdec, True)
                 x, y = eckertiv(upperra, upperdec)
-                scatter = axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c='#42f44e')
 
             else:
                 x, y = eckertiv(rapoints, decpoints)
-                scatter = axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c='#42f44e')
 
     return axis
 
