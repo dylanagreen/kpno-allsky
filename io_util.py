@@ -289,17 +289,15 @@ def gray_and_color_image(file):
 # The second pixel is yellow in .03 and .002
 # but due to magic of if blocks that's ok.
 def get_exposure(image):
+    pix1 = image[19, 174]
+    pix2 = image[17, 119]
+
     # Handles separate cases for greyscale and RGB images.
-    if len(image.shape) == 2:
-        pix1 = image[19, 174]
-        pix2 = image[17, 119]
     # Greyscale conversion below is the same one used by imread.
-    elif len(image.shape) == 3:
-        pix1 = image[19, 174]
+    if len(image.shape) == 3:
         pix1 = pix1[0] * 299/1000 + pix1[1] * 587/1000 + pix1[2] * 114/1000
         pix1 = math.floor(pix1)
 
-        pix2 = image[17, 119]
         pix2 = pix2[0] * 299/1000 + pix2[1] * 587/1000 + pix2[2] * 114/1000
         pix2 = math.floor(pix2)
 
