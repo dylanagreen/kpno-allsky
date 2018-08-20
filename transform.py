@@ -15,13 +15,8 @@ center = (256, 252)
 
 # This takes the file and the given date and then transforms it
 # from the circle into an eckert-iv projected ra-dec map.
-# TODO Refactor this to take in a numpy image and read in the image elsewhere.
-def transform(file, date):
-    # Read in the file on given date.
-    img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
-    time = coordinates.timestring_to_obj(date, file)
-
-    #img = Clouds.cloud_contrast(img)
+def transform(img, name, date):
+    time = coordinates.timestring_to_obj(date, name)
 
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
@@ -110,7 +105,7 @@ def transform(file, date):
 
     # Date formatting for lower left corner text.
     formatted = date[:4] + '-' + date[4:6] + '-' + date[6:]
-    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
+    time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
 
     # These coord: -265.300085635, -132.582101423
     # are the minimum x and y of the projection.
@@ -130,7 +125,7 @@ def transform(file, date):
         os.makedirs(directory)
 
     # Save name.
-    conv = directory + file
+    conv = directory + name
 
     # Want it to be 1920 wide.
     dpi = 1920 / (fig.get_size_inches()[0])
@@ -401,4 +396,6 @@ if __name__ == "__main__":
 
     # Loop for transforming a whole day.
     for file in files:
-        transform(file, date)
+        # Read in the file on given date.
+        img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
+        transform(img, file, date)
