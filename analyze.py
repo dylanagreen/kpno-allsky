@@ -2,6 +2,8 @@ import os
 import time
 import ast
 from scipy import ndimage
+from scipy import optimize
+from scipy import misc
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -618,7 +620,7 @@ def histo():
                 if year == '2016':
                     tweek2[week].append(val)
 
-    split = 2
+    split = 3
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
@@ -635,6 +637,7 @@ def histo():
         hist1, bins1 = np.histogram(val, bins=divs)
         hist2, bins2 = np.histogram(tweek2[i], bins=divs)
 
+        # Numbers of images
         n2 = len(tweek2[i])
         n1 = len(val) - n2
 
@@ -646,25 +649,64 @@ def histo():
         
         binstop = -16 * split
         histstop = binstop + 1
+        
+        # Passes the data to the fitting method.
+        val = np.asarray(val)
+        coeffs = fit_model(val)
+        
+        # Blocks out the non major tick labels. Only keeps the major ones
+        # Pre bar split (hence the modulo of the split)
+        labels = list(bins1)
+        for j, label in enumerate(bins1):
+            if j % split != 0:
+                labels[j] = ''
+            else:
+                labels[j] = round(label, 3)
 
         # Plotting code.
         plt.title('Week ' + str(i+1))
-        plt.ylim(0, 900)
+        plt.ylim(0, 900 / split)
         plt.ylabel('Number of Occurrences')
         plt.xlabel('Cloudiness Relative to Mean')
-        plt.bar(bins1[:binstop], hist1[:histstop], width=w, align='edge',
-                tick_label=bins1[:binstop], label='2017 (' + str(n1) + ')')
+        plot1 = plt.bar(bins1[:binstop], hist1[:histstop], width=w,
+                        align='edge', tick_label=labels[:binstop],
+                        label='2017 (' + str(n1) + ')')
 
-        plt.bar(bins2[:binstop], hist2[:histstop], width=w, align='edge',
-                tick_label=bins2[:binstop], color='red',
-                label='2016 (' + str(n2) + ')')
+        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w, 
+                        align='edge', tick_label=labels[:binstop], color='red',
+                        label='2016 (' + str(n2) + ')')
+                
+        x = bins1[:binstop]
+        y = model(x, coeffs)
+        scale = np.amax(hist1) / np.amax(y)
+        y = y * scale
+        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
 
         plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-1.png',
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '.png',
                     dpi=256, bbox_inches='tight')
         plt.close()
 
         print('Saved: Week ' + str(i+1))
+
+# Inverted the args for this, so they match those used by scipy's minmize.
+# Minimize changes the coefficients (decay here), making it the variable here.
+def model(decay, x):
+    return (decay**x/misc.factorial(x)) * np.exp(-decay)
+
+
+def likelihood(params, data):
+    # In chi-squared there's a 2 in front but since we're minimizing I've
+    # dropped it.
+    chi = -np.sum(np.log(model(params[0], data)))
+    return chi
+
+
+# Fits the model to the data
+# I abstracted this in case I need it somewhere else.
+def fit_model(xdata):
+    fit = optimize.minimize(likelihood, x0=np.ones(1), args=xdata, method='Nelder-Mead')
+    return np.abs(fit.x)
 
 
 def to_csv():
