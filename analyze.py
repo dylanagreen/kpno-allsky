@@ -697,7 +697,7 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (decay here), making it the variable here.
-def model(d1, d2, d3, x):
+def model(d1, d2, x):
     p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
     p2 = (d2 ** x / misc.factorial(x)) * np.exp(-d2)
     return p1 + p2
