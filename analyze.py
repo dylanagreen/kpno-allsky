@@ -618,7 +618,8 @@ def histo():
                 if year == '2016':
                     tweek2[week].append(val)
 
-    w = 0.61
+    split = 2
+    w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
     num = np.amax(tweek[2]) / w
@@ -642,21 +643,24 @@ def histo():
         # slice)
         fig = plt.figure()
         fig.set_size_inches(11.4, 8.4)
+        
+        binstop = -16 * split
+        histstop = binstop + 1
 
         # Plotting code.
         plt.title('Week ' + str(i+1))
         plt.ylim(0, 900)
         plt.ylabel('Number of Occurrences')
         plt.xlabel('Cloudiness Relative to Mean')
-        plt.bar(bins1[:-16], hist1[:-15], width=w, align='edge',
-                tick_label=bins1[:-16], label='2017 (' + str(n1) + ')')
+        plt.bar(bins1[:binstop], hist1[:histstop], width=w, align='edge',
+                tick_label=bins1[:binstop], label='2017 (' + str(n1) + ')')
 
-        plt.bar(bins2[:-16], hist2[:-15], width=w, align='edge',
-                tick_label=bins2[:-16], color='red',
+        plt.bar(bins2[:binstop], hist2[:histstop], width=w, align='edge',
+                tick_label=bins2[:binstop], color='red',
                 label='2016 (' + str(n2) + ')')
 
         plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '.png',
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-1.png',
                     dpi=256, bbox_inches='tight')
         plt.close()
 
@@ -762,4 +766,4 @@ def to_csv():
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    plot()
+    histo()
