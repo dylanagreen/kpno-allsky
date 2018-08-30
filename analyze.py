@@ -620,7 +620,7 @@ def histo():
                 if year == '2016':
                     tweek2[week].append(val)
 
-    split = 3
+    split = 4
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
@@ -628,9 +628,15 @@ def histo():
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
 
+    binstop = -16 * split
+    histstop = binstop + 1
+
     saveloc = 'Images/Plots/Weeks'
     if not os.path.exists(saveloc):
         os.makedirs(saveloc)
+
+    # Don't want to recreate this every time.
+    x = np.arange(0,divs[binstop], 0.05)
 
     for i, val in enumerate(tweek):
         # Finds the histograms.
@@ -646,14 +652,9 @@ def histo():
         # slice)
         fig = plt.figure()
         fig.set_size_inches(11.4, 8.4)
-        
-        binstop = -16 * split
-        histstop = binstop + 1
-        
-        # Passes the data to the fitting method.
-        val = np.asarray(val)
-        coeffs = fit_model(val)
-        
+
+
+
         # Blocks out the non major tick labels. Only keeps the major ones
         # Pre bar split (hence the modulo of the split)
         labels = list(bins1)
@@ -665,19 +666,23 @@ def histo():
 
         # Plotting code.
         plt.title('Week ' + str(i+1))
-        plt.ylim(0, 900 / split)
+        plt.ylim(0, 900 / (split / 2))
         plt.ylabel('Number of Occurrences')
         plt.xlabel('Cloudiness Relative to Mean')
         plot1 = plt.bar(bins1[:binstop], hist1[:histstop], width=w,
                         align='edge', tick_label=labels[:binstop],
                         label='2017 (' + str(n1) + ')')
 
-        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w, 
+        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
                         align='edge', tick_label=labels[:binstop], color='red',
                         label='2016 (' + str(n2) + ')')
-                
-        x = bins1[:binstop]
-        y = model(x, coeffs)
+
+        # Passes the data to the fitting method.
+        val = np.asarray(val)
+        coeffs = fit_model(val)
+        print(coeffs)
+
+        y = model(coeffs[0], coeffs[1], x)
         scale = np.amax(hist1) / np.amax(y)
         y = y * scale
         plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
@@ -689,23 +694,26 @@ def histo():
 
         print('Saved: Week ' + str(i+1))
 
+
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (decay here), making it the variable here.
-def model(decay, x):
-    return (decay**x/misc.factorial(x)) * np.exp(-decay)
+def model(d1, d2, x):
+    p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
+    #p2 = (d2 ** x / misc.factorial(x)) * np.exp(-d2)
+    return p1# + p2
 
 
 def likelihood(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(model(params[0], data)))
+    chi = -np.sum(np.log(model(params[0], params[1], data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_model(xdata):
-    fit = optimize.minimize(likelihood, x0=np.ones(1), args=xdata, method='Nelder-Mead')
+    fit = optimize.minimize(likelihood, x0=[0,5], args=xdata, method='Nelder-Mead')
     return np.abs(fit.x)
 
 
