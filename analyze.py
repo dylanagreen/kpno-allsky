@@ -620,7 +620,7 @@ def histo():
                 if year == '2016':
                     tweek2[week].append(val)
 
-    split = 4
+    split = 5
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
@@ -697,10 +697,10 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (decay here), making it the variable here.
-def model(d1, d2, x):
+def model(d1, d2, d3, x):
     p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
-    #p2 = (d2 ** x / misc.factorial(x)) * np.exp(-d2)
-    return p1# + p2
+    p2 = (d2 ** x / misc.factorial(x)) * np.exp(-d2)
+    return p1 + p2
 
 
 def likelihood(params, data):
