@@ -669,7 +669,6 @@ def histo():
             num = len(tweek[year][i])
 
             # Passes the data to the fitting method.
-            val = np.asarray(tweek[year][i])
             coeffs = fit_function(tweek[year][i])
             print(str(year) + ': ' + str(coeffs))
 
