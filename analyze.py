@@ -572,9 +572,8 @@ def histo():
     if '.DS_Store' in months:
         months.remove('.DS_Store')
 
-    tweek = [[] for i in range(0, 53)]
-    tweek2 = [[] for i in range(0, 53)]
-    tweek3 = [[] for i in range(0, 53)]
+    tweek = {}
+    tweek['all'] = [[] for i in range(0, 53)]
 
     for month in months:
 
@@ -584,6 +583,10 @@ def histo():
 
         # Strips out the year from the month
         year = month[:4]
+
+        # Initializes a year if it doesn't exist.
+        if not year in tweek:
+            tweek[year] = [[] for i in range(0, 53)]
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
@@ -616,20 +619,26 @@ def histo():
                 # The week number.
                 diff = date - day1
                 week = int(diff.value // 7)
-                tweek[week].append(val)
+                tweek['all'][week].append(val)
+                tweek[year][week].append(val)
 
-                if year == '2016':
-                    tweek2[week].append(val)
-                if year == '2017':
-                    tweek3[week].append(val)
 
     split = 10
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
-    num = np.amax(tweek[2]) / w
+    num = np.amax(tweek['all'][2]) / w
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
+
+    # Blocks out the non major tick labels. Only keeps the major ones
+    # Pre bar split (hence the modulo of the split)
+    labels = list(divs)
+    for j, label in enumerate(divs):
+        if j % split != 0:
+            labels[j] = ''
+        else:
+            labels[j] = round(label, 3)
 
     binstop = -16 * split
     histstop = binstop + 1
@@ -641,119 +650,66 @@ def histo():
     # Don't want to recreate this every time.
     x = np.arange(0,divs[binstop], 0.05)
 
-    for i, val in enumerate(tweek):
-        # Finds the histograms.
-        # Hist 1 is all years combined
-        # Hist 2 is 2016
-        # Hist 3 is 2017
-        hist1, bins1 = np.histogram(val, bins=divs)
-        hist2, bins2 = np.histogram(tweek2[i], bins=divs)
-        hist3, bins3 = np.histogram(tweek3[i], bins=divs)
+    # Loops over each week (the i value)
+    for i, val in enumerate(tweek['all']):
+        def plot_histogram(year):
+            hist, bins = np.histogram(tweek[year][i], bins=divs)
 
-        # Numbers of images
-        n2 = len(tweek2[i])
-        n1 = len(val) - n2
+            # Sets the size wider than the previous to fit all the bins.
+            # I shave off a lot of 0 value bins later as well in plotting.
+            fig = plt.figure()
+            fig.set_size_inches(11.4, 8.4)
 
-        # Sets the size wider than th eprevious to fit all the bins.
-        # I shave off a lot of 0 value bins later as well (in the plotting
-        # slice)
-        fig = plt.figure()
-        fig.set_size_inches(11.4, 8.4)
+            plt.title('Week ' + str(i+1))
+            plt.ylim(0, 900 / (split / 2))
+            plt.ylabel('Number of Occurrences')
+            plt.xlabel('Cloudiness Relative to Mean')
 
-        # Blocks out the non major tick labels. Only keeps the major ones
-        # Pre bar split (hence the modulo of the split)
-        labels = list(bins1)
-        for j, label in enumerate(bins1):
-            if j % split != 0:
-                labels[j] = ''
+            # Number of images used to make this histogram.
+            num = len(tweek[year][i])
+
+            # Passes the data to the fitting method.
+            val = np.asarray(tweek[year][i])
+            coeffs = fit_function(tweek[year][i])
+            print(str(year) + ': ' + str(coeffs))
+
+            # Finds the y, then scales it to be the same height as the histo.
+            # Scaling is for sanity check.
+            y = function(coeffs[0], coeffs[1], coeffs[2], x)
+            scale = np.amax(hist) / np.amax(y)
+            y = y * scale
+
+            # Plots everything, histogram, and then the fitted data on top.
+            if year == 'all':
+                # Changes the numbers for each year
+                num2 = len(tweek['2016'][i])
+                num = num - num2
+
+                # For all, we plot everything, then 2016 on top for separation.
+                plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
+                                align='edge', tick_label=labels[:binstop],
+                                label='2017 (' + str(num) + ')')
+
+                hist, bins = np.histogram(tweek['2016'][i], bins=divs)
+                plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
+                                align='edge', tick_label=labels[:binstop],
+                                label='2016 (' + str(num2) + ')')
             else:
-                labels[j] = round(label, 3)
+                # Plots just the year histogram.
+                plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
+                                align='edge', tick_label=labels[:binstop],
+                                label=year + ' (' + str(num) + ')')
 
-        # Plotting code.
-        plt.title('Week ' + str(i+1))
-        plt.ylim(0, 900 / (split / 2))
-        plt.ylabel('Number of Occurrences')
-        plt.xlabel('Cloudiness Relative to Mean')
-        plot1 = plt.bar(bins1[:binstop], hist1[:histstop], width=w,
-                        align='edge', tick_label=labels[:binstop],
-                        label='2017 (' + str(n1) + ')')
+            # Plots the fit.
+            plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
 
-        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
-                        align='edge', tick_label=labels[:binstop], color='red',
-                        label='2016 (' + str(n2) + ')')
+            plt.legend()
+            plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
+                        dpi=256, bbox_inches='tight')
+            plt.close()
 
-        # Passes the data to the fitting method.
-        val = np.asarray(val)
-        coeffs = fit_function(val)
-        print("All: " + str(coeffs))
-
-        y = function(coeffs[0], coeffs[1], coeffs[2], x)
-        scale = np.amax(hist1) / np.amax(y)
-        y = y * scale
-        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
-
-        plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-all.png',
-                    dpi=256, bbox_inches='tight')
-        plt.close()
-
-        # Plotting code for just 2016.
-        fig = plt.figure()
-        fig.set_size_inches(11.4, 8.4)
-
-        plt.title('Week ' + str(i+1))
-        plt.ylim(0, 900 / (split / 2))
-        plt.ylabel('Number of Occurrences')
-        plt.xlabel('Cloudiness Relative to Mean')
-
-        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
-                        align='edge', tick_label=labels[:binstop], color='red',
-                        label='2016 (' + str(n2) + ')')
-
-        # Passes the data to the fitting method.
-        val = np.asarray(tweek2[i])
-        coeffs = fit_function(tweek2[i])
-        print("2016: " + str(coeffs))
-
-        y = function(coeffs[0], coeffs[1], coeffs[2], x)
-        scale = np.amax(hist2) / np.amax(y)
-        y = y * scale
-        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
-
-        plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-2016.png',
-                    dpi=256, bbox_inches='tight')
-        plt.close()
-
-        # Plotting code for just 2017.
-        fig = plt.figure()
-        fig.set_size_inches(11.4, 8.4)
-
-        plt.title('Week ' + str(i+1))
-        plt.ylim(0, 900 / (split / 2))
-        plt.ylabel('Number of Occurrences')
-        plt.xlabel('Cloudiness Relative to Mean')
-
-        plot2 = plt.bar(bins3[:binstop], hist3[:histstop], width=w,
-                        align='edge', tick_label=labels[:binstop],
-                        label='2017 (' + str(n1) + ')')
-
-        # Passes the data to the fitting method.
-        val = np.asarray(tweek3[i])
-        coeffs = fit_function(tweek3[i])
-        print("2017: " + str(coeffs))
-
-        y = function(coeffs[0], coeffs[1], coeffs[2], x)
-        scale = np.amax(hist3) / np.amax(y)
-        y = y * scale
-        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
-
-        plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-2017.png',
-                    dpi=256, bbox_inches='tight')
-        plt.close()
-
-        print('Saved: Week ' + str(i+1))
+        for year, value in tweek.items():
+            plot_histogram(year)
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
