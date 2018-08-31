@@ -711,6 +711,9 @@ def histo():
         for year, value in tweek.items():
             plot_histogram(year)
 
+        print('Saved: Week ' + str(i+1))
+        print()
+
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (decay here), making it the variable here.
