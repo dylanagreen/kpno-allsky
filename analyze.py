@@ -148,7 +148,7 @@ def analyze():
 
                     # Generates the moon mask.
                     mask = moon.moon_mask(d, name)
-                    bins = histogram.generate_histogram(img, mask)[1]
+                    hist, bins = histogram.generate_histogram(img, mask)[1]
 
                     frac = histogram.cloudiness(hist)
 
@@ -574,6 +574,7 @@ def histo():
 
     tweek = [[] for i in range(0, 53)]
     tweek2 = [[] for i in range(0, 53)]
+    tweek3 = [[] for i in range(0, 53)]
 
     for month in months:
 
@@ -619,8 +620,10 @@ def histo():
 
                 if year == '2016':
                     tweek2[week].append(val)
+                if year == '2017':
+                    tweek3[week].append(val)
 
-    split = 5
+    split = 10
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
@@ -640,8 +643,12 @@ def histo():
 
     for i, val in enumerate(tweek):
         # Finds the histograms.
+        # Hist 1 is all years combined
+        # Hist 2 is 2016
+        # Hist 3 is 2017
         hist1, bins1 = np.histogram(val, bins=divs)
         hist2, bins2 = np.histogram(tweek2[i], bins=divs)
+        hist3, bins3 = np.histogram(tweek3[i], bins=divs)
 
         # Numbers of images
         n2 = len(tweek2[i])
@@ -652,8 +659,6 @@ def histo():
         # slice)
         fig = plt.figure()
         fig.set_size_inches(11.4, 8.4)
-
-
 
         # Blocks out the non major tick labels. Only keeps the major ones
         # Pre bar split (hence the modulo of the split)
@@ -679,16 +684,72 @@ def histo():
 
         # Passes the data to the fitting method.
         val = np.asarray(val)
-        coeffs = fit_model(val)
-        print(coeffs)
+        coeffs = fit_function(val)
+        print("All: " + str(coeffs))
 
-        y = model(coeffs[0], coeffs[1], x)
+        y = function(coeffs[0], coeffs[1], coeffs[2], x)
         scale = np.amax(hist1) / np.amax(y)
         y = y * scale
         plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
 
         plt.legend()
-        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '.png',
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-all.png',
+                    dpi=256, bbox_inches='tight')
+        plt.close()
+
+        # Plotting code for just 2016.
+        fig = plt.figure()
+        fig.set_size_inches(11.4, 8.4)
+
+        plt.title('Week ' + str(i+1))
+        plt.ylim(0, 900 / (split / 2))
+        plt.ylabel('Number of Occurrences')
+        plt.xlabel('Cloudiness Relative to Mean')
+
+        plot2 = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
+                        align='edge', tick_label=labels[:binstop], color='red',
+                        label='2016 (' + str(n2) + ')')
+
+        # Passes the data to the fitting method.
+        val = np.asarray(tweek2[i])
+        coeffs = fit_function(tweek2[i])
+        print("2016: " + str(coeffs))
+
+        y = function(coeffs[0], coeffs[1], coeffs[2], x)
+        scale = np.amax(hist2) / np.amax(y)
+        y = y * scale
+        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
+
+        plt.legend()
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-2016.png',
+                    dpi=256, bbox_inches='tight')
+        plt.close()
+
+        # Plotting code for just 2017.
+        fig = plt.figure()
+        fig.set_size_inches(11.4, 8.4)
+
+        plt.title('Week ' + str(i+1))
+        plt.ylim(0, 900 / (split / 2))
+        plt.ylabel('Number of Occurrences')
+        plt.xlabel('Cloudiness Relative to Mean')
+
+        plot2 = plt.bar(bins3[:binstop], hist3[:histstop], width=w,
+                        align='edge', tick_label=labels[:binstop],
+                        label='2017 (' + str(n1) + ')')
+
+        # Passes the data to the fitting method.
+        val = np.asarray(tweek3[i])
+        coeffs = fit_function(tweek3[i])
+        print("2017: " + str(coeffs))
+
+        y = function(coeffs[0], coeffs[1], coeffs[2], x)
+        scale = np.amax(hist3) / np.amax(y)
+        y = y * scale
+        plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
+
+        plt.legend()
+        plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-2017.png',
                     dpi=256, bbox_inches='tight')
         plt.close()
 
@@ -697,23 +758,25 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (decay here), making it the variable here.
-def model(d1, d2, x):
-    p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
-    p2 = (d2 ** x / misc.factorial(x)) * np.exp(-d2)
+def function(d1, d2, d3, x):
+    #p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
+    p2 = (d3 ** x / misc.factorial(x)) * np.exp(-d3)
+    p1 = 1 / np.sqrt(np.pi * 2 * d1) * np.exp(-((x - d2)**2)/(2*d1))
     return p1 + p2
 
 
 def likelihood(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(model(params[0], params[1], data)))
+    chi = -np.sum(np.log(function(params[0], params[1], params[2], data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_model(xdata):
-    fit = optimize.minimize(likelihood, x0=[0,5], args=xdata, method='Nelder-Mead')
+def fit_function(xdata):
+    fit = optimize.minimize(likelihood, x0=[1,0.5,3], args=xdata, method='Nelder-Mead')
+    print(fit.success)
     return np.abs(fit.x)
 
 
