@@ -652,7 +652,7 @@ def histo():
 
     # Loops over each week (the i value)
     for i, val in enumerate(tweek['all']):
-        def plot_histogram(year):
+        for year, value in tweek.items():
             hist, bins = np.histogram(tweek[year][i], bins=divs)
 
             # Sets the size wider than the previous to fit all the bins.
@@ -707,9 +707,6 @@ def histo():
             plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
                         dpi=256, bbox_inches='tight')
             plt.close()
-
-        for year, value in tweek.items():
-            plot_histogram(year)
 
         print('Saved: Week ' + str(i+1))
         print()
