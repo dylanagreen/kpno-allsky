@@ -3,7 +3,7 @@ import time
 import ast
 from scipy import ndimage
 from scipy import optimize
-from scipy import misc
+from scipy import special
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -476,7 +476,7 @@ def plot():
 
     # Week
     x = np.asarray((range(1, 54)))
-    plt.ylabel('Cloudiness Relative to Mean')
+    #plt.ylabel('Cloudiness Relative to Mean')
     plt.xlabel('Week Number')
 
     # Moon phase averages.
@@ -487,15 +487,41 @@ def plot():
         print(str(i + 1) + ': ' + str(len(val)))
         num_imgs.append(len(val))
 
-    setup_plot(x, tweek)
+    #setup_plot(x, tweek)
     # plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
 
-    num_imgs = np.asarray(num_imgs)
+    #num_imgs = np.asarray(num_imgs)
 
-    num_imgs = num_imgs * 1 / (np.amax(num_imgs))
+    #num_imgs = num_imgs * 1 / (np.amax(num_imgs))
 
-    plt.plot(x, num_imgs, label='Normalized number of images',
-             color=(0, 1, 0, 1))
+    #plt.plot(x, num_imgs, label='Normalized number of images',
+             #color=(0, 1, 0, 1))
+
+    data = np.asarray([[0, 0, 0, 0, 0]])
+
+    for i, val in enumerate(tweek):
+        temp = np.asarray(val)
+
+        # Percentile returns an array of each of the three values.
+        # We're creating a data array where each column is all the
+        # percentile values for each bin value.
+        if temp.size == 0:
+            data = np.append(data, nanarray, axis=0)
+        else:
+            d = np.asarray(fit_function(val))
+            d = d.reshape(1,5)
+            data = np.append(data, d, axis=0)
+
+    # Deletes the first 0,0,0 array.
+    data = np.delete(data, 0, 0)
+
+
+    # This code is here for later.
+    plt.plot(x, data[0:data.shape[0], 0], label='Sigma^2')
+    plt.plot(x, data[0:data.shape[0], 1], label='Mu')
+    plt.plot(x, data[0:data.shape[0], 2], label='Lambda')
+    #plt.plot(x, data[0:data.shape[0], 3], label='')
+    plt.plot(x, data[0:data.shape[0], 4], label='Frac')
 
     # We have to re add the legend to get the moon phase label.
     plt.legend()
@@ -672,11 +698,14 @@ def histo():
             coeffs = fit_function(tweek[year][i])
             print(str(year) + ': ' + str(coeffs))
 
-            # Finds the y, then scales it to be the same height as the histo.
-            # Scaling is for sanity check.
-            y = function(coeffs[0], coeffs[1], coeffs[2], x)
-            scale = np.amax(hist) / np.amax(y)
+            # Finds the y func, then scales so it has the same area as the hist
+            y = function(coeffs[0], coeffs[1], coeffs[2], coeffs[3], coeffs[4], x)
+            print(np.trapz(y,x))
+            scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
+
+            #print(np.sum(hist) * w)
+            #print(np.trapz(y,x))
 
             # Plots everything, histogram, and then the fitted data on top.
             if year == 'all':
@@ -689,10 +718,16 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label='2017 (' + str(num) + ')')
 
-                hist, bins = np.histogram(tweek['2016'][i], bins=divs)
-                plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
+                hist2, bins2 = np.histogram(tweek['2016'][i], bins=divs)
+                plot = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
                                 align='edge', tick_label=labels[:binstop],
                                 label='2016 (' + str(num2) + ')')
+
+                hist3, bins3 = np.histogram(tweek['2017'][i], bins=divs)
+
+                print('Same histo?')
+                print(hist3 == (hist-hist2))
+
             else:
                 # Plots just the year histogram.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
@@ -712,25 +747,42 @@ def histo():
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
-# Minimize changes the coefficients (decay here), making it the variable here.
-def function(d1, d2, d3, x):
+# Minimize changes the coefficients (d1-d4), making it the variable here.
+def function(d1, d2, d3, d4, frac, x):
+
+    # A is the normalization constant, here changed because 0 is a hard cutoff.
+    # So we normalize 0 to infinity rather than -infinity to infinity.
+    x1 = np.arange(0, 400, 0.1)
+    A = 1 / np.trapz(np.exp(-((x1 - d2) ** 2) / (2 * d1)), x1)
+    B = 1
+
+    # This is hacky. Eseentially derivatives can't be trusted for our function,
+    # We have to use a fitting method that doesn't take derivatives.
+    # However scipy can't constrain those methods, except we can't have frac
+    # exceed 1 or 0 (for reasons that should be obvious...)
+    # So return 0. Which shouldn't be the minimum or maximum. I hope.
+    if frac > 1 or frac < 0:
+        A = 0
+        B = 0
+
     #p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
-    p2 = (d3 ** x / misc.factorial(x)) * np.exp(-d3)
-    p1 = 1 / np.sqrt(np.pi * 2 * d1) * np.exp(-((x - d2)**2)/(2*d1))
+    p2 = B * (1 - frac) * (d3 ** x / special.factorial(x)) * np.exp(-d3)
+    p1 = frac * A * np.exp(-((x - d2) ** 2) / (2 * d1))
+    #p2 = (1-frac) / np.sqrt(np.pi * 2 * d3) * np.exp(-((x - d4) ** 2) / (2 * d3))
     return p1 + p2
 
 
 def likelihood(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(function(params[0], params[1], params[2], data)))
+    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], params[4], data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_function(xdata):
-    fit = optimize.minimize(likelihood, x0=[1,0.5,3], args=xdata, method='Nelder-Mead')
+    fit = optimize.minimize(likelihood, x0=[1,0.5,3,3,0.5], args=xdata, method='Nelder-Mead')
     print(fit.success)
     return np.abs(fit.x)
 
@@ -834,4 +886,4 @@ def to_csv():
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    histo()
+    plot()
