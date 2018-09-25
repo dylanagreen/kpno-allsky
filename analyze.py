@@ -723,11 +723,6 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label='2016 (' + str(num2) + ')')
 
-                hist3, bins3 = np.histogram(tweek['2017'][i], bins=divs)
-
-                print('Same histo?')
-                print(hist3 == (hist-hist2))
-
             else:
                 # Plots just the year histogram.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
@@ -782,7 +777,7 @@ def likelihood(params, data):
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_function(xdata):
-    fit = optimize.minimize(likelihood, x0=[1,0.5,3,3,0.5], args=xdata, method='Nelder-Mead')
+    fit = optimize.minimize(likelihood, x0=[0,0.5,3,3,0.5], args=xdata, method='Nelder-Mead', options={'disp':True, 'maxiter':1000})
     print(fit.success)
     return np.abs(fit.x)
 
@@ -886,4 +881,5 @@ def to_csv():
 if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    plot()
+    #optimize.show_options('minimize', disp=True)
+    histo()
