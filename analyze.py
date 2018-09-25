@@ -777,7 +777,7 @@ def likelihood(params, data):
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_function(xdata):
-    fit = optimize.minimize(likelihood, x0=[0,0.5,3,3,0.5], args=xdata, method='Nelder-Mead', options={'disp':True, 'maxiter':1000})
+    fit = optimize.minimize(likelihood, x0=[0,0.5,3,3,0.5], args=xdata, method='Nelder-Mead', options={'disp':True})
     print(fit.success)
     return np.abs(fit.x)
 
