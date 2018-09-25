@@ -686,6 +686,7 @@ def histo():
             fig = plt.figure()
             fig.set_size_inches(11.4, 8.4)
 
+            print('Week ' + str(i+1))
             plt.title('Week ' + str(i+1))
             plt.ylim(0, 900 / (split / 2))
             plt.ylabel('Number of Occurrences')
@@ -699,8 +700,8 @@ def histo():
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
-            y = function(coeffs[0], coeffs[1], coeffs[2], coeffs[3], coeffs[4], x)
-            print(np.trapz(y,x))
+            y = function(coeffs[0], coeffs[1], coeffs[2], coeffs[3], x)
+            print('Area: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
 
@@ -743,13 +744,16 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients (d1-d4), making it the variable here.
-def function(d1, d2, d3, d4, frac, x):
+def function(d1, d2, d3, frac, x):
 
     # A is the normalization constant, here changed because 0 is a hard cutoff.
     # So we normalize 0 to infinity rather than -infinity to infinity.
+    # Trapz is the integration method using the trapezoid rule.
     x1 = np.arange(0, 400, 0.1)
-    A = 1 / np.trapz(np.exp(-((x1 - d2) ** 2) / (2 * d1)), x1)
+    A = 1 / np.trapz(np.exp(-((x1 - d2) ** 2) / (2 * d1 * d1)), x1)
     B = 1
+    
+    print(A)
 
     # This is hacky. Eseentially derivatives can't be trusted for our function,
     # We have to use a fitting method that doesn't take derivatives.
@@ -762,7 +766,7 @@ def function(d1, d2, d3, d4, frac, x):
 
     #p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
     p2 = B * (1 - frac) * (d3 ** x / special.factorial(x)) * np.exp(-d3)
-    p1 = frac * A * np.exp(-((x - d2) ** 2) / (2 * d1))
+    p1 = frac * A * np.exp(-((x - d2) ** 2) / (2 * d1* d1))
     #p2 = (1-frac) / np.sqrt(np.pi * 2 * d3) * np.exp(-((x - d4) ** 2) / (2 * d3))
     return p1 + p2
 
@@ -770,14 +774,19 @@ def function(d1, d2, d3, d4, frac, x):
 def likelihood(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], params[4], data)))
+    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_function(xdata):
-    fit = optimize.minimize(likelihood, x0=[0,0.5,3,3,0.5], args=xdata, method='Nelder-Mead', options={'disp':True})
+    
+    # Default for maxiter is N * 200 but that's not enough in this case so we
+    # need to specify a higher value
+    fit = optimize.minimize(likelihood, x0=[0.1,0.25,3,0.5], args=xdata,
+                            method='Nelder-Mead',
+                            options={'disp':True, 'maxiter':1000})
     print(fit.success)
     return np.abs(fit.x)
 
