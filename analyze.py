@@ -497,7 +497,7 @@ def plot():
     #plt.plot(x, num_imgs, label='Normalized number of images',
              #color=(0, 1, 0, 1))
 
-    data = np.asarray([[0, 0, 0, 0, 0]])
+    data = np.asarray([[0, 0, 0, 0]])
 
     for i, val in enumerate(tweek):
         temp = np.asarray(val)
@@ -509,7 +509,7 @@ def plot():
             data = np.append(data, nanarray, axis=0)
         else:
             d = np.asarray(fit_function(val))
-            d = d.reshape(1,5)
+            d = d.reshape(1,4)
             data = np.append(data, d, axis=0)
 
     # Deletes the first 0,0,0 array.
@@ -517,15 +517,24 @@ def plot():
 
 
     # This code is here for later.
-    plt.plot(x, data[0:data.shape[0], 0], label='Sigma^2')
-    plt.plot(x, data[0:data.shape[0], 1], label='Mu')
+    plt.plot(x, data[0:data.shape[0], 0], label='Sigma')
+    plt.legend()
+    plt.savefig('Images/Plots/week-sigma.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    #plt.plot(x, data[0:data.shape[0], 1], label='Mu')
     plt.plot(x, data[0:data.shape[0], 2], label='Lambda')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-lambda.png', dpi=256, bbox_inches='tight')
+    plt.close()
     #plt.plot(x, data[0:data.shape[0], 3], label='')
-    plt.plot(x, data[0:data.shape[0], 4], label='Frac')
+    plt.plot(x, data[0:data.shape[0], 3], label='Frac')
+    print(np.mean(data[0:data.shape[0], 3]))
 
     # We have to re add the legend to get the moon phase label.
+    plt.xlabel('Week Number')
     plt.legend()
-    plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week-frac.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
@@ -743,17 +752,15 @@ def histo():
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
-# Minimize changes the coefficients (d1-d4), making it the variable here.
-def function(d1, d2, d3, frac, x):
+# Minimize changes the coefficients making those the variables here.
+def function(sigma, mu, lamb, frac, x):
 
     # A is the normalization constant, here changed because 0 is a hard cutoff.
     # So we normalize 0 to infinity rather than -infinity to infinity.
     # Trapz is the integration method using the trapezoid rule.
     x1 = np.arange(0, 400, 0.1)
-    A = 1 / np.trapz(np.exp(-((x1 - d2) ** 2) / (2 * d1 * d1)), x1)
+    A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
     B = 1
-    
-    print(A)
 
     # This is hacky. Eseentially derivatives can't be trusted for our function,
     # We have to use a fitting method that doesn't take derivatives.
@@ -764,10 +771,9 @@ def function(d1, d2, d3, frac, x):
         A = 0
         B = 0
 
-    #p1 = (d1 ** x / misc.factorial(x)) * np.exp(-d1)
-    p2 = B * (1 - frac) * (d3 ** x / special.factorial(x)) * np.exp(-d3)
-    p1 = frac * A * np.exp(-((x - d2) ** 2) / (2 * d1* d1))
-    #p2 = (1-frac) / np.sqrt(np.pi * 2 * d3) * np.exp(-((x - d4) ** 2) / (2 * d3))
+    p2 = B * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
+    p1 = frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
+
     return p1 + p2
 
 
@@ -784,10 +790,10 @@ def fit_function(xdata):
     
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
-    fit = optimize.minimize(likelihood, x0=[0.1,0.25,3,0.5], args=xdata,
+    fit = optimize.minimize(likelihood, x0=[0.1,0.5,3,0.5], args=xdata,
                             method='Nelder-Mead',
-                            options={'disp':True, 'maxiter':1000})
-    print(fit.success)
+                            options={'disp':True, 'maxiter':1200})
+    #print(fit.success)
     return np.abs(fit.x)
 
 
@@ -891,4 +897,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    histo()
+    plot()
