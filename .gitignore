@@ -13,3 +13,6 @@ Notebooks/.ipynb_checkpoints/
 * Other folders
 References/
 Data/
+
+* Documentation Ignores
+doc/_*
