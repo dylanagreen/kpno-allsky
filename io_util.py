@@ -3,7 +3,7 @@ import math
 import time
 from html.parser import HTMLParser
 import numpy as np
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 from scipy import ndimage
 import requests
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
@@ -13,6 +13,34 @@ from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
 # Reads a link, with exception handling and error checking built in.
 # Returns a requests.Response object if it succeeds, returns None if it fails.
 def download_url(link):
+    """Read the data at a url.
+    
+    Parameters
+    ----------
+    link : str
+        The link to access and download data from.
+    
+    Returns
+    -------
+    requests.Response or None
+        If the link was successfully read and downloaded, returns a requests
+        Response object. If not, returns None and raises an exception.
+    
+    Raises
+    ------
+    TooManyRedirects
+        If there are too many redirects in the link provided.
+    HTTPError
+        If there is a generic HTTP error associated with reading the link.
+    ConnectionError
+        If the script was unable to create a connection to the link.
+    Timeout
+        If the link does not provide any information after three attempts.
+    RequestException
+        If Requests raises an exception that is not covered by the previous
+        four exceptions.
+    
+    """
     tries = 0
     read = False
 
@@ -63,6 +91,29 @@ def download_url(link):
 # Saves an input image with the given name in the folder denoted by location.
 # If the image is greyscale, cmap should be 'gray'
 def save_image(img, name, location, cmap=None, patch=None):
+    """Save an image.
+    
+    Save an image passed in `img` with the name `name` into the location in
+    `location`. `cmap` provides an option to save the image in greyscale, and
+    `patch` allows matplotlib patches to be applied on top of the saved image.
+    
+    Parameters
+    ----------
+    img : ndarray
+        The image to be saved, as type ``ndarray``.
+    name : str
+        The name of the saved image.
+    location : str
+        The relative path to save the image to. If the path does not exist,
+        it is created.
+    cmap : str, optional
+        A colormap to use when saving the image. For grayscale images, use
+        'gray,' otherwise defaults to no colormap.
+    patch : matplotlib.patches.Patch, optional
+        A matplotlib patch to apply on top of the saved image. By default no 
+        patch is applied.
+    
+    """
     if not os.path.exists(location):
         os.makedirs(location)
 
@@ -73,9 +124,9 @@ def save_image(img, name, location, cmap=None, patch=None):
     x = img.shape[1] / dpi
 
     # Generate Figure and Axes objects.
-    figure = plot.figure()
+    figure = plt.figure()
     figure.set_size_inches(x, y)  # 4 inches by 4 inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
+    axes = plt.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
@@ -100,20 +151,37 @@ def save_image(img, name, location, cmap=None, patch=None):
         name = name + '.png'
 
     # Print "saved" after saving, in case saving messes up.
-    plot.savefig(name, dpi=dpi)
+    plt.savefig(name, dpi=dpi)
     print('Saved: ' + name)
 
     # Close the plot in case you're running multiple saves.
-    plot.close()
+    plt.close()
 
 
 # Html parser for looping through html tags
 class DateHTMLParser(HTMLParser):
+    """Parser for data passed from image websites.
+    
+    Attributes
+    ----------
+    data : list
+        Extracted data from the image website HTML.
+    """
     def __init__(self):
         HTMLParser.__init__(self)
         self.data = []
 
     def handle_starttag(self, tag, attrs):
+        """Extract image links from the HTML start tag.
+        
+        Parameters
+        ----------
+        tag : str
+            The start tag
+        attrs : list
+            The attributes attached to the corresponding `tag`.
+        
+        """
         # All image names are held in tags of form <A HREF=imagename>
         if tag == 'a':
             for attr in attrs:
@@ -122,12 +190,52 @@ class DateHTMLParser(HTMLParser):
                     self.data.append(attr[1])
 
     def clear_data(self):
+        """Clear the data list of this parser instance.
+        
+        """
         self.data = []
 
 
 # Downloads all the images for a certain date for a given camera.
 # Currently supports the kpno all sky and the mmto all sky.
 def download_all_date(date, camera="kpno"):
+    """Download all images for a given date and all-sky camera.
+    
+    Parameters
+    ----------
+    date : str
+        Date to download images for, in the form yyyymmdd.
+    camera : str, optional
+        Camera to download images from. Defaults to `kpno` (the all-sky camera
+        at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
+        camera at the MMT Observatory).
+    
+    Raises
+    ------
+    TooManyRedirects
+        If there are too many redirects in downloading the images.
+    HTTPError
+        If there is a generic HTTP error associated with downlading images.
+    ConnectionError
+        If the script was unable to create a connection to the image link.
+    Timeout
+        If the image link does not provide any information after three attempts.
+    RequestException
+        If Requests raises an exception that is not covered by the previous
+        four exceptions.
+    
+    Notes
+    -----
+    Over the course of the run time of this method various status updates will
+    be printed. The method will exit early with a print out of what happened
+    and a raised exception if the image link is unable to be read. 
+    
+    The Kitt-Peak National Observatory images are located at 
+    http://kpasca-archives.tuc.noao.edu/.
+    
+    The MMT Observatory images are located at 
+    http://skycam.mmto.arizona.edu/skycam/.
+    """
     links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
              'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
 
@@ -180,6 +288,50 @@ def download_all_date(date, camera="kpno"):
 
 
 def download_image(date, image, camera='kpno'):
+    """Download a single image.
+    
+    This method is of a similar form to download_all_date, where `date` 
+    provides the date and `camera` provides the camera. `image` is the name
+    of the image to be downloaded. Images are saved to 
+    
+    Parameters
+    ----------
+    date : str
+        Date to download images for, in the form yyyymmdd.
+    image : str
+        Image name to download.
+    camera : str, optional
+        Camera to download images from. Defaults to `kpno` (the all-sky camera
+        at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
+        camera at the MMT Observatory).
+    
+    Raises
+    ------
+    TooManyRedirects
+        If there are too many redirects in downloading the images
+    HTTPError
+        If there is a generic HTTP error associated with downlading the image.
+    ConnectionError
+        If the script was unable to create a connection to the image link.
+    Timeout
+        If the image link does not provide any information after three attempts.
+    RequestException
+        If Requests raises an exception that is not covered by the previous
+        four exceptions.
+    
+    Notes
+    -----
+    Over the course of the run time of this method various status updates will
+    be printed. The method will exit early and fail to downlod the image 
+    with a failure print out and a raised exception if the image link is 
+    unable to be read. 
+    
+    The Kitt-Peak National Observatory images are located at 
+    http://kpasca-archives.tuc.noao.edu/.
+    
+    The MMT Observatory images are located at 
+    http://skycam.mmto.arizona.edu/skycam/.
+    """
     links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
              'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
 
@@ -207,8 +359,26 @@ def download_image(date, image, camera='kpno'):
     print("Downloaded: " + imagename)
 
 
-# Loads all the images for a certain date
 def load_all_date(date):
+    """Load all images for a given date.
+    
+    Parameters
+    ----------
+    date : str
+        The date in formate yyyymmdd. 
+    
+    Returns
+    -------
+    ndarray
+        An ``ndarray`` that contains all images for that date. ``ndarray`` is 
+        of the shape (512, 512, 4, N) where N is the number of images for 
+        that day.
+    
+    See Also
+    --------
+    gray_and_color_image : Images are loaded using gray_and_color_image.
+    
+    """
 
     # I've hard coded the files for now, this can be changed later.
     directory = 'Images/Original/' + date + '/'
@@ -253,9 +423,8 @@ def load_all_date(date):
         if final > 0:
             dic[n] = temp
 
-    # Return is the super image for later.
-    # This just makes it random and in the correct shape for later
-    # In case key == 1 fails.
+    # This makes the result random and in the correct shap in case key == 1
+    # fails.
     result = np.random.rand(512, 512, 4, 1)
 
     for key, val in dic.items():
@@ -272,6 +441,31 @@ def load_all_date(date):
 # each pixel has 4 values associated with it:
 # Grayscale (L), R, G and B
 def gray_and_color_image(file):
+    """Load an image in both grayscale and color.
+    
+    Load an image and return an image where each pixel is represented by a 
+    four item list, of the form [L, R, G, B] where L is the luma grayscale
+    value.
+    
+    Parameters
+    ----------
+    file : str
+        The location of the image to be read in.
+    
+    Returns
+    -------
+    ndarray
+        The ndarray representing the grayscale and color combination image.
+    
+    Notes
+    -----
+    
+    The SciPy documentation includes the following definition of the 
+    ITU-R 601-2 luma grayscale transform:
+    
+        L = R * 299/1000 + G * 587/1000 + B * 114/1000
+    
+    """
     img = ndimage.imread(file, mode='RGB')
     img2 = ndimage.imread(file, mode='L')
 
@@ -289,6 +483,31 @@ def gray_and_color_image(file):
 # The second pixel is yellow in .03 and .002
 # but due to magic of if blocks that's ok.
 def get_exposure(image):
+    """ Get the exposure time of an image.
+    
+    Parameters
+    ----------
+    image : ndarray
+        An ``ndarray`` representing the image data.
+    
+    Returns
+    -------
+    float or int
+        The exposure time in seconds of the provided image. 
+        Possible values are 0.3, 0.02 or 6.
+    
+    Notes
+    -----
+    get_exposure works by looking at two specific pixels in an image taken on
+    the KPNO camera. The first pixel is at (174, 19) in (x, y) coordinates, 
+    where (0, 0) is the top left corner of the image. This pixel appears as 
+    gray in images taken at 0.3s or 0.02s exposure times, but as 
+    black in images taken in 6s exposure times. In order to differentiate
+    between 0.3s and 0.02s a second pixel at (119, 17) is used, which appears
+    as gray in images taken at 0.02s exposure time but as black in images taken
+    in 0.3s exposure time. 
+    
+    """
     pix1 = image[19, 174]
     pix2 = image[17, 119]
 
@@ -312,6 +531,20 @@ def get_exposure(image):
 # Black areas are exactly the same in both, white areas are opposite.
 # Greyscale/color values are varying levels of difference.
 def image_diff(img1, img2):
+    """Find the mathematical difference between two grayscale images.
+    
+    Parameters
+    ----------
+    img1 : ndarray
+        The first image.
+    img2 : ndarray
+        The second image.
+    
+    Notes
+    -----
+    The order of the parameters does not matter. In essence, 
+    image_diff(img1, img2) == image_diff(img2, img1).
+    """
     # I encountered a problem previously, in that
     # I assumed the type of the array would dynamically change.
     # This is python, so that's not wrong per se.
