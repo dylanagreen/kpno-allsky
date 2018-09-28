@@ -508,7 +508,19 @@ def plot():
         if temp.size == 0:
             data = np.append(data, nanarray, axis=0)
         else:
-            d = np.asarray(fit_function(val))
+            # Passes the data to the fitting method.
+            temp = np.delete(temp, np.where(temp < 0.061))
+            fit1 = fit_function(temp)
+            coeffs1 = np.abs(fit1.x)
+            
+            fit2 = fit_function(temp,[0.2,3,0.4,0.5])
+            coeffs2 = np.abs(fit2.x)
+
+            if np.abs(fit2.fun) < np.abs(fit1.fun):
+                d = np.asarray(coeffs2)
+            else:
+                d = np.asarray(coeffs1)
+
             d = d.reshape(1,4)
             data = np.append(data, d, axis=0)
 
@@ -688,7 +700,13 @@ def histo():
     # Loops over each week (the i value)
     for i, val in enumerate(tweek['all']):
         for year, value in tweek.items():
-            hist, bins = np.histogram(tweek[year][i], bins=divs)
+            
+            temp = np.asarray(tweek[year][i])
+            print(temp.shape)
+            temp = np.delete(temp, np.where(temp < 0.061))
+            print(temp.shape)
+            
+            hist, bins = np.histogram(temp, bins=divs)
 
             # Sets the size wider than the previous to fit all the bins.
             # I shave off a lot of 0 value bins later as well in plotting.
@@ -702,12 +720,14 @@ def histo():
             plt.xlabel('Cloudiness Relative to Mean')
 
             # Number of images used to make this histogram.
-            num = len(tweek[year][i])
+            num = len(temp)
 
             # Plots everything, histogram, and then the fitted data on top.
             if year == 'all':
                 # Changes the numbers for each year
-                num2 = len(tweek['2016'][i])
+                temp2 = np.asarray(tweek['2016'][i])
+                temp2 = np.delete(temp2, np.where(temp2 < 0.061))
+                num2 = len(temp2)
                 num = num - num2
 
                 # For all, we plot everything, then 2016 on top for separation.
@@ -715,7 +735,7 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label='2017 (' + str(num) + ')')
 
-                hist2, bins2 = np.histogram(tweek['2016'][i], bins=divs)
+                hist2, bins2 = np.histogram(temp2, bins=divs)
                 plot = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
                                 align='edge', tick_label=labels[:binstop],
                                 label='2016 (' + str(num2) + ')')
@@ -727,12 +747,11 @@ def histo():
                                 label=year + ' (' + str(num) + ')')
 
             # Passes the data to the fitting method.
-            fit1 = fit_function(tweek[year][i])
+            fit1 = fit_function(temp)
             coeffs1 = np.abs(fit1.x)
             #print('Fun 1: ' + str(fit1.fun))
 
-            # Passes the data to the fitting method.
-            fit2 = fit_function(tweek[year][i],[0.2,3,0.4,0.5])
+            fit2 = fit_function(temp,[0.2,3,0.4,0.5])
             coeffs2 = np.abs(fit2.x)
             #print('Fun 2: ' + str(fit2.fun))
 
@@ -922,4 +941,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    histo()
+    plot()
