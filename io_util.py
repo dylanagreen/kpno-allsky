@@ -10,8 +10,6 @@ from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
 
 
-# Reads a link, with exception handling and error checking built in.
-# Returns a requests.Response object if it succeeds, returns None if it fails.
 def download_url(link):
     """Read the data at a url.
     
@@ -23,23 +21,9 @@ def download_url(link):
     Returns
     -------
     requests.Response or None
-        If the link was successfully read and downloaded, returns a requests
-        Response object. If not, returns None and raises an exception.
-    
-    Raises
-    ------
-    TooManyRedirects
-        If there are too many redirects in the link provided.
-    HTTPError
-        If there is a generic HTTP error associated with reading the link.
-    ConnectionError
-        If the script was unable to create a connection to the link.
-    Timeout
-        If the link does not provide any information after three attempts.
-    RequestException
-        If Requests raises an exception that is not covered by the previous
-        four exceptions.
-    
+        A requests.Response object containing data on success, 
+        or None on failure.
+
     """
     tries = 0
     read = False
@@ -88,8 +72,6 @@ def download_url(link):
             return data
 
 
-# Saves an input image with the given name in the folder denoted by location.
-# If the image is greyscale, cmap should be 'gray'
 def save_image(img, name, location, cmap=None, patch=None):
     """Save an image.
     
@@ -100,18 +82,23 @@ def save_image(img, name, location, cmap=None, patch=None):
     Parameters
     ----------
     img : ndarray
-        The image to be saved, as type ``ndarray``.
+        The image to be saved.
     name : str
         The name of the saved image.
     location : str
         The relative path to save the image to. If the path does not exist,
         it is created.
     cmap : str, optional
-        A colormap to use when saving the image. For grayscale images, use
-        'gray,' otherwise defaults to no colormap.
+        A colormap to use when saving the image. Supports any matplotlib
+        supported colormap.
     patch : matplotlib.patches.Patch, optional
         A matplotlib patch to apply on top of the saved image. By default no 
         patch is applied.
+    
+    Notes
+    -----
+    See https://matplotlib.org/tutorials/colors/colormaps.html for more detail
+    on matplotlib colormaps.
     
     """
     if not os.path.exists(location):
@@ -158,7 +145,6 @@ def save_image(img, name, location, cmap=None, patch=None):
     plt.close()
 
 
-# Html parser for looping through html tags
 class DateHTMLParser(HTMLParser):
     """Parser for data passed from image websites.
     
@@ -196,45 +182,35 @@ class DateHTMLParser(HTMLParser):
         self.data = []
 
 
-# Downloads all the images for a certain date for a given camera.
-# Currently supports the kpno all sky and the mmto all sky.
 def download_all_date(date, camera="kpno"):
     """Download all images for a given date and all-sky camera.
     
     Parameters
     ----------
     date : str
-        Date to download images for, in the form yyyymmdd.
+        Date to download images for, in yyyymmdd format.
     camera : str, optional
         Camera to download images from. Defaults to `kpno` (the all-sky camera
         at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
         camera at the MMT Observatory).
-    
-    Raises
-    ------
-    TooManyRedirects
-        If there are too many redirects in downloading the images.
-    HTTPError
-        If there is a generic HTTP error associated with downlading images.
-    ConnectionError
-        If the script was unable to create a connection to the image link.
-    Timeout
-        If the image link does not provide any information after three attempts.
-    RequestException
-        If Requests raises an exception that is not covered by the previous
-        four exceptions.
-    
+
+    See Also
+    --------
+    download_image : Images are downloaded using download_image.
+
     Notes
     -----
     Over the course of the run time of this method various status updates will
-    be printed. The method will exit early with a print out of what happened
-    and a raised exception if the image link is unable to be read. 
+    be printed. The method will exit early with a print out of what happened.
+    
+    Images will be saved to Images/Original/`camera`/`date`/.
     
     The Kitt-Peak National Observatory images are located at 
     http://kpasca-archives.tuc.noao.edu/.
     
     The MMT Observatory images are located at 
     http://skycam.mmto.arizona.edu/skycam/.
+    
     """
     links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
              'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
@@ -305,26 +281,13 @@ def download_image(date, image, camera='kpno'):
         at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
         camera at the MMT Observatory).
     
-    Raises
-    ------
-    TooManyRedirects
-        If there are too many redirects in downloading the images
-    HTTPError
-        If there is a generic HTTP error associated with downlading the image.
-    ConnectionError
-        If the script was unable to create a connection to the image link.
-    Timeout
-        If the image link does not provide any information after three attempts.
-    RequestException
-        If Requests raises an exception that is not covered by the previous
-        four exceptions.
-    
     Notes
     -----
     Over the course of the run time of this method various status updates will
     be printed. The method will exit early and fail to downlod the image 
-    with a failure print out and a raised exception if the image link is 
-    unable to be read. 
+    with a failure print out.
+    
+    Images will be saved to Images/Original/`camera`/`date`/.
     
     The Kitt-Peak National Observatory images are located at 
     http://kpasca-archives.tuc.noao.edu/.
@@ -365,7 +328,7 @@ def load_all_date(date):
     Parameters
     ----------
     date : str
-        The date in formate yyyymmdd. 
+        The date in yyyymmdd format. 
     
     Returns
     -------
@@ -437,9 +400,6 @@ def load_all_date(date):
     return result
 
 
-# Loads in an image and returns it as an array where
-# each pixel has 4 values associated with it:
-# Grayscale (L), R, G and B
 def gray_and_color_image(file):
     """Load an image in both grayscale and color.
     
@@ -450,12 +410,17 @@ def gray_and_color_image(file):
     Parameters
     ----------
     file : str
-        The location of the image to be read in.
+        The location of the image to be read.
     
     Returns
     -------
     ndarray
         The ndarray representing the grayscale and color combination image.
+    
+    See Also
+    --------
+    scipy.misc.imread : For more details on the ITU-R 601-2 luma grayscale
+     transform used by this method.
     
     Notes
     -----
@@ -477,18 +442,13 @@ def gray_and_color_image(file):
     return img.reshape(img.shape[0], img.shape[1], 4, 1)
 
 
-# Gets the exposure time of an image.
-# 225 is the greyscale value for the yellow in the image.
-# The pixel chosen is yellow for .03s and "not yellow" for 6s.
-# The second pixel is yellow in .03 and .002
-# but due to magic of if blocks that's ok.
 def get_exposure(image):
-    """ Get the exposure time of an image.
+    """Get the exposure time of an image.
     
     Parameters
     ----------
     image : ndarray
-        An ``ndarray`` representing the image data.
+        The image data.
     
     Returns
     -------
@@ -527,9 +487,6 @@ def get_exposure(image):
     return 6
 
 
-# Returns the difference image between two images.
-# Black areas are exactly the same in both, white areas are opposite.
-# Greyscale/color values are varying levels of difference.
 def image_diff(img1, img2):
     """Find the mathematical difference between two grayscale images.
     
@@ -540,10 +497,20 @@ def image_diff(img1, img2):
     img2 : ndarray
         The second image.
     
+    Returns
+    -------
+    ndarray
+        The difference image.
+    
     Notes
     -----
     The order of the parameters does not matter. In essence, 
     image_diff(img1, img2) == image_diff(img2, img1).
+    
+    Greyscale values in the returned image represent the difference between 
+    the images. black means the pixels were identical in both images, whereas 
+    white represents the maximum difference between the two, 
+    where in one image the pixel is white and in one it is black.
     """
     # I encountered a problem previously, in that
     # I assumed the type of the array would dynamically change.
