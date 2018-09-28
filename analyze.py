@@ -704,19 +704,6 @@ def histo():
             # Number of images used to make this histogram.
             num = len(tweek[year][i])
 
-            # Passes the data to the fitting method.
-            coeffs = fit_function(tweek[year][i])
-            print(str(year) + ': ' + str(coeffs))
-
-            # Finds the y func, then scales so it has the same area as the hist
-            y = function(coeffs[0], coeffs[1], coeffs[2], coeffs[3], x)
-            print('Area: ' + str(np.trapz(y,x)))
-            scale = np.sum(hist) * w / np.trapz(y,x)
-            y = y * scale
-
-            #print(np.sum(hist) * w)
-            #print(np.trapz(y,x))
-
             # Plots everything, histogram, and then the fitted data on top.
             if year == 'all':
                 # Changes the numbers for each year
@@ -739,8 +726,46 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label=year + ' (' + str(num) + ')')
 
+            # Passes the data to the fitting method.
+            fit1 = fit_function(tweek[year][i])
+            coeffs1 = np.abs(fit1.x)
+            #print('Fun 1: ' + str(fit1.fun))
+
+            # Passes the data to the fitting method.
+            fit2 = fit_function(tweek[year][i],[0.2,3,0.4,0.5])
+            coeffs2 = np.abs(fit2.x)
+            #print('Fun 2: ' + str(fit2.fun))
+
+            if np.abs(fit2.fun) < np.abs(fit1.fun):
+                print('Fit 2 Chosen')
+                coeffs = coeffs2
+            else:
+                print('Fit 1 Chosen')
+                coeffs = coeffs1
+
+            sigma = coeffs[0]
+            mu = coeffs[1]
+            lamb = coeffs[2]
+            frac = coeffs[3]
+
+            print(str(year) + ': ' + str(coeffs))
+
+            # Finds the y func, then scales so it has the same area as the hist
+            y = function(sigma, mu, lamb, frac, x)
+            print('Area: ' + str(np.trapz(y,x)))
+            scale = np.sum(hist) * w / np.trapz(y,x)
+            y = y * scale
+
             # Plots the fit.
             plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
+
+            x1 = np.arange(0, 400, 0.1)
+            A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
+            p1 = scale * frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
+            p2 = scale * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
+
+            plt.plot(x, p1, color=(0, 0, 1, 1), label='Gaussian')
+            plt.plot(x, p2, color=(1, 0, 0, 1), label='Poisson')
 
             plt.legend()
             plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
@@ -786,15 +811,15 @@ def likelihood(params, data):
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata):
-    
+def fit_function(xdata, init=[0.1,0.5,3,0.5]):
+
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
-    fit = optimize.minimize(likelihood, x0=[0.1,0.5,3,0.5], args=xdata,
+    fit = optimize.minimize(likelihood, x0=init, args=xdata,
                             method='Nelder-Mead',
-                            options={'disp':True, 'maxiter':1200})
+                            options={'disp':False, 'maxiter':1200})
     #print(fit.success)
-    return np.abs(fit.x)
+    return fit
 
 
 def to_csv():
@@ -897,4 +922,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    plot()
+    histo()
