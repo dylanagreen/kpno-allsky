@@ -62,7 +62,7 @@ def analyze():
     # 20080306 is the first date the camera is located correctly
     # 20080430 is the first date the images are printed correctly
 
-    startdate = 0
+    startdate = 20170101
 
     # Reads in the model coefficients.
     with open('clouds.txt', 'r') as f:
@@ -85,7 +85,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not(20160101 <= int(d) <= 20171231):
+        if not(20160101 <= int(d) <= 20170131):
             continue
 
         print(d)
@@ -124,8 +124,7 @@ def analyze():
                     continue
 
                 # Finds the moon and the sun in the image. We don't need to
-                # download it
-                # if we won't process it.
+                # download it if we won't process it.
                 # We only process images where the moon is visble (alt > 0)
                 # And the sun is low enough to not wash out the image
                 # (sun alt < -17)
@@ -148,17 +147,20 @@ def analyze():
 
                     # Generates the moon mask.
                     mask = moon.moon_mask(d, name)
-                    hist, bins = histogram.generate_histogram(img, mask)[1]
+                    hist = histogram.generate_histogram(img, mask)[0]
 
                     frac = histogram.cloudiness(hist)
 
                     # Correction for moon phase.
                     phase = moon.moon_visible(d, name)
                     val = b*phase*phase + c*phase
+                    
+                    print(phase)
+                    print(val)
 
-                    with open('values.txt', 'a') as f2:
-                        towrite = str(phase) + ',' + str(val) + ',' + str(frac)
-                        f2.write(towrite + '\n')
+                    #with open('values.txt', 'a') as f2:
+                     #   towrite = str(phase) + ',' + str(val) + ',' + str(frac)
+                      #  f2.write(towrite + '\n')
 
                     frac = frac/val
 
@@ -941,4 +943,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    plot()
+    analyze()
