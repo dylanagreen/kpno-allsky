@@ -268,7 +268,7 @@ def download_image(date, image, camera='kpno'):
     
     This method is of a similar form to download_all_date, where `date` 
     provides the date and `camera` provides the camera. `image` is the name
-    of the image to be downloaded. Images are saved to 
+    of the image to be downloaded. 
     
     Parameters
     ----------
@@ -420,7 +420,7 @@ def gray_and_color_image(file):
     See Also
     --------
     scipy.misc.imread : For more details on the ITU-R 601-2 luma grayscale
-     transform used by this method.
+                        transform used by this method.
     
     Notes
     -----
@@ -508,7 +508,7 @@ def image_diff(img1, img2):
     image_diff(img1, img2) == image_diff(img2, img1).
     
     Greyscale values in the returned image represent the difference between 
-    the images. black means the pixels were identical in both images, whereas 
+    the images. Black means the pixels were identical in both images, whereas 
     white represents the maximum difference between the two, 
     where in one image the pixel is white and in one it is black.
     """
