@@ -10,7 +10,7 @@ import io_util
 # "Clean" in this case means no horizon objects.
 # The mask thus only contains likely "hot" pixels.
 def generate_clean_mask():
-    """Generates a clean mask for KPNO images.
+    """Generate a clean mask for KPNO images.
     
     Generates a masking array for KPNO images that only masks out hot pixels.
     
@@ -57,7 +57,7 @@ def generate_clean_mask():
 
 
 def generate_mask(forcenew=False):
-    """Generates a mask for KPNO images.
+    """Generate a mask for KPNO images.
     
     Generates a masking array for KPNO images that masks out not only hot
     pixels, but also the horizon objects.
@@ -158,7 +158,7 @@ def generate_full_mask(forcenew=False):
     
     Notes
     -----
-    generate_full_mask calls generate_mask(True), which requires there to be 
+    generate_full_mask calls generate_mask, which requires there to be 
     median images in Images/Mask/ but also additionally requires an image 
     named Ignore.png in Images/ that deliniates the horizon objects to be 
     ignored. These images can be downloaded from the kpno-allsky github. 
@@ -180,7 +180,7 @@ def generate_full_mask(forcenew=False):
 
 
 def save_mask(mask):
-    """Saves a masking image.
+    """Save a masking image.
     
     Parameters
     ----------
@@ -197,7 +197,7 @@ def save_mask(mask):
 
 
 def apply_mask(mask, img):
-    """Applies a mask to a given image.
+    """Apply a mask to a given image.
     
     Parameters
     ----------
@@ -205,6 +205,11 @@ def apply_mask(mask, img):
         The mask to apply.
     img : ndarray
         The image to apply the mask to.
+    
+    Returns
+    -------
+    ndarray
+        The masked image, where masked pixels have been set to 0.
     
     Notes
     -----
