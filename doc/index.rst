@@ -4,10 +4,10 @@
    contain the root `toctree` directive.
 
 Welcome to kpno-allsky's documentation!
-======================================
+=======================================
 
 Contents
-=================
+==================
 .. toctree::
    :maxdepth: 2
 
