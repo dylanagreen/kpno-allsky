@@ -154,7 +154,7 @@ def analyze():
                     # Correction for moon phase.
                     phase = moon.moon_visible(d, name)
                     val = b*phase*phase + c*phase
-                    
+
                     print(phase)
                     print(val)
 
@@ -514,7 +514,7 @@ def plot():
             temp = np.delete(temp, np.where(temp < 0.061))
             fit1 = fit_function(temp)
             coeffs1 = np.abs(fit1.x)
-            
+
             fit2 = fit_function(temp,[0.2,3,0.4,0.5])
             coeffs2 = np.abs(fit2.x)
 
@@ -704,10 +704,10 @@ def histo():
     # Loops over each week (the i value)
     for i, val in enumerate(tweek['all']):
         for year, value in tweek.items():
-            
+
             temp = np.asarray(tweek[year][i])
             temp = np.delete(temp, np.where(temp < 0.061))
-            
+
             hist, bins = np.histogram(temp, bins=divs)
 
             # Sets the size wider than the previous to fit all the bins.
@@ -749,16 +749,27 @@ def histo():
                                 label=year + ' (' + str(num) + ')')
 
 
-            guess = np.argmax(hist) * w
+            index = np.argmax(hist)
+            guess = index * w
             guess2 = (np.argmax(hist[40:]) + 40) * w
+
+            # This block of code finds the first time the histogram falls below
+            # Half the max, which gives us the half width at half maximum.
+            # (Aprroximately). Since the curve is not smooth this actually
+            # Isn't great. Typically the histogram will drop below the half
+            # Max before jumping up above it again for a few bins.
+            less = np.where(hist < (hist[index] / 2), True, False)
+            hwhm = (np.argmax(less[index:])) * w
+            guesssigma = hwhm / (np.sqrt(2*np.log(2)))
+
             plt.axvline(x=guess, color='g')
             plt.axvline(x=guess2, color='r')
-            
+
             # Passes the data to the fitting method.
-            
+
             fitarr = []
             coeffsarr = []
-            
+
             fit1 = fit_function(temp)
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
@@ -768,19 +779,19 @@ def histo():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
             #print('Fun 2: ' + str(fit2.fun))
-            
+
             fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
-            
+
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
-            
+
             coeffs = coeffsarr[best]
-            
+
             print('Fit ' + str(best + 1) + ' Chosen')
             chosen[best+1] = chosen[best+1] + 1
-            
+
             sames.append(fitarr[0] == fitarr[1])
 
             sigma = coeffs[0]
@@ -814,14 +825,14 @@ def histo():
 
         print('Saved: Week ' + str(i+1))
         print()
-        
+
     print(chosen)
-    
+
     nums = 0
     for i, val in enumerate(sames):
         if val:
             nums = nums + 1
-            
+
     print('Trues: ' + str(nums))
     print('Falses: ' + str(len(sames) - nums))
 
