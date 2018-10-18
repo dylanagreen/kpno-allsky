@@ -699,14 +699,14 @@ def histo():
     # Don't want to recreate this every time.
     x = np.arange(0,divs[binstop], 0.05)
 
+    chosen = {1:0, 2:0, 3:0}
+    sames = []
     # Loops over each week (the i value)
     for i, val in enumerate(tweek['all']):
         for year, value in tweek.items():
             
             temp = np.asarray(tweek[year][i])
-            print(temp.shape)
             temp = np.delete(temp, np.where(temp < 0.061))
-            print(temp.shape)
             
             hist, bins = np.histogram(temp, bins=divs)
 
@@ -748,21 +748,40 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label=year + ' (' + str(num) + ')')
 
+
+            guess = np.argmax(hist) * w
+            guess2 = (np.argmax(hist[40:]) + 40) * w
+            plt.axvline(x=guess, color='g')
+            plt.axvline(x=guess2, color='r')
+            
             # Passes the data to the fitting method.
+            
+            fitarr = []
+            coeffsarr = []
+            
             fit1 = fit_function(temp)
-            coeffs1 = np.abs(fit1.x)
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
             #print('Fun 1: ' + str(fit1.fun))
 
-            fit2 = fit_function(temp,[0.2,3,0.4,0.5])
-            coeffs2 = np.abs(fit2.x)
+            fit1 = fit_function(temp,[0.2,3,0.4,0.5])
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
             #print('Fun 2: ' + str(fit2.fun))
-
-            if np.abs(fit2.fun) < np.abs(fit1.fun):
-                print('Fit 2 Chosen')
-                coeffs = coeffs2
-            else:
-                print('Fit 1 Chosen')
-                coeffs = coeffs1
+            
+            fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
+            
+            fitarr = np.abs(np.asarray(fitarr))
+            best = np.argmin(fitarr)
+            
+            coeffs = coeffsarr[best]
+            
+            print('Fit ' + str(best + 1) + ' Chosen')
+            chosen[best+1] = chosen[best+1] + 1
+            
+            sames.append(fitarr[0] == fitarr[1])
 
             sigma = coeffs[0]
             mu = coeffs[1]
@@ -795,6 +814,16 @@ def histo():
 
         print('Saved: Week ' + str(i+1))
         print()
+        
+    print(chosen)
+    
+    nums = 0
+    for i, val in enumerate(sames):
+        if val:
+            nums = nums + 1
+            
+    print('Trues: ' + str(nums))
+    print('Falses: ' + str(len(sames) - nums))
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
@@ -943,4 +972,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    analyze()
+    histo()
