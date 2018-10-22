@@ -486,7 +486,7 @@ def plot():
     num_imgs = []
     for i, val in enumerate(tweek):
         moon_avgs.append(np.mean(tmoon[i]))
-        print(str(i + 1) + ': ' + str(len(val)))
+        #print(str(i + 1) + ': ' + str(len(val)))
         num_imgs.append(len(val))
 
     #setup_plot(x, tweek)
@@ -501,6 +501,13 @@ def plot():
 
     data = np.asarray([[0, 0, 0, 0]])
 
+
+    split = 10
+    w = 0.61 / split
+    num = np.amax(tweek[2]) / w
+    divs = np.asarray(range(0, int(num) + 1))
+    divs = divs * w
+
     for i, val in enumerate(tweek):
         temp = np.asarray(val)
 
@@ -512,16 +519,36 @@ def plot():
         else:
             # Passes the data to the fitting method.
             temp = np.delete(temp, np.where(temp < 0.061))
+            
+            hist, bins = np.histogram(temp, bins=divs)
+            
+            index = np.argmax(hist[:40])
+            guess = index * w
+            guess2 = (np.argmax(hist[40:]) + 40) * w
+
+            # This block of code finds the first time the histogram falls below
+            # Half the max, which gives us the half width at half maximum.
+            # (Aprroximately). Since the curve is not smooth this actually
+            # Isn't great. Typically the histogram will drop below the half
+            # Max before jumping up above it again for a few bins.
+            less = np.where(hist < (hist[index] / 2), True, False)
+            hwhm = (np.argmax(less[index:])) * w
+
+            fitarr = []
+            coeffsarr = []
+
             fit1 = fit_function(temp)
-            coeffs1 = np.abs(fit1.x)
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
 
-            fit2 = fit_function(temp,[0.2,3,0.4,0.5])
-            coeffs2 = np.abs(fit2.x)
+            fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
 
-            if np.abs(fit2.fun) < np.abs(fit1.fun):
-                d = np.asarray(coeffs2)
-            else:
-                d = np.asarray(coeffs1)
+            fitarr = np.abs(np.asarray(fitarr))
+            best = np.argmin(fitarr)
+            
+            d = coeffsarr[best]
 
             d = d.reshape(1,4)
             data = np.append(data, d, axis=0)
@@ -530,22 +557,30 @@ def plot():
     data = np.delete(data, 0, 0)
 
 
-    # This code is here for later.
+    # This code plots the variables individually
     plt.plot(x, data[0:data.shape[0], 0], label='Sigma')
+    plt.scatter(x, data[0:data.shape[0], 0], label='Sigma', s=2, c='r')
     plt.legend()
     plt.savefig('Images/Plots/week-sigma.png', dpi=256, bbox_inches='tight')
     plt.close()
-    #plt.plot(x, data[0:data.shape[0], 1], label='Mu')
+    
+    plt.plot(x, data[0:data.shape[0], 1], label='Mu')
+    plt.scatter(x, data[0:data.shape[0], 1], label='Mu', s=2, c='r')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-mu.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
     plt.plot(x, data[0:data.shape[0], 2], label='Lambda')
+    plt.scatter(x, data[0:data.shape[0], 2], label='Lambda', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-lambda.png', dpi=256, bbox_inches='tight')
     plt.close()
-    #plt.plot(x, data[0:data.shape[0], 3], label='')
+    
     plt.plot(x, data[0:data.shape[0], 3], label='Frac')
-    print(np.mean(data[0:data.shape[0], 3]))
-
-    # We have to re add the legend to get the moon phase label.
+    plt.scatter(x, data[0:data.shape[0], 3], label='Frac', s=2, c='r')
+    print('Average frac: ' + str(np.mean(data[0:data.shape[0], 3])))
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-frac.png', dpi=256, bbox_inches='tight')
@@ -1015,4 +1050,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    histo()
+    plot()
