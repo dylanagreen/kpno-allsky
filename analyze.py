@@ -699,7 +699,7 @@ def histo():
     # Don't want to recreate this every time.
     x = np.arange(0,divs[binstop], 0.05)
 
-    chosen = {1:0, 2:0, 3:0}
+    chosen = {1:0, 2:0, 3:0, 4:0}
     sames = []
     # Loops over each week (the i value)
     for i, val in enumerate(tweek['all']):
@@ -749,7 +749,7 @@ def histo():
                                 label=year + ' (' + str(num) + ')')
 
 
-            index = np.argmax(hist)
+            index = np.argmax(hist[:40])
             guess = index * w
             guess2 = (np.argmax(hist[40:]) + 40) * w
 
@@ -775,21 +775,50 @@ def histo():
             coeffsarr.append(np.abs(fit1.x))
             #print('Fun 1: ' + str(fit1.fun))
 
-            fit1 = fit_function(temp,[0.2,3,0.4,0.5])
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
+            #fit1 = fit_function(temp,[0.2,3,0.4,0.5])
+            #fitarr.append(fit1.fun)
+            #coeffsarr.append(np.abs(fit1.x))
             #print('Fun 2: ' + str(fit2.fun))
 
             fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
+            success = fit1.success
+            
 
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
-
+            
+            
+            
+            coeffs = coeffsarr[1]
+            sigma = coeffs[0]
+            mu = coeffs[1]
+            lamb = coeffs[2]
+            frac = coeffs[3]
+            y = function(sigma, mu, lamb, frac, x)
+            #print('Area: ' + str(np.trapz(y,x)))
+            scale = np.sum(hist) * w / np.trapz(y,x)
+            y = y * scale
+            plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
+            
+            coeffs = coeffsarr[0]
+            sigma = coeffs[0]
+            mu = coeffs[1]
+            lamb = coeffs[2]
+            frac = coeffs[3]
+            y = function(sigma, mu, lamb, frac, x)
+            #print('Area: ' + str(np.trapz(y,x)))
+            scale = np.sum(hist) * w / np.trapz(y,x)
+            y = y * scale
+            plt.plot(x, y, color=(1, 0, 1, 1), label='Fit-1')
+            
+            
             coeffs = coeffsarr[best]
 
             print('Fit ' + str(best + 1) + ' Chosen')
+            
+            # Increments the dictionary counter
             chosen[best+1] = chosen[best+1] + 1
 
             sames.append(fitarr[0] == fitarr[1])
@@ -803,20 +832,23 @@ def histo():
 
             # Finds the y func, then scales so it has the same area as the hist
             y = function(sigma, mu, lamb, frac, x)
-            print('Area: ' + str(np.trapz(y,x)))
+            #print('Area: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
 
             # Plots the fit.
-            plt.plot(x, y, color=(0, 1, 0, 1), label='Fit')
+            plt.plot(x, y, color=(0, 1, 0, 1), label='Fit-' + str(best + 1))
+
+            
+            
 
             x1 = np.arange(0, 400, 0.1)
             A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
             p1 = scale * frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
             p2 = scale * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
 
-            plt.plot(x, p1, color=(0, 0, 1, 1), label='Gaussian')
-            plt.plot(x, p2, color=(1, 0, 0, 1), label='Poisson')
+            #plt.plot(x, p1, color=(0, 0, 1, 1), label='Gaussian')
+            #plt.plot(x, p2, color=(1, 0, 0, 1), label='Poisson')
 
             plt.legend()
             plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
