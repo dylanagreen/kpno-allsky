@@ -501,7 +501,6 @@ def plot():
 
     data = np.asarray([[0, 0, 0, 0]])
 
-
     split = 10
     w = 0.61 / split
     num = np.amax(tweek[2]) / w
@@ -519,10 +518,10 @@ def plot():
         else:
             # Passes the data to the fitting method.
             temp = np.delete(temp, np.where(temp < 0.061))
-            
+
             hist, bins = np.histogram(temp, bins=divs)
-            
-            index = np.argmax(hist[:40])
+
+            index = np.argmax(hist)
             guess = index * w
             guess2 = (np.argmax(hist[40:]) + 40) * w
 
@@ -541,13 +540,13 @@ def plot():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
+            fit1 = fit_function(temp, [0.1, guess, guess2, 0])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
-            
+
             d = coeffsarr[best]
 
             d = d.reshape(1,4)
@@ -563,23 +562,25 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/week-sigma.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
+
     plt.plot(x, data[0:data.shape[0], 1], label='Mu')
     plt.scatter(x, data[0:data.shape[0], 1], label='Mu', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-mu.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
+
     plt.plot(x, data[0:data.shape[0], 2], label='Lambda')
     plt.scatter(x, data[0:data.shape[0], 2], label='Lambda', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-lambda.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
-    plt.plot(x, data[0:data.shape[0], 3], label='Frac')
-    plt.scatter(x, data[0:data.shape[0], 3], label='Frac', s=2, c='r')
+
+    frac = data[0:data.shape[0], 3]
+    frac = (np.tanh(frac) + 1) / 2
+    plt.plot(x, frac, label='Frac')
+    plt.scatter(x, frac, label='Frac', s=2, c='r')
     print('Average frac: ' + str(np.mean(data[0:data.shape[0], 3])))
     plt.xlabel('Week Number')
     plt.legend()
@@ -784,7 +785,7 @@ def histo():
                                 label=year + ' (' + str(num) + ')')
 
 
-            index = np.argmax(hist[:40])
+            index = np.argmax(hist)
             guess = index * w
             guess2 = (np.argmax(hist[40:]) + 40) * w
 
@@ -808,24 +809,15 @@ def histo():
             fit1 = fit_function(temp)
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
-            #print('Fun 1: ' + str(fit1.fun))
 
-            #fit1 = fit_function(temp,[0.2,3,0.4,0.5])
-            #fitarr.append(fit1.fun)
-            #coeffsarr.append(np.abs(fit1.x))
-            #print('Fun 2: ' + str(fit2.fun))
-
-            fit1 = fit_function(temp, [0.1, guess, guess2, 0.5])
+            fit1 = fit_function(temp, [0.1, guess, guess2, 0])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
             success = fit1.success
-            
 
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
-            
-            
-            
+
             coeffs = coeffsarr[1]
             sigma = coeffs[0]
             mu = coeffs[1]
@@ -836,7 +828,7 @@ def histo():
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
-            
+
             coeffs = coeffsarr[0]
             sigma = coeffs[0]
             mu = coeffs[1]
@@ -847,12 +839,11 @@ def histo():
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0, 1, 1), label='Fit-1')
-            
-            
-            coeffs = coeffsarr[best]
 
+
+            coeffs = coeffsarr[best]
             print('Fit ' + str(best + 1) + ' Chosen')
-            
+
             # Increments the dictionary counter
             chosen[best+1] = chosen[best+1] + 1
 
@@ -862,7 +853,6 @@ def histo():
             mu = coeffs[1]
             lamb = coeffs[2]
             frac = coeffs[3]
-
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
@@ -873,17 +863,6 @@ def histo():
 
             # Plots the fit.
             plt.plot(x, y, color=(0, 1, 0, 1), label='Fit-' + str(best + 1))
-
-            
-            
-
-            x1 = np.arange(0, 400, 0.1)
-            A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
-            p1 = scale * frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
-            p2 = scale * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
-
-            #plt.plot(x, p1, color=(0, 0, 1, 1), label='Gaussian')
-            #plt.plot(x, p2, color=(1, 0, 0, 1), label='Poisson')
 
             plt.legend()
             plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
@@ -915,14 +894,8 @@ def function(sigma, mu, lamb, frac, x):
     A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
     B = 1
 
-    # This is hacky. Eseentially derivatives can't be trusted for our function,
-    # We have to use a fitting method that doesn't take derivatives.
-    # However scipy can't constrain those methods, except we can't have frac
-    # exceed 1 or 0 (for reasons that should be obvious...)
-    # So return 0. Which shouldn't be the minimum or maximum. I hope.
-    if frac > 1 or frac < 0:
-        A = 0
-        B = 0
+    # This constrains frac to be between 0 and 1 using the hyperbolic tangent
+    frac = (np.tanh(frac) + 1) / 2
 
     p2 = B * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
     p1 = frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
@@ -939,7 +912,7 @@ def likelihood(params, data):
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, init=[0.1,0.5,3,0.5]):
+def fit_function(xdata, init=[0.1,0.5,3,0]):
 
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
