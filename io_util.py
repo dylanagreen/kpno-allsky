@@ -72,7 +72,7 @@ def download_url(link):
             return data
 
 
-def save_image(img, name, location, cmap=None, patch=None):
+def save_image(img, name, location, cmap='gray', patch=None):
     """Save an image.
     
     Save an image passed in `img` with the name `name` into the location in
@@ -90,7 +90,7 @@ def save_image(img, name, location, cmap=None, patch=None):
         it is created.
     cmap : str, optional
         A colormap to use when saving the image. Supports any matplotlib
-        supported colormap.
+        supported colormap. Defaults to 'gray' to save in grayscale.
     patch : matplotlib.patches.Patch, optional
         A matplotlib patch to apply on top of the saved image. By default no 
         patch is applied.
