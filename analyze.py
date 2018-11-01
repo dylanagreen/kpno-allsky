@@ -786,7 +786,7 @@ def histo():
 
 
             index = np.argmax(hist)
-            guess = index * w
+            guess = (index + 0.5) * w
             guess2 = (np.argmax(hist[40:]) + 40) * w
 
             # This block of code finds the first time the histogram falls below
@@ -799,7 +799,7 @@ def histo():
             guesssigma = hwhm / (np.sqrt(2*np.log(2)))
             
             maximum = np.amax(hist)
-            guessfrac = maximum/(maximum + 2 * np.amax(hist[40:]))
+            guessfrac = maximum/(maximum + 1.5 * np.amax(hist[40:]))
             guessfrac = np.arctanh(2 * guessfrac - 1)
             
             if np.isnan(guessfrac) or np.isinf(guessfrac):
