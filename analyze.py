@@ -797,6 +797,13 @@ def histo():
             less = np.where(hist < (hist[index] / 2), True, False)
             hwhm = (np.argmax(less[index:])) * w
             guesssigma = hwhm / (np.sqrt(2*np.log(2)))
+            
+            maximum = np.amax(hist)
+            guessfrac = maximum/(maximum + 2 * np.amax(hist[40:]))
+            guessfrac = np.arctanh(2 * guessfrac - 1)
+            
+            if np.isnan(guessfrac) or np.isinf(guessfrac):
+                guessfrac = 0
 
             plt.axvline(x=guess, color='g')
             plt.axvline(x=guess2, color='r')
@@ -810,7 +817,7 @@ def histo():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, guess2, 0])
+            fit1 = fit_function(temp, [0.1, guess, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
             success = fit1.success
@@ -824,7 +831,7 @@ def histo():
             lamb = coeffs[2]
             frac = coeffs[3]
             y = function(sigma, mu, lamb, frac, x)
-            #print('Area: ' + str(np.trapz(y,x)))
+            #print('Area 2: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
@@ -835,7 +842,7 @@ def histo():
             lamb = coeffs[2]
             frac = coeffs[3]
             y = function(sigma, mu, lamb, frac, x)
-            #print('Area: ' + str(np.trapz(y,x)))
+            #print('Area 1: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0, 1, 1), label='Fit-1')
@@ -912,7 +919,7 @@ def likelihood(params, data):
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, init=[0.1,0.5,3,0]):
+def fit_function(xdata, init=[0.1,0.5,3,-1]):
 
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
@@ -1023,4 +1030,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    plot()
+    histo()
