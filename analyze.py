@@ -499,7 +499,7 @@ def plot():
     #plt.plot(x, num_imgs, label='Normalized number of images',
              #color=(0, 1, 0, 1))
 
-    data = np.asarray([[0, 0, 0, 0]])
+    data = np.asarray([[0, 0, 0, 0, 0]])
 
     split = 10
     w = 0.61 / split
@@ -521,9 +521,10 @@ def plot():
 
             hist, bins = np.histogram(temp, bins=divs)
 
+
             index = np.argmax(hist)
-            guess = index * w
-            guess2 = (np.argmax(hist[40:]) + 40) * w
+            guess = (index + 0.5) * w
+            guess2 = (np.argmax(hist[35:]) + 35.5) * w
 
             # This block of code finds the first time the histogram falls below
             # Half the max, which gives us the half width at half maximum.
@@ -532,6 +533,14 @@ def plot():
             # Max before jumping up above it again for a few bins.
             less = np.where(hist < (hist[index] / 2), True, False)
             hwhm = (np.argmax(less[index:])) * w
+            guesssigma = hwhm / (np.sqrt(2*np.log(2)))
+            
+            maximum = np.amax(hist)
+            guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
+            guessfrac = np.arctanh(2 * guessfrac - 1)
+            
+            if np.isnan(guessfrac) or np.isinf(guessfrac):
+                guessfrac = 0
 
             fitarr = []
             coeffsarr = []
@@ -540,7 +549,7 @@ def plot():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, guess2, 0])
+            fit1 = fit_function(temp, [0.1, guess, 0.5, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
@@ -549,7 +558,7 @@ def plot():
 
             d = coeffsarr[best]
 
-            d = d.reshape(1,4)
+            d = d.reshape(1,5)
             data = np.append(data, d, axis=0)
 
     # Deletes the first 0,0,0 array.
@@ -557,27 +566,34 @@ def plot():
 
 
     # This code plots the variables individually
-    plt.plot(x, data[0:data.shape[0], 0], label='Sigma')
-    plt.scatter(x, data[0:data.shape[0], 0], label='Sigma', s=2, c='r')
+    plt.plot(x, data[0:data.shape[0], 0], label='Sigma-1')
+    plt.scatter(x, data[0:data.shape[0], 0], label='Sigma-1', s=2, c='r')
     plt.legend()
-    plt.savefig('Images/Plots/week-sigma.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week-sigma1.png', dpi=256, bbox_inches='tight')
     plt.close()
 
     plt.plot(x, data[0:data.shape[0], 1], label='Mu')
     plt.scatter(x, data[0:data.shape[0], 1], label='Mu', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
-    plt.savefig('Images/Plots/week-mu.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week-mu1.png', dpi=256, bbox_inches='tight')
     plt.close()
 
-    plt.plot(x, data[0:data.shape[0], 2], label='Lambda')
-    plt.scatter(x, data[0:data.shape[0], 2], label='Lambda', s=2, c='r')
+    plt.plot(x, data[0:data.shape[0], 2], label='Sigma-2')
+    plt.scatter(x, data[0:data.shape[0], 2], label='Sigma-2', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
-    plt.savefig('Images/Plots/week-lambda.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week-sigma2.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
+    plt.plot(x, data[0:data.shape[0], 3], label='Mu-2')
+    plt.scatter(x, data[0:data.shape[0], 3], label='Mu-2', s=2, c='r')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-mu2.png', dpi=256, bbox_inches='tight')
     plt.close()
 
-    frac = data[0:data.shape[0], 3]
+    frac = data[0:data.shape[0], 4]
     frac = (np.tanh(frac) + 1) / 2
     plt.plot(x, frac, label='Frac')
     plt.scatter(x, frac, label='Frac', s=2, c='r')
@@ -787,7 +803,7 @@ def histo():
 
             index = np.argmax(hist)
             guess = (index + 0.5) * w
-            guess2 = (np.argmax(hist[40:]) + 40) * w
+            guess2 = (np.argmax(hist[35:]) + 35.5) * w
 
             # This block of code finds the first time the histogram falls below
             # Half the max, which gives us the half width at half maximum.
@@ -799,7 +815,7 @@ def histo():
             guesssigma = hwhm / (np.sqrt(2*np.log(2)))
             
             maximum = np.amax(hist)
-            guessfrac = maximum/(maximum + 1.5 * np.amax(hist[40:]))
+            guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
             guessfrac = np.arctanh(2 * guessfrac - 1)
             
             if np.isnan(guessfrac) or np.isinf(guessfrac):
@@ -817,7 +833,7 @@ def histo():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, guess2, guessfrac])
+            fit1 = fit_function(temp, [0.1, guess, 0.5, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
             success = fit1.success
@@ -826,22 +842,24 @@ def histo():
             best = np.argmin(fitarr)
 
             coeffs = coeffsarr[1]
-            sigma = coeffs[0]
-            mu = coeffs[1]
-            lamb = coeffs[2]
-            frac = coeffs[3]
-            y = function(sigma, mu, lamb, frac, x)
+            sigma1 = coeffs[0]
+            mu1 = coeffs[1]
+            sigma2 = coeffs[2]
+            mu2 = coeffs[3]
+            frac = coeffs[4]
+            y = function(sigma1, mu1, sigma2, mu2, frac, x)
             #print('Area 2: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
 
             coeffs = coeffsarr[0]
-            sigma = coeffs[0]
-            mu = coeffs[1]
-            lamb = coeffs[2]
-            frac = coeffs[3]
-            y = function(sigma, mu, lamb, frac, x)
+            sigma1 = coeffs[0]
+            mu1 = coeffs[1]
+            sigma2 = coeffs[2]
+            mu2 = coeffs[3]
+            frac = coeffs[4]
+            y = function(sigma1, mu1, sigma2, mu2, frac, x)
             #print('Area 1: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
@@ -856,14 +874,15 @@ def histo():
 
             sames.append(fitarr[0] == fitarr[1])
 
-            sigma = coeffs[0]
-            mu = coeffs[1]
-            lamb = coeffs[2]
-            frac = coeffs[3]
+            sigma1 = coeffs[0]
+            mu1 = coeffs[1]
+            sigma2 = coeffs[2]
+            mu2 = coeffs[3]
+            frac = coeffs[4]
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
-            y = function(sigma, mu, lamb, frac, x)
+            y = function(sigma1, mu1, sigma2, mu2, frac, x)
             #print('Area: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
@@ -892,7 +911,7 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients making those the variables here.
-def function(sigma, mu, lamb, frac, x):
+def function1(sigma, mu, lamb, frac, x):
 
     # A is the normalization constant, here changed because 0 is a hard cutoff.
     # So we normalize 0 to infinity rather than -infinity to infinity.
@@ -910,16 +929,34 @@ def function(sigma, mu, lamb, frac, x):
     return p1 + p2
 
 
+def function(sigma1, mu1, sigma2, mu2, frac, x):
+
+    # A is the normalization constant, here changed because 0 is a hard cutoff.
+    # So we normalize 0 to infinity rather than -infinity to infinity.
+    # Trapz is the integration method using the trapezoid rule.
+    x1 = np.arange(0, 400, 0.1)
+    A = 1 / np.trapz(np.exp(-((x1 - mu1) ** 2) / (2 * sigma1 * sigma1)), x1)
+    B = 1 / np.trapz(np.exp(-((x1 - mu2) ** 2) / (2 * sigma2 * sigma2)), x1)
+
+    # This constrains frac to be between 0 and 1 using the hyperbolic tangent
+    frac = (np.tanh(frac) + 1) / 2
+
+    p2 = (1 - frac) * B * np.exp(-((x - mu2) ** 2) / (2 * sigma2 * sigma2))
+    p1 = frac * A * np.exp(-((x - mu1) ** 2) / (2 * sigma1 * sigma1))
+
+    return p1 + p2
+
+
 def likelihood(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], data)))
+    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], params[4], data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, init=[0.1,0.5,3,-1]):
+def fit_function(xdata, init=[0.1,0.5,0.5,3,0]):
 
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
@@ -1030,4 +1067,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    histo()
+    plot()
