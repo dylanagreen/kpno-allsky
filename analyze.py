@@ -521,7 +521,6 @@ def plot():
 
             hist, bins = np.histogram(temp, bins=divs)
 
-
             index = np.argmax(hist)
             guess = (index + 0.5) * w
             guess2 = (np.argmax(hist[35:]) + 35.5) * w
@@ -534,11 +533,11 @@ def plot():
             less = np.where(hist < (hist[index] / 2), True, False)
             hwhm = (np.argmax(less[index:])) * w
             guesssigma = hwhm / (np.sqrt(2*np.log(2)))
-            
+
             maximum = np.amax(hist)
             guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
             guessfrac = np.arctanh(2 * guessfrac - 1)
-            
+
             if np.isnan(guessfrac) or np.isinf(guessfrac):
                 guessfrac = 0
 
@@ -549,7 +548,7 @@ def plot():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, 0.5, guess2, guessfrac])
+            fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
@@ -585,7 +584,7 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/week-sigma2.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
+
     plt.plot(x, data[0:data.shape[0], 3], label='Mu-2')
     plt.scatter(x, data[0:data.shape[0], 3], label='Mu-2', s=2, c='r')
     plt.xlabel('Week Number')
@@ -813,11 +812,11 @@ def histo():
             less = np.where(hist < (hist[index] / 2), True, False)
             hwhm = (np.argmax(less[index:])) * w
             guesssigma = hwhm / (np.sqrt(2*np.log(2)))
-            
+
             maximum = np.amax(hist)
             guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
             guessfrac = np.arctanh(2 * guessfrac - 1)
-            
+
             if np.isnan(guessfrac) or np.isinf(guessfrac):
                 guessfrac = 0
 
@@ -833,7 +832,7 @@ def histo():
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
 
-            fit1 = fit_function(temp, [0.1, guess, 0.5, guess2, guessfrac])
+            fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
             success = fit1.success
@@ -841,25 +840,13 @@ def histo():
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
 
-            coeffs = coeffsarr[1]
-            sigma1 = coeffs[0]
-            mu1 = coeffs[1]
-            sigma2 = coeffs[2]
-            mu2 = coeffs[3]
-            frac = coeffs[4]
-            y = function(sigma1, mu1, sigma2, mu2, frac, x)
+            y = function_gg(coeffsarr[1], x)
             #print('Area 2: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
 
-            coeffs = coeffsarr[0]
-            sigma1 = coeffs[0]
-            mu1 = coeffs[1]
-            sigma2 = coeffs[2]
-            mu2 = coeffs[3]
-            frac = coeffs[4]
-            y = function(sigma1, mu1, sigma2, mu2, frac, x)
+            y = function_gg(coeffsarr[0], x)
             #print('Area 1: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
@@ -874,15 +861,10 @@ def histo():
 
             sames.append(fitarr[0] == fitarr[1])
 
-            sigma1 = coeffs[0]
-            mu1 = coeffs[1]
-            sigma2 = coeffs[2]
-            mu2 = coeffs[3]
-            frac = coeffs[4]
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
-            y = function(sigma1, mu1, sigma2, mu2, frac, x)
+            y = function_gg(coeffs, x)
             #print('Area: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
@@ -911,25 +893,33 @@ def histo():
 
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients making those the variables here.
-def function1(sigma, mu, lamb, frac, x):
+def function_gp(params, x):
+    sigma = params[0]
+    mu = params[1]
+    lamb = params[2]
+    frac = params[3]
 
     # A is the normalization constant, here changed because 0 is a hard cutoff.
     # So we normalize 0 to infinity rather than -infinity to infinity.
     # Trapz is the integration method using the trapezoid rule.
     x1 = np.arange(0, 400, 0.1)
     A = 1 / np.trapz(np.exp(-((x1 - mu) ** 2) / (2 * sigma * sigma)), x1)
-    B = 1
 
     # This constrains frac to be between 0 and 1 using the hyperbolic tangent
     frac = (np.tanh(frac) + 1) / 2
 
-    p2 = B * (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
     p1 = frac * A * np.exp(-((x - mu) ** 2) / (2 * sigma * sigma))
+    p2 = (1 - frac) * (lamb ** x / special.factorial(x)) * np.exp(-lamb)
 
     return p1 + p2
 
 
-def function(sigma1, mu1, sigma2, mu2, frac, x):
+def function_gg(params, x):
+    sigma1 = params[0]
+    mu1 = params[1]
+    sigma2 = params[2]
+    mu2 = params[3]
+    frac = params[4]
 
     # A is the normalization constant, here changed because 0 is a hard cutoff.
     # So we normalize 0 to infinity rather than -infinity to infinity.
@@ -941,32 +931,47 @@ def function(sigma1, mu1, sigma2, mu2, frac, x):
     # This constrains frac to be between 0 and 1 using the hyperbolic tangent
     frac = (np.tanh(frac) + 1) / 2
 
-    p2 = (1 - frac) * B * np.exp(-((x - mu2) ** 2) / (2 * sigma2 * sigma2))
     p1 = frac * A * np.exp(-((x - mu1) ** 2) / (2 * sigma1 * sigma1))
+    p2 = (1 - frac) * B * np.exp(-((x - mu2) ** 2) / (2 * sigma2 * sigma2))
 
     return p1 + p2
 
 
-def likelihood(params, data):
+def likelihood_gg(params, data):
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
-    chi = -np.sum(np.log(function(params[0], params[1], params[2], params[3], params[4], data)))
+    chi = -np.sum(np.log(function_gg(params, data)))
+    return chi
+
+
+def likelihood_gp(params, data):
+    # In chi-squared there's a 2 in front but since we're minimizing I've
+    # dropped it.
+    chi = -np.sum(np.log(function_gp(params, data)))
     return chi
 
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, init=[0.1,0.5,0.5,3,0]):
+def fit_function(xdata, func = 'gg', init=None):
+
+    if init is None:
+        init = [0.1,0.5,0.5,3,0]
 
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
+    if func == 'gg':
+        likelihood = likelihood_gg
+    else:
+        likelihood = likelihood_gp
+
     fit = optimize.minimize(likelihood, x0=init, args=xdata,
                             method='Nelder-Mead',
                             options={'disp':False, 'maxiter':1200})
-    #print(fit.success)
     return fit
 
 
+# Saves the cloudiness data as a csv file.
 def to_csv():
     directory = 'Data/'
 
@@ -1067,4 +1072,4 @@ if __name__ == "__main__":
     # This link has a redirect loop for testing.
     # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
     #optimize.show_options('minimize', disp=True)
-    plot()
+    histo()
