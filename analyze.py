@@ -800,7 +800,7 @@ def histo():
                                 label=year + ' (' + str(num) + ')')
 
 
-            index = np.argmax(hist)
+            index = np.argmax(hist[:35])
             guess = (index + 0.5) * w
             guess2 = (np.argmax(hist[35:]) + 35.5) * w
 
@@ -835,19 +835,25 @@ def histo():
             fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
             fitarr.append(fit1.fun)
             coeffsarr.append(np.abs(fit1.x))
-            success = fit1.success
+
+            fit1 = fit_function(temp, func='gp')
+            fitarr.append(fit1.fun)
+            coeffsarr.append(np.abs(fit1.x))
 
             fitarr = np.abs(np.asarray(fitarr))
             best = np.argmin(fitarr)
 
+            y = function_gp(coeffsarr[2], x)
+            scale = np.sum(hist) * w / np.trapz(y,x)
+            y = y * scale
+            plt.plot(x, y, color=(0.75, 0, 1, 1), label='Fit-3')
+
             y = function_gg(coeffsarr[1], x)
-            #print('Area 2: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
 
             y = function_gg(coeffsarr[0], x)
-            #print('Area 1: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
             plt.plot(x, y, color=(1, 0, 1, 1), label='Fit-1')
@@ -864,7 +870,10 @@ def histo():
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
-            y = function_gg(coeffs, x)
+            if best == 2:
+                y = function_gp(coeffs, x)
+            else:
+                y = function_gg(coeffs, x)
             #print('Area: ' + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
@@ -953,17 +962,19 @@ def likelihood_gp(params, data):
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, func = 'gg', init=None):
-
-    if init is None:
-        init = [0.1,0.5,0.5,3,0]
-
+def fit_function(xdata, func='gg', init=None):
     # Default for maxiter is N * 200 but that's not enough in this case so we
     # need to specify a higher value
     if func == 'gg':
         likelihood = likelihood_gg
+        
+        if init is None:
+            init = [0.1,0.5,0.5,3,0]
     else:
         likelihood = likelihood_gp
+        
+        if init is None:
+            init = [0.1,0.5,3,0]
 
     fit = optimize.minimize(likelihood, x0=init, args=xdata,
                             method='Nelder-Mead',
