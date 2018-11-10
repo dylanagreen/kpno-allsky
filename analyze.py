@@ -855,9 +855,6 @@ def find_fit(data, divs):
     guess = (index + 0.5) * w
     guess2 = (np.argmax(hist[35:]) + 35.5) * w
 
-    print('Guess1: ' + str(guess))
-    print('Guess2: ' + str(guess2))
-
     # This block of code finds the first time the histogram falls below
     # Half the max, which gives us the half width at half maximum.
     # (Aprroximately). Since the curve is not smooth this actually
@@ -881,21 +878,20 @@ def find_fit(data, divs):
 
     fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
     fitarr.append(fit1.fun)
-    coeffsarr.append(np.abs(fit1.x))
+    coeffsarr.append(fit1.x)
 
     fit1 = fit_function(temp, func='gp')
     fitarr.append(fit1.fun)
-    coeffsarr.append(np.abs(fit1.x))
+    coeffsarr.append(fit1.x)
 
     fit1 = fit_function(temp, func='gp', init=[0.1, guess, guess2, guessfrac])
     fitarr.append(fit1.fun)
-    coeffsarr.append(np.abs(fit1.x))
+    coeffsarr.append(fit1.x)
 
     fitarr = np.abs(np.asarray(fitarr))
     best = np.argmin(fitarr)
 
     return (coeffsarr[best], best)
-
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
