@@ -748,7 +748,7 @@ def histo():
         os.makedirs(saveloc)
 
     # Don't want to recreate this every time.
-    x = np.arange(0,divs[binstop], 0.05)
+    x = np.arange(0, divs[binstop], 0.05)
 
     chosen = {1:0, 2:0, 3:0, 4:0}
     sames = []
@@ -799,78 +799,17 @@ def histo():
                                 align='edge', tick_label=labels[:binstop],
                                 label=year + ' (' + str(num) + ')')
 
+            coeffs, best = find_fit(temp, divs)
 
-            index = np.argmax(hist[:35])
-            guess = (index + 0.5) * w
-            guess2 = (np.argmax(hist[35:]) + 35.5) * w
-
-            # This block of code finds the first time the histogram falls below
-            # Half the max, which gives us the half width at half maximum.
-            # (Aprroximately). Since the curve is not smooth this actually
-            # Isn't great. Typically the histogram will drop below the half
-            # Max before jumping up above it again for a few bins.
-            less = np.where(hist < (hist[index] / 2), True, False)
-            hwhm = (np.argmax(less[index:])) * w
-            guesssigma = hwhm / (np.sqrt(2*np.log(2)))
-
-            maximum = np.amax(hist)
-            guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
-            guessfrac = np.arctanh(2 * guessfrac - 1)
-
-            if np.isnan(guessfrac) or np.isinf(guessfrac):
-                guessfrac = 0
-
-            plt.axvline(x=guess, color='g')
-            plt.axvline(x=guess2, color='r')
-
-            # Passes the data to the fitting method.
-
-            fitarr = []
-            coeffsarr = []
-
-            fit1 = fit_function(temp)
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
-
-            fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
-
-            fit1 = fit_function(temp, func='gp')
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
-
-            fitarr = np.abs(np.asarray(fitarr))
-            best = np.argmin(fitarr)
-
-            y = function_gp(coeffsarr[2], x)
-            scale = np.sum(hist) * w / np.trapz(y,x)
-            y = y * scale
-            plt.plot(x, y, color=(0.75, 0, 1, 1), label='Fit-3')
-
-            y = function_gg(coeffsarr[1], x)
-            scale = np.sum(hist) * w / np.trapz(y,x)
-            y = y * scale
-            plt.plot(x, y, color=(1, 0.75, 0, 1), label='Fit-2')
-
-            y = function_gg(coeffsarr[0], x)
-            scale = np.sum(hist) * w / np.trapz(y,x)
-            y = y * scale
-            plt.plot(x, y, color=(1, 0, 1, 1), label='Fit-1')
-
-
-            coeffs = coeffsarr[best]
             print('Fit ' + str(best + 1) + ' Chosen')
 
             # Increments the dictionary counter
             chosen[best+1] = chosen[best+1] + 1
 
-            sames.append(fitarr[0] == fitarr[1])
-
             print(str(year) + ': ' + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
-            if best == 2:
+            if len(coeffs) == 4:
                 y = function_gp(coeffs, x)
             else:
                 y = function_gg(coeffs, x)
@@ -898,6 +837,65 @@ def histo():
 
     print('Trues: ' + str(nums))
     print('Falses: ' + str(len(sames) - nums))
+
+
+# Divs is the divisions to use, used in finding the guess parameters
+def find_fit(data, divs):
+    split = 10
+    w = 0.61 / split
+
+    # Assign a new array so we don't edit the original
+    temp = np.copy(data)
+    hist, bins = np.histogram(temp, bins=divs)
+
+    # The guess for the first mean is the maximum that occurs before the cutoff
+    # at index 35 (about 2.44)
+    # And the guess for the second mean is the maximum that occurs after.
+    index = np.argmax(hist[:35])
+    guess = (index + 0.5) * w
+    guess2 = (np.argmax(hist[35:]) + 35.5) * w
+
+    print('Guess1: ' + str(guess))
+    print('Guess2: ' + str(guess2))
+
+    # This block of code finds the first time the histogram falls below
+    # Half the max, which gives us the half width at half maximum.
+    # (Aprroximately). Since the curve is not smooth this actually
+    # Isn't great. Typically the histogram will drop below the half
+    # Max before jumping up above it again for a few bins.
+    less = np.where(hist < (hist[index] / 2), True, False)
+    hwhm = (np.argmax(less[index:])) * w
+    guesssigma = hwhm / (np.sqrt(2*np.log(2)))
+
+    # Guesses the frac paramter by comparing the heights of the two maximums.
+    maximum = np.amax(hist)
+    guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
+    guessfrac = np.arctanh(2 * guessfrac - 1)
+
+    # Sets guessfrac to 0 if it breaks for some reason.
+    if np.isnan(guessfrac) or np.isinf(guessfrac):
+        guessfrac = 0
+
+    fitarr = []
+    coeffsarr = []
+
+    fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
+    fitarr.append(fit1.fun)
+    coeffsarr.append(np.abs(fit1.x))
+
+    fit1 = fit_function(temp, func='gp')
+    fitarr.append(fit1.fun)
+    coeffsarr.append(np.abs(fit1.x))
+
+    fit1 = fit_function(temp, func='gp', init=[0.1, guess, guess2, guessfrac])
+    fitarr.append(fit1.fun)
+    coeffsarr.append(np.abs(fit1.x))
+
+    fitarr = np.abs(np.asarray(fitarr))
+    best = np.argmin(fitarr)
+
+    return (coeffsarr[best], best)
+
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
@@ -967,12 +965,12 @@ def fit_function(xdata, func='gg', init=None):
     # need to specify a higher value
     if func == 'gg':
         likelihood = likelihood_gg
-        
+
         if init is None:
             init = [0.1,0.5,0.5,3,0]
     else:
         likelihood = likelihood_gp
-        
+
         if init is None:
             init = [0.1,0.5,3,0]
 
@@ -1080,7 +1078,4 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    # This link has a redirect loop for testing.
-    # link = 'https://demo.cyotek.com/features/redirectlooptest.php'
-    #optimize.show_options('minimize', disp=True)
     histo()
