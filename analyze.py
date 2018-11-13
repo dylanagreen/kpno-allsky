@@ -518,45 +518,14 @@ def plot():
         else:
             # Passes the data to the fitting method.
             temp = np.delete(temp, np.where(temp < 0.061))
-
-            hist, bins = np.histogram(temp, bins=divs)
-
-            index = np.argmax(hist)
-            guess = (index + 0.5) * w
-            guess2 = (np.argmax(hist[35:]) + 35.5) * w
-
-            # This block of code finds the first time the histogram falls below
-            # Half the max, which gives us the half width at half maximum.
-            # (Aprroximately). Since the curve is not smooth this actually
-            # Isn't great. Typically the histogram will drop below the half
-            # Max before jumping up above it again for a few bins.
-            less = np.where(hist < (hist[index] / 2), True, False)
-            hwhm = (np.argmax(less[index:])) * w
-            guesssigma = hwhm / (np.sqrt(2*np.log(2)))
-
-            maximum = np.amax(hist)
-            guessfrac = maximum/(maximum + 1 * np.amax(hist[35:]))
-            guessfrac = np.arctanh(2 * guessfrac - 1)
-
-            if np.isnan(guessfrac) or np.isinf(guessfrac):
-                guessfrac = 0
-
-            fitarr = []
-            coeffsarr = []
-
-            fit1 = fit_function(temp)
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
-
-            fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
-            fitarr.append(fit1.fun)
-            coeffsarr.append(np.abs(fit1.x))
-
-            fitarr = np.abs(np.asarray(fitarr))
-            best = np.argmin(fitarr)
-
-            d = coeffsarr[best]
-
+            d, best = find_fit(temp, divs)
+            
+            # Inserts a the sqaure root of the lambda for the mu-2 if the fit
+            # Is a gaussian-poisson combo.
+            if len(d) < 5:
+                d = np.asarray(d)
+                d = np.insert(d, 3, np.sqrt(d[2]))
+            
             d = d.reshape(1,5)
             data = np.append(data, d, axis=0)
 
@@ -570,9 +539,10 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/week-sigma1.png', dpi=256, bbox_inches='tight')
     plt.close()
-
-    plt.plot(x, data[0:data.shape[0], 1], label='Mu')
-    plt.scatter(x, data[0:data.shape[0], 1], label='Mu', s=2, c='r')
+    
+    mu1 = data[0:data.shape[0], 1]
+    plt.plot(x, mu1, label='Mu-1')
+    plt.scatter(x, mu1, label='Mu-2', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-mu1.png', dpi=256, bbox_inches='tight')
@@ -585,8 +555,10 @@ def plot():
     plt.savefig('Images/Plots/week-sigma2.png', dpi=256, bbox_inches='tight')
     plt.close()
 
-    plt.plot(x, data[0:data.shape[0], 3], label='Mu-2')
-    plt.scatter(x, data[0:data.shape[0], 3], label='Mu-2', s=2, c='r')
+    mu2 = data[0:data.shape[0], 3]
+    mu2 = np.where(mu2 < -100, 0, mu2)
+    plt.plot(x, mu2, label='Mu-2')
+    plt.scatter(x, mu2, label='Mu-2', s=2, c='r')
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-mu2.png', dpi=256, bbox_inches='tight')
@@ -596,10 +568,18 @@ def plot():
     frac = (np.tanh(frac) + 1) / 2
     plt.plot(x, frac, label='Frac')
     plt.scatter(x, frac, label='Frac', s=2, c='r')
-    print('Average frac: ' + str(np.mean(data[0:data.shape[0], 3])))
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-frac.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
+    plt.plot(x, mu1 + mu2, label='Plus')
+    plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
+    plt.plot(x, mu1 - mu2, label='Minus')
+    plt.scatter(x, mu1 - mu2, label='Minus', s=2, c='g')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-test.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
@@ -1074,4 +1054,4 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    histo()
+    plot()
