@@ -533,53 +533,51 @@ def plot():
     data = np.delete(data, 0, 0)
 
 
+    # Code to plot the fits, abstracted because it was getting a little
+    # cumbersome to copy paste.
+    def fit_plot(x, data, name):
+        loc = 'Images/Plots/week-' + name.lower() + '.png'
+        plt.plot(x, data, label=name)
+        plt.scatter(x, data, label=name, s=2, c='r')
+        plt.xlabel('Week Number')
+        plt.legend()
+        plt.savefig(loc, dpi=256, bbox_inches='tight')
+        plt.close()
+
     # This code plots the variables individually
-    plt.plot(x, data[0:data.shape[0], 0], label='Sigma-1')
-    plt.scatter(x, data[0:data.shape[0], 0], label='Sigma-1', s=2, c='r')
-    plt.legend()
-    plt.savefig('Images/Plots/week-sigma1.png', dpi=256, bbox_inches='tight')
-    plt.close()
+    sigma1 = data[0:data.shape[0], 0]
+    fit_plot(x, sigma1, 'Sigma-1')
     
     mu1 = data[0:data.shape[0], 1]
-    plt.plot(x, mu1, label='Mu-1')
-    plt.scatter(x, mu1, label='Mu-2', s=2, c='r')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-mu1.png', dpi=256, bbox_inches='tight')
-    plt.close()
+    fit_plot(x, mu1, 'Mu-1')
 
-    plt.plot(x, data[0:data.shape[0], 2], label='Sigma-2')
-    plt.scatter(x, data[0:data.shape[0], 2], label='Sigma-2', s=2, c='r')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-sigma2.png', dpi=256, bbox_inches='tight')
-    plt.close()
-
+    sigma2 = data[0:data.shape[0], 2]
+    fit_plot(x, sigma1, 'Sigma-2')
+    
     mu2 = data[0:data.shape[0], 3]
     mu2 = np.where(mu2 < -100, 0, mu2)
-    plt.plot(x, mu2, label='Mu-2')
-    plt.scatter(x, mu2, label='Mu-2', s=2, c='r')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-mu2.png', dpi=256, bbox_inches='tight')
-    plt.close()
+    fit_plot(x, mu1, 'Mu-2')
 
     frac = data[0:data.shape[0], 4]
     frac = (np.tanh(frac) + 1) / 2
-    plt.plot(x, frac, label='Frac')
-    plt.scatter(x, frac, label='Frac', s=2, c='r')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-frac.png', dpi=256, bbox_inches='tight')
-    plt.close()
+    fit_plot(x, frac, 'Frac')
     
     plt.plot(x, mu1 + mu2, label='Plus')
     plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
-    plt.plot(x, mu1 - mu2, label='Minus')
-    plt.scatter(x, mu1 - mu2, label='Minus', s=2, c='g')
+    plt.plot(x, np.abs(mu1 - mu2), label='Minus')
+    plt.scatter(x, np.abs(mu1 - mu2), label='Minus', s=2, c='g')
     plt.xlabel('Week Number')
     plt.legend()
-    plt.savefig('Images/Plots/week-test.png', dpi=256, bbox_inches='tight')
+    plt.savefig('Images/Plots/week-mu-test.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
+    plt.plot(x, sigma1 + sigma2, label='Plus')
+    plt.scatter(x, sigma1 + sigma2, label='Plus', s=2, c='r')
+    plt.plot(x, np.abs(sigma1 - sigma2), label='Minus')
+    plt.scatter(x, np.abs(sigma1 - sigma2), label='Minus', s=2, c='g')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
