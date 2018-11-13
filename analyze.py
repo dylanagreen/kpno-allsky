@@ -540,6 +540,7 @@ def plot():
         plt.plot(x, data, label=name)
         plt.scatter(x, data, label=name, s=2, c='r')
         plt.xlabel('Week Number')
+        plt.ylabel('Cloudiness Relative to Mean')
         plt.legend()
         plt.savefig(loc, dpi=256, bbox_inches='tight')
         plt.close()
@@ -550,6 +551,9 @@ def plot():
     
     mu1 = data[0:data.shape[0], 1]
     fit_plot(x, mu1, 'Mu-1')
+    
+    cv1 = sigma1 / mu1
+    fit_plot(x, cv1, 'CV-1')
 
     sigma2 = data[0:data.shape[0], 2]
     fit_plot(x, sigma1, 'Sigma-2')
@@ -557,6 +561,9 @@ def plot():
     mu2 = data[0:data.shape[0], 3]
     mu2 = np.where(mu2 < -100, 0, mu2)
     fit_plot(x, mu1, 'Mu-2')
+    
+    cv2 = sigma2 / mu2
+    fit_plot(x, cv2, 'CV-2')
 
     frac = data[0:data.shape[0], 4]
     frac = (np.tanh(frac) + 1) / 2
@@ -578,6 +585,15 @@ def plot():
     plt.xlabel('Week Number')
     plt.legend()
     plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
+    plt.close()
+    
+    plt.plot(x, cv1 + cv2, label='Plus')
+    plt.scatter(x, cv1 + cv2, label='Plus', s=2, c='r')
+    plt.plot(x, np.abs(cv1 - cv2), label='Minus')
+    plt.scatter(x, np.abs(cv1 - cv2), label='Minus', s=2, c='g')
+    plt.xlabel('Week Number')
+    plt.legend()
+    plt.savefig('Images/Plots/week-cv-test.png', dpi=256, bbox_inches='tight')
     plt.close()
 
 
