@@ -846,9 +846,9 @@ def find_fit(data, divs):
     # The guess for the first mean is the maximum that occurs before the cutoff
     # at index 35 (about 2.44)
     # And the guess for the second mean is the maximum that occurs after.
-    index = np.argmax(hist[:35])
+    index = np.argmax(hist[:32])
     guess = (index + 0.5) * w
-    guess2 = (np.argmax(hist[35:]) + 35.5) * w
+    guess2 = (np.argmax(hist[32:]) + 32.5) * w
 
     # This block of code finds the first time the histogram falls below
     # Half the max, which gives us the half width at half maximum.
@@ -857,7 +857,7 @@ def find_fit(data, divs):
     # Max before jumping up above it again for a few bins.
     less = np.where(hist < (hist[index] / 2), True, False)
     hwhm = (np.argmax(less[index:])) * w
-    guesssigma = hwhm / (np.sqrt(2*np.log(2)))
+    guesssigma = hwhm / (np.sqrt(2 * np.log(2)))
 
     # Guesses the frac paramter by comparing the heights of the two maximums.
     maximum = np.amax(hist)
@@ -870,6 +870,10 @@ def find_fit(data, divs):
 
     fitarr = []
     coeffsarr = []
+
+    fit1 = fit_function(temp)
+    fitarr.append(fit1.fun)
+    coeffsarr.append(fit1.x)
 
     fit1 = fit_function(temp, init=[0.1, guess, 0.5, guess2, guessfrac])
     fitarr.append(fit1.fun)
@@ -885,8 +889,24 @@ def find_fit(data, divs):
 
     fitarr = np.abs(np.asarray(fitarr))
     best = np.argmin(fitarr)
+    
+    orig = best
+    coeffs = np.copy(coeffsarr)
+    
+    while np.abs(coeffsarr[best][0]) < 0.002:
+        print('Delta Found')
+        fitarr = np.delete(fitarr, best)
+        coeffsarr.pop(best)
+        
+        if not len(fitarr) == 0:
+            best = np.argmin(fitarr)
+        else:
+            best = orig
+            coeffsarr = np.copy(coeffs)
+            coeffsarr[best][0] = 0.05
+            break
 
-    return (coeffsarr[best], best)
+    return (coeffsarr[best], orig)
 
 
 # Inverted the args for this, so they match those used by scipy's minmize.
