@@ -559,7 +559,8 @@ def plot():
     fit_plot(x, sigma2, 'Sigma-2')
     
     mu2 = data[0:data.shape[0], 3]
-    mu2 = np.where(mu2 < -100, 0, mu2)
+    print(np.argmin(mu2))
+    mu2 = np.where(mu2 < -100, mu1, mu2)
     fit_plot(x, mu2, 'Mu-2')
     
     cv2 = sigma2 / mu2
