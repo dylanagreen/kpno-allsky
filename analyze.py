@@ -556,11 +556,11 @@ def plot():
     fit_plot(x, cv1, 'CV-1')
 
     sigma2 = data[0:data.shape[0], 2]
-    fit_plot(x, sigma1, 'Sigma-2')
+    fit_plot(x, sigma2, 'Sigma-2')
     
     mu2 = data[0:data.shape[0], 3]
     mu2 = np.where(mu2 < -100, 0, mu2)
-    fit_plot(x, mu1, 'Mu-2')
+    fit_plot(x, mu2, 'Mu-2')
     
     cv2 = sigma2 / mu2
     fit_plot(x, cv2, 'CV-2')
