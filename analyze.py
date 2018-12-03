@@ -494,12 +494,12 @@ def plot():
 
     #Reads in the csv file using pandas.
     domedata = pd.read_csv('daily-2007-2017.csv')
-    open2016 = domedata.get('Y2016').values
-    open2017 = domedata.get('Y2017').values
+    close2016 = domedata.get('Y2016').values
+    close2017 = domedata.get('Y2017').values
 
-    topen = [[] for i in range(0, 53)]
-    openav = []
-    for j in range(0, len(open2016)):
+    tclose = [[] for i in range(0, 53)]
+    closeav = []
+    for j in range(0, len(close2016)):
         if j >= 60:
             i = j + 1
         else:
@@ -508,13 +508,13 @@ def plot():
         week1 = j // 7
         week2 = i // 7
 
-        topen[week1].append(open2017[j])
-        topen[week2].append(open2016[j])
+        tclose[week1].append(close2017[j])
+        tclose[week2].append(close2016[j])
 
-    for i in range(0, len(topen)):
-        openav.append(np.mean(topen[i]))
+    for i in range(0, len(tclose)):
+        closeav.append(np.mean(tclose[i]))
 
-    plt.plot(x, openav, label='Average Closed Fraction', color=(0,1,0,1))
+    plt.plot(x, closeav, label='Average Closed Fraction', color=(0,1,0,1))
     plt.legend()
 
     plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
