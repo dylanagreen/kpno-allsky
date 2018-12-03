@@ -480,6 +480,7 @@ def plot():
     x = np.asarray((range(1, 54)))
     #plt.ylabel('Cloudiness Relative to Mean')
     plt.xlabel('Week Number')
+    plt.ylabel('Cloudiness Relative to Mean')
 
     # Moon phase averages.
     moon_avgs = []
@@ -489,7 +490,35 @@ def plot():
         #print(str(i + 1) + ': ' + str(len(val)))
         num_imgs.append(len(val))
 
-    #setup_plot(x, tweek)
+    setup_plot(x, tweek)
+
+    #Reads in the csv file using pandas.
+    domedata = pd.read_csv('daily-2007-2017.csv')
+    open2016 = domedata.get('Y2016').values
+    open2017 = domedata.get('Y2017').values
+
+    topen = [[] for i in range(0, 53)]
+    openav = []
+    for j in range(0, len(open2016)):
+        if j >= 60:
+            i = j + 1
+        else:
+            i = j
+
+        week1 = j // 7
+        week2 = i // 7
+
+        topen[week1].append(open2017[j])
+        topen[week2].append(open2016[j])
+
+    for i in range(0, len(topen)):
+        openav.append(np.mean(topen[i]))
+
+    plt.plot(x, openav, label='Average Closed Fraction', color=(0,1,0,1))
+    plt.legend()
+
+    plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
+    plt.close()
     # plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
 
     #num_imgs = np.asarray(num_imgs)
@@ -519,13 +548,13 @@ def plot():
             # Passes the data to the fitting method.
             temp = np.delete(temp, np.where(temp < 0.061))
             d, best = find_fit(temp, divs)
-            
+
             # Inserts a the sqaure root of the lambda for the mu-2 if the fit
             # Is a gaussian-poisson combo.
             if len(d) < 5:
                 d = np.asarray(d)
                 d = np.insert(d, 3, np.sqrt(d[2]))
-            
+
             d = d.reshape(1,5)
             data = np.append(data, d, axis=0)
 
@@ -548,28 +577,28 @@ def plot():
     # This code plots the variables individually
     sigma1 = data[0:data.shape[0], 0]
     fit_plot(x, sigma1, 'Sigma-1')
-    
+
     mu1 = data[0:data.shape[0], 1]
     fit_plot(x, mu1, 'Mu-1')
-    
+
     cv1 = sigma1 / mu1
     fit_plot(x, cv1, 'CV-1')
 
     sigma2 = data[0:data.shape[0], 2]
     fit_plot(x, sigma2, 'Sigma-2')
-    
+
     mu2 = data[0:data.shape[0], 3]
     print(np.argmin(mu2))
     mu2 = np.where(mu2 < -100, mu1, mu2)
     fit_plot(x, mu2, 'Mu-2')
-    
+
     cv2 = sigma2 / mu2
     fit_plot(x, cv2, 'CV-2')
 
     frac = data[0:data.shape[0], 4]
     frac = (np.tanh(frac) + 1) / 2
     fit_plot(x, frac, 'Frac')
-    
+
     plt.plot(x, mu1 + mu2, label='Plus')
     plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
     plt.plot(x, np.abs(mu1 - mu2), label='Minus')
@@ -578,7 +607,7 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/week-mu-test.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
+
     plt.plot(x, sigma1 + sigma2, label='Plus')
     plt.scatter(x, sigma1 + sigma2, label='Plus', s=2, c='r')
     plt.plot(x, np.abs(sigma1 - sigma2), label='Minus')
@@ -587,7 +616,7 @@ def plot():
     plt.legend()
     plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
     plt.close()
-    
+
     plt.plot(x, cv1 + cv2, label='Plus')
     plt.scatter(x, cv1 + cv2, label='Plus', s=2, c='r')
     plt.plot(x, np.abs(cv1 - cv2), label='Minus')
@@ -889,15 +918,15 @@ def find_fit(data, divs):
 
     fitarr = np.abs(np.asarray(fitarr))
     best = np.argmin(fitarr)
-    
+
     orig = best
     coeffs = np.copy(coeffsarr)
-    
+
     while np.abs(coeffsarr[best][0]) < 0.002:
         print('Delta Found')
         fitarr = np.delete(fitarr, best)
         coeffsarr.pop(best)
-        
+
         if not len(fitarr) == 0:
             best = np.argmin(fitarr)
         else:
