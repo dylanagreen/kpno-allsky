@@ -58,6 +58,7 @@ def find_threshold():
         # We do this as a dict because 2017 is straight up missing some days of
         # images because I guess the camera was down?
         # Otherwise I'd just make a len 365 list.
+        weekdict = [[] for i in range(0, 53)]
         daydict = {}
         for month in months:
             # If the month is not in this year, we skip it analyzing.
@@ -81,8 +82,10 @@ def find_threshold():
                 # Get the number for that day to add it to the dict.
                 i = daynum(day)
 
-                # Because we skip the leap day we need to bump the day num of all
-                # days after that date down by one.
+                weeknum = i // 7
+
+                # Because we skip the leap day we need to bump the day num of
+                # all days after that date down by one.
                 # 60 because 31 + 28 = 59
                 if year == '2016' and i >= 60:
                     i = i-1
@@ -104,6 +107,8 @@ def find_threshold():
                     # to mean to the daydict.
                     images.append(line[0])
                     daydict[i].append(float(line[1]))
+
+                    weekdict[weeknum].append(float(line[1]))
 
                 # This block only runs if we actually analyzed images.
                 if images:
@@ -136,10 +141,16 @@ def find_threshold():
         true = []
         # Runs over the dictionary, key is the day number. Val is the list of
         # cloudinesses
+
+        openweeks = [[] for i in range(0, 53)]
+
         for key, val in daydict.items():
             # The fraction is the fraction of the night the dome was closed.
             # When we multiply to find the index we want the inverse frac though.
             frac = 1 - opens[key - 1]
+
+            week = (key) // 7
+            openweeks[week].append(opens[key - 1])
 
             # Finds the index at which the fraction of images above that index is
             # equal to the amount of the night that the dome was closed.
@@ -183,8 +194,60 @@ def find_threshold():
                 true.append(len(above)/len(working))
                 x1.append(frac)
 
+        weekthresh = []
+        weektotal = []
+        weektrue = []
+        x2 = []
+        x3 = []
+        for i in range(0, len(weekdict)):
+            frac = 1 - np.mean(openweeks[i])
 
-        print(year + ': ' + str(np.median(thresh)))
+            working = sorted(weekdict[i])
+
+            # If we don't have any images that night then just bail.
+            if len(working) == 0:
+                continue
+
+            # Multiply the frac by the length, to find the index above which
+            # the correct fraction of the images is 'dome closed.' Rounds and
+            # Subtracts one to convert it to the integer index.
+            index = int(round(frac * len(working))) - 1
+
+            # If the index is the final index then the 'cloudiness relative to the
+            # mean threshold' is slightly below that value so average down.
+            # Otherwise take the average of that index and the one above since the
+            # threshold actually falls inbetween.
+            if index == len(working) - 1 and not frac == 1:
+                num = np.mean([float(working[index]), float(working[index - 1])])
+            # If the dome is closed the entire night, index will be given as -1
+            # And we find the threshold as the average of the start and end
+            # cloudiness. Instead we want the threshold to be the first
+            # cloudiness as that way the dome is "closed" all night.
+            elif frac == 0:
+                num = float(working[0]) - 0.1
+            elif frac == 1:
+                num = float(working[-1])
+            else:
+                num = np.mean([float(working[index]), float(working[index + 1])])
+
+            weekthresh.append(num)
+            weektotal.append(num)
+            x2.append(i)
+
+            working = np.asarray(working)
+            above = working[working > num]
+
+            if len(working) > 0:
+                frac = np.mean(openweeks[i])
+                weektrue.append(len(above)/len(working))
+                x3.append(frac)
+
+        print(year + ': ')
+        print('Min: ' + str(np.amin(thresh)))
+        print('25%: ' + str(np.percentile(thresh, 25)))
+        print('50%: ' + str(np.median(thresh)))
+        print('75%: ' + str(np.percentile(thresh, 75)))
+        print('Max: ' + str(np.amax(thresh)))
         print()
 
         fig,ax = plt.subplots()
@@ -196,7 +259,7 @@ def find_threshold():
         ax.scatter(x, above, s=1, c='r')
         ax.set_xlabel('Day')
         ax.set_ylabel('Cloudiness Relative to Mean')
-        plt.savefig('Images/Threshold-' + year + '.png', dpi=256)
+        plt.savefig('Images/Dome/Threshold-Day-' + year + '.png', dpi=256)
         plt.close()
 
         fig,ax = plt.subplots()
@@ -204,12 +267,34 @@ def find_threshold():
         ax.scatter(x1, true, s=1)
         ax.set_xlabel('True Fraction')
         ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Differences-' + year + '.png', dpi=256)
+        plt.savefig('Images/Dome/Verify-Day-' + year + '.png', dpi=256)
+        plt.close()
+
+        fig,ax = plt.subplots()
+        fig.set_size_inches(6, 4)
+
+        print(year + ' Week: ' + str(np.median(weekthresh)))
+
+        above = np.ma.masked_where(weekthresh < np.median(weekthresh), weekthresh)
+        below = np.ma.masked_where(weekthresh > np.median(weekthresh), weekthresh)
+        ax.scatter(x2, below, s=1)
+        ax.scatter(x2, above, s=1, c='r')
+        ax.set_xlabel('Day')
+        ax.set_ylabel('Cloudiness Relative to Mean')
+        plt.savefig('Images/Dome/Threshold-Week-' + year + '.png', dpi=256)
+        plt.close()
+
+        fig,ax = plt.subplots()
+        fig.set_size_inches(6, 4)
+        ax.scatter(x3, weektrue, s=1)
+        ax.set_xlabel('True Fraction')
+        ax.set_ylabel('Found Fraction')
+        plt.savefig('Images/Dome/Verify-Week-' + year + '.png', dpi=256)
         plt.close()
 
     #years[year] = daydict
 
-    return np.median(total)
+    return (np.median(total), np.median(weektotal))
 
 
 def test_threshold():
@@ -235,14 +320,16 @@ def test_threshold():
         if '.DS_Store' in months:
             months.remove('.DS_Store')
 
-        test = find_threshold()
+        test1, test2 = find_threshold()
 
-        print(test)
+        print(test1)
+        print(test2)
 
         # We do this as a dict because 2017 is straight up missing some days of
         # images because I guess the camera was down?
         # Otherwise I'd just make a len 365 list.
         daydict = {}
+        weekdict = [[] for i in range(0, 53)]
         for month in months:
             # If the month is not in this year, we skip it analyzing.
             if int(month) < int(year + '01') or int(month) > int(year + '12'):
@@ -264,6 +351,8 @@ def test_threshold():
 
                 # Get the number for that day to add it to the dict.
                 i = daynum(day)
+
+                weeknum = i // 7
 
                 # Because we skip the leap day we need to bump the day num of all
                 # days after that date down by one.
@@ -289,31 +378,56 @@ def test_threshold():
                     images.append(line[0])
                     daydict[i].append(float(line[1]))
 
+                    weekdict[weeknum].append(float(line[1]))
+
             x = []
             true = []
+            weekfrac = [[] for i in range(0, 53)]
             # Runs over the dictionary, key is the day number. Val is the list of
             # cloudinesses
             for key, val in daydict.items():
                 # The fraction is the fraction of the night the dome was closed.
-                # When we multiply to find the index we want the inverse frac though.
                 frac = opens[key - 1]
+
+                # Appends the fract to the week average array.
+                weekfrac[key // 7].append(frac)
 
                 working = np.asarray(val)
 
-
-                above = working[working > test]
-
+                above = working[working > test1]
                 if len(working) > 0:
                     true.append(len(above)/len(working))
                     x.append(frac)
+
+            x1 = []
+            weektrue = []
+            # Runs over the week number
+            for i in range(0,len(weekdict)):
+                # The fraction is the average of the whole week.
+                frac = np.mean(weekfrac[i])
+
+                working = np.asarray(weekdict[i])
+
+                above = working[working > test2]
+                if len(working) > 0:
+                    weektrue.append(len(above)/len(working))
+                    x1.append(frac)
 
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
         ax.scatter(x, true, s=1)
         ax.set_xlabel('True Fraction')
         ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Differences-' + year + '.png', dpi=256)
+        plt.savefig('Images/Dome/Differences-Day-' + year + '.png', dpi=256)
+        plt.close()
+
+        fig,ax = plt.subplots()
+        fig.set_size_inches(6, 4)
+        ax.scatter(x1, weektrue, s=1)
+        ax.set_xlabel('True Fraction')
+        ax.set_ylabel('Found Fraction')
+        plt.savefig('Images/Dome/Differences-Week-' + year + '.png', dpi=256)
         plt.close()
 
 
-find_threshold()
+test_threshold()
