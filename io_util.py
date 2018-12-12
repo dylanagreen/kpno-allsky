@@ -104,28 +104,26 @@ def save_image(img, name, location, cmap='gray', patch=None):
     if not os.path.exists(location):
         os.makedirs(location)
 
-    # DPI chosen to have resultant image be the same size as the originals.
-    # 128*4 = 512
     dpi = 128
     y = img.shape[0] / dpi
     x = img.shape[1] / dpi
 
     # Generate Figure and Axes objects.
-    figure = plt.figure()
-    figure.set_size_inches(x, y)  # 4 inches by 4 inches
-    axes = plt.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
+    fig = plt.figure()
+    fig.set_size_inches(x, y)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
+    ax.set_axis_off()
+    fig.add_axes(ax)
 
     # Adds the image into the axes and displays it
     # Then saves
-    axes.imshow(img, cmap=cmap)
+    ax.imshow(img, cmap=cmap)
 
     if patch:
-        axes.add_patch(patch)
+        ax.add_patch(patch)
 
     # If location was passed with / on the end, don't append another one.
     if not location[-1:] == '/':
@@ -524,6 +522,7 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    for i in range(20180101, 20180132):
-        date = str(i)
-        download_all_date(date)
+    img1 = ndimage.imread('Images/Prediction/Gen.png', mode='L')
+    img2 = ndimage.imread('Images/Prediction/20170225 - r_ut045459s54960.png', mode='L')
+    save_image(image_diff(img1, img2), 'Diff.png','Images/Prediction/')
+    
