@@ -384,7 +384,7 @@ def gray_and_color_image(file):
 
     See Also
     --------
-    scipy.misc.imread : For more details on the ITU-R 601-2 luma grayscale
+    scipy.ndimage.imread : For more details on the ITU-R 601-2 luma grayscale
                         transform used by this method.
 
     Notes
