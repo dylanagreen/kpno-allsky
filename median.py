@@ -9,6 +9,22 @@ import io_util
 # Python works on tuples as required for color medians, which means we need to
 # turn the numpy color array of length 3 into a tuple.
 def ndarray_to_tuplelist(arr):
+    """Convert an ndarray to a list of tuples.
+
+    For an ndarray of shape (y, x) returns a list of y tuples where each tuple
+    is of length x.
+
+    Parameters
+    ----------
+    arr : ndarray
+        A NumPy ndarray to be converted.
+
+    Returns
+    -------
+    list
+        A list of tuples.
+
+    """
     templist = []
 
     # Runs over the second dimension (the longer one)
@@ -21,6 +37,26 @@ def ndarray_to_tuplelist(arr):
 
 # This works as wanted for tuples yay!
 def median_of_medians(arr, i):
+    """Find the ith smallest element of a list using the median of medians algorithm.
+
+    Parameters
+    ----------
+    arr : array_like
+        An array_like object of floats.
+    i : int
+        The positional rank.
+
+    Returns
+    -------
+    float
+        The ith smallest element of arr.
+    
+    Notes
+    -----
+    i = len(arr) // 2 corresponds to finding the median of arr. Details on the
+    median of medians algorithm can be found at Wikipedia 
+    (https://en.wikipedia.org/wiki/Median_of_medians).
+    """
 
     # Divide the array into sublists of length 5 and find the medians.
     sublists = []
@@ -54,9 +90,27 @@ def median_of_medians(arr, i):
     return median_of_medians(high, i - (lownum + identnum))
 
 
-# Finds all median images for a given date
-# Returns a dictionary of median images, with keys being exposures.
 def median_all_date(date, color=False):
+    """Find the median images for a given date.
+
+    Parameters
+    ----------
+    date : str
+        The date to find median images for.
+    color : bool, optional
+        If true, finds the median images in color, otherwise works in grayscale.
+        Defaults to False.
+
+    Returns
+    -------
+    dict of ndarrays
+        A dictionary mapping exposure times to their median images.
+
+    See Also
+    --------
+    io_util.load_all_date : Load images in color to find color medians.
+
+    """
     # I've hard coded the files for now, this can be changed later.
     directory = 'Images/Original/KPNO/' + date + '/'
 
@@ -159,9 +213,30 @@ def median_all_date(date, color=False):
     return finalimg
 
 
-# Date tells this function what folder to save the medians in.
-# Color tells us if the medians are in color or not.
 def save_medians(medians, date, color=False):
+    """Save a dict of medians produced by median_all_date.
+
+    Parameters
+    ----------
+    medians: dict
+        Dictionary mapping exposure times to their median images.
+    date : str
+        The date of the median images.
+    color : bool, optional
+        If True, saves the median images in color, otherwise works in grayscale.
+        Defaults to False.
+
+    See Also
+    --------
+    io_util.save_image : Save an image.
+    median_all_date : Generate median images for a given date.
+
+    Notes
+    -----
+    Saves median images to Images/Median/`date`/ if the medians are grayscale, 
+    and Images/Median-Color/`date`/ if the medians are in color.
+
+    """
     if not color:
         loc = 'Images/Median/' + date + '/'
         cmap = 'gray'
@@ -181,7 +256,4 @@ def save_medians(medians, date, color=False):
 
 
 if __name__ == "__main__":
-    date = '1'
-    #io_util.download_all_date(date)
-    medians = median_all_date(date, True)
-    save_medians(medians, date, True)
+    print(median_of_medians(list(range(0, 200, 2)), 99))

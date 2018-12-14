@@ -337,7 +337,7 @@ def load_all_date(date):
 
     See Also
     --------
-    gray_and_color_image : Images are loaded using gray_and_color_image.
+    gray_and_color_image : Method used to load images.
 
     """
 
