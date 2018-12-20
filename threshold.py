@@ -7,9 +7,21 @@ import math
 import ephem
 
 
-def daynum(day, format='%Y%m%d'):
+def daynum(date):
+    """Find the number of the days into a year a given date is.
+
+    Parameters
+    ----------
+    date : str
+        Date in yyyymmdd format.
+
+    Returns
+    -------
+    int
+        The number of days into the year the given date is.
+    """
     # Strips out the information from the pass in string
-    d1 = datetime.date(int(day[:4]), int(day[4:6]), int(day[6:8]))
+    d1 = datetime.date(int(date[:4]), int(date[4:6]), int(date[6:8]))
 
     # The date for the start of the year.
     d2 = datetime.date(year=d1.year, month=1, day=1)
@@ -19,13 +31,53 @@ def daynum(day, format='%Y%m%d'):
     return days
 
 
-def format_date(day, name):
-    formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:8]
+def format_date(date, name):
+    """Convert an image name into a format that pyephem accepts.
+
+    Parameters
+    ----------
+    date : str
+        Date on which the image was taken, in yyyymmdd format.
+    name : str
+        The image's file name.
+
+    Returns
+    -------
+    str
+        A date and time in yyyy/mm/dd hh:mm:ss format.
+    """
+    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:8]
     time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
     return formatdate + ' ' + time
 
 
 def find_threshold():
+    """Find the mean cloudiness threshold for 2016 and 2017 combined.
+
+    Returns
+    -------
+    tuple
+        A tuple with two items. The first item is the threshold value if each
+        day is considered individually, and the second item is the threshold
+        value if the days are grouped by week.
+
+    Notes
+    -----
+    The method analyzes the cloudiness of each image relative to the mean
+    cloudiness for the phase of the moon on that night.
+    Each night images were taken when the dome was closed.
+    Images whose cloudiness is above a certain value are considered to
+    have been taken when the dome was closed. This method finds that value by
+    using the percentage of each night when the dome is closed, which is
+    already known. The proportion of images above this value will be
+    approximately equal to the known percentage.This value is designated the
+    threshold for each night. The method finds this threshold for every night
+    and then returns the median of that dataset.
+
+    This method additionally runs the same analysis where an entire week is
+    considered at a time, rather than single nights. The returned value is
+    the median of the 52 week thresholds.
+    """
     # Sets up a pyephem object for the camera.
     camera = ephem.Observer()
     camera.lat = '31.959417'
@@ -298,6 +350,16 @@ def find_threshold():
 
 
 def test_threshold():
+    #This method uses find_threshold() to find the cloudiness thresholds. It
+    #then uses the median for each individual night of images and checks the
+    #proportion of images that are above the threshold against the fraction
+    #of that night for which the dome is closed. It outputs four plots, which
+    #are saved to Images/Dome/. Each plot plots the dome closed fraction on
+    #the horizontal axis, and the fraction of images above the median threshold
+    #for that year on the y axis. The four plots represent two plots with day
+    #wise thresholding, and two with weekwise. One plot contains all 2016 data
+    #and the other the 2017 data.
+
     for year in ['2016', '2017']:
 
         # Reads in the csv file using pandas.
@@ -430,4 +492,5 @@ def test_threshold():
         plt.close()
 
 
-test_threshold()
+if __name__ == "__main__":
+    test_threshold()
