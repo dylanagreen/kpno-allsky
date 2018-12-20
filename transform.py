@@ -16,6 +16,36 @@ center = (256, 252)
 # This takes the file and the given date and then transforms it
 # from the circle into an eckert-iv projected ra-dec map.
 def transform(img, name, date):
+    """Transform a circular all-sky image into an Eckert-IV projection of the
+    visible night sky.
+
+    Parameters
+    ----------
+    img : numpy.ndarray
+        The image.
+    name : str
+        The image's file name.
+    date : str
+        Date on which the image was taken, in yyyymmdd format.
+
+    See Also
+    --------
+    eckertiv : Define the projection method.
+
+    Notes
+    -----
+    First applies a mask generated from mask.generate_mask().
+    From there, lists of x and y pixels inside each image is built.
+    These lists are converted to right ascension and declination
+    representations of each pixel. These are passed to eckertiv(), which 
+    converts these points to x and y positions on the Eckert-IV projection. 
+    The map is then built as a scatter plot using these x and y positions, 
+    where the color of each dot is taken from the pixel originally used. 
+    Each point is the same size, which is a valid assumption since the 
+    Eckert-IV projection is an equal area projection. 
+    The plot is then saved to Images/Transform/`date`/`name`.
+
+    """
     time = coordinates.timestring_to_obj(date, name)
 
     # Find the mask and black out those pixels.
@@ -112,7 +142,7 @@ def transform(img, name, date):
     # I found them by sorting x and y.
     ax1.text(-290, -143, formatted + '  ut' + time, style='italic')
 
-    patches = hull_patch()
+    patches = desi_patch()
     for patch in patches:
         ax1.add_patch(patch)
 
@@ -140,7 +170,25 @@ def transform(img, name, date):
 # Adds 0-30-60 degree alt contours to the axis passed in.
 # Time parameter is required for altaz -> radec conversion.
 def contours(axis, time):
+    """Add three altitude contours to an axis based on a given time.
 
+    Parameters
+    ----------
+    axis : matplotlib.pyplot.axis
+        An axis to add the contours to.
+    time : astropy.time.Time
+        A time and date.
+
+    Returns
+    -------
+    matplotlib.pyplot.axis
+        New axis where the contours have been overlaid on top.
+
+    Notes
+    -----
+    The contours added to the axis correspond to altitude angles of 0, 30 and
+    60 degrees.
+    """
     # Loop runs over all the alts.
     # Resets the arrays at the start, creates alt/az for that alt value.
     for alt in range(0, 90, 30):
@@ -219,36 +267,89 @@ def contours(axis, time):
     return axis
 
 
-# Newton's method for the mollweide projection.
-def mollweide_findtheta(phi, n):
+def mollweide_findtheta(dec, n):
+    """Find the auxiliary latitude (theta) value that defines a given
+    latitude in the Mollweide projection.
+
+    Parameters
+    ----------
+    dec : array_like
+        The declination (or latitude) angular coordinates of the data set in
+        radians.
+    n : int
+        The number of iterations to use in Newton's method.
+
+    Returns
+    -------
+    np.ndarray
+        Array of auxiliary latitude values corresponding to the
+        input latitude values.
+
+    Notes
+    -----
+    This method finds the auxiliary latitude values using Newton's method, and
+    is thus recursive.
+    Wikipedia provides a simple form of the equation that is iterated upon
+    in this method. See here for more details:
+    https://en.wikipedia.org/wiki/Mollweide_projection
+    """
+    # This is here in case dec is a list rather than a numpy array.
+    dec = np.asarray(dec)
+
     # First short circuit
     if n == 0:
-        return np.arcsin(2*phi/math.pi)
+        return np.arcsin(2 * dec / math.pi)
 
     # Array literally just filled with half pis.
-    halfpi = np.empty(len(phi))
-    halfpi.fill(math.pi/2)
+    halfpi = np.empty(len(dec))
+    halfpi.fill(math.pi / 2)
 
-    theta = mollweide_findtheta(phi, n-1)
+    theta = mollweide_findtheta(dec, n-1)
 
     cond1 = np.equal(theta, halfpi)
-    cond2 = np.equal(theta, -1*halfpi)
+    cond2 = np.equal(theta, -1 * halfpi)
     cond = np.logical_or(cond1, cond2)
 
     # Choose the original value (pi/2 or neg pi/2) if its true for equality
     # Otherwise use that value's thetanew.
-    num = (2 * theta + np.sin(2 * theta) - math.pi*np.sin(phi))
-    thetanew = theta - num/(2 + 2 * np.cos(2 * theta))
-    thetanew = np.where(cond, phi, thetanew)
+    num = (2 * theta + np.sin(2 * theta) - math.pi * np.sin(dec))
+    thetanew = theta - num / (2 + 2 * np.cos(2 * theta))
+    thetanew = np.where(cond, dec, thetanew)
 
     return thetanew
 
 
-# Dec = lat = phi
-# Ra = long = lambda
-# Should work on lists/np arrays
-# This is the mollweide transformation.
 def mollweide(ra, dec):
+    """Find a Mollweide representation of the given coordinates.
+
+    Parameters
+    ----------
+    ra : array_like
+        The right ascension (or longitude) coordinates of the data set.
+    dec : array_like
+        The declination (or latitude) coordinates of the data set.
+
+    Returns
+    -------
+    tuple
+        Tuple where the first item is the x coordinates
+        and the second item is the y coordinates corresponding to the given
+        points.
+
+    See Also
+    --------
+    mollweide_findtheta : Newton's method for finding each point's auxiliary
+                          latitdue (theta) value.
+
+    Notes
+    -----
+    This method defines the x,y and latitude and longitude using the standard
+    Mollweide definition. Wikipedia provides a simple form of the equations
+    used in this method, including a defnition of the theta value that is
+    found using Newton's method. See here for more details:
+    https://en.wikipedia.org/wiki/Mollweide_projection
+    """
+
     # Center latitude
     center = math.radians(180)
 
@@ -265,23 +366,50 @@ def mollweide(ra, dec):
     return(x, y)
 
 
-# Newton's method for eckert-iv proection.
-def eckertiv_findtheta(phi, n):
+def eckertiv_findtheta(dec, n):
+    """Find the auxiliary latitude (theta) value that defines a given
+    latitude in the Eckert-IV projection.
+
+    Parameters
+    ----------
+    dec : array_like
+        The declination (or latitude) angular coordinates of the data set in
+        radians.
+    n : int
+        The number of iterations to use in Newton's method.
+
+    Returns
+    -------
+    numpy.ndarray
+        Array of auxiliary latitude values corresponding to the
+        input latitude values.
+
+    Notes
+    -----
+    This method finds the auxiliary latitude values using Newton's method, and
+    is thus recursive.
+    Wikipedia provides a simple form of the equation that is iterated upon
+    in this method. See here for more details:
+    https://en.wikipedia.org/wiki/Eckert_IV_projection
+    """
+    # This is here in case dec is a list rather than a numpy array.
+    dec = np.asarray(dec)
+
     # First short circuit
     if n == 0:
-        return phi/2
+        return dec / 2
 
     pi = math.pi
 
     # Array literally just filled with half pis.
-    halfpi = np.empty(len(phi))
-    halfpi.fill(pi/2)
+    halfpi = np.empty(len(dec))
+    halfpi.fill(pi / 2)
 
-    theta = eckertiv_findtheta(phi, n-1)
+    theta = eckertiv_findtheta(dec, n-1)
 
     # Condition for the angle is pi/2 OR -pi/2
     cond1 = np.equal(theta, halfpi)
-    cond2 = np.equal(theta, -1*halfpi)
+    cond2 = np.equal(theta, -1 * halfpi)
     cond = np.logical_or(cond1, cond2)
 
     # Choose the original value (pi/2 or -pi/2) if its true for equality
@@ -290,15 +418,45 @@ def eckertiv_findtheta(phi, n):
     # It's been broken up for style.
     s_theta = np.sin(theta)
     c_theta = np.cos(theta)
-    num = theta + np.multiply(s_theta, c_theta) + 2 * s_theta - (2 + pi/2) * np.sin(phi)
+    num = theta + np.multiply(s_theta, c_theta) + 2 * s_theta - (2 + pi/2) * np.sin(dec)
     denom = 2 * c_theta * (1 + c_theta)
-    thetanew = theta - num/denom
-    thetanew = np.where(cond, phi, thetanew)
+    thetanew = theta - num / denom
+    thetanew = np.where(cond, dec, thetanew)
 
     return thetanew
 
 
 def eckertiv(ra, dec):
+    """Find an Eckert-IV representation of the given coordinates.
+
+    Parameters
+    ----------
+    ra : array_like
+        The right ascension (or longitude) coordinates of the data set.
+    dec : array_like
+        The declination (or latitude) coordinates of the data set.
+
+    Returns
+    -------
+    tuple
+        Tuple where the first item is the x coordinates
+        and the second item is the y coordinates corresponding to the given
+        points.
+
+    See Also
+    --------
+    eckertiv_findtheta : Newton's method for finding each point's
+                         auxiliary latitude value.
+
+    Notes
+    -----
+    This method defines the x,y and latitude and longitude using the standard
+    Eckert-IV definition. Wikipedia provides a simple form of the equations
+    used in this method, including a defnition of the theta value that is
+    found using Newton's method. See here for more details:
+    https://en.wikipedia.org/wiki/Eckert_IV_projection
+
+    """
     # Center latitude
     center = math.radians(180)
 
@@ -309,7 +467,7 @@ def eckertiv(ra, dec):
     R = 100
 
     # For readability sake
-    coeff = 1/math.sqrt(math.pi*(4+math.pi))
+    coeff = 1 / math.sqrt(math.pi * (4 + math.pi))
 
     # Eckert IV conversion functions.
     x = 2 * R * coeff * np.subtract(np.radians(ra), center) * (1 + np.cos(theta))
@@ -318,8 +476,21 @@ def eckertiv(ra, dec):
     return(x, y)
 
 
-# Returns a matplotlib patch for each of the two DESI view polygons.
-def hull_patch():
+def desi_patch():
+    """Create axis patches corresponding to the DESI survey areas.
+
+    Returns
+    -------
+    list
+        List of matplotlib.patches.Patch objects representing the two DESI survey
+        areas.
+
+    Notes
+    -----
+    This method requires the file hull.txt to be in the module's directory.
+    This file can be downloaded from the kpno-allsky GitHub.
+
+    """
     f = open('hull.txt', 'r')
 
     # Converts the string representation of the list to a list of points.
@@ -343,7 +514,41 @@ def hull_patch():
 # Pos defines whether or not the sort sorts anticlockwise from the positive x
 # Or clockwise from the negative x.
 # Anticlockwise = True, clockwise = False
-def clockwise_sort(ra, dec, positive=False):
+def clockwise_sort(x, y, clockwise=True):
+    """Sort a set of coordinates clockwise.
+
+    Parameters
+    ----------
+    x : array_like
+        The set of x coordinates.
+    y : array_like
+        The set of y coordinates.
+    clockwise : bool, optional
+        If True, sorts clockwise, otherwise sorts anti-clockwise. Defaults to
+        True.
+
+    Returns
+    -------
+    tuple
+        Tuple of the data set sorted, where the first item is the ra coordinates
+        and the second item is the dec coordinates.
+
+    Notes
+    -----
+    This method sorts a data set clockwise from the calculated center of the
+    data. The center is found by taking the maximum of the sorted ra and
+    dec values and then finding the midpoint between the two. While for some
+    strange dataset this may not be the actual center (for example, a crescent
+    moon), it is a reasonably fast approximation. The dataset will always
+    be sorted by theta first, then radius. Points with the same angular
+    distance from the sorting axis will be sorted by their radial distance.
+
+    The sort is done clockwise starting from the negative x axis, or
+    anticlockwise from the positive x axis. The reason for this is due to
+    how atan2 returns angles as between -pi and pi instead of between pi and
+    2pi.
+
+    """
     x = sorted(ra)
     y = sorted(dec)
 
@@ -364,7 +569,7 @@ def clockwise_sort(ra, dec, positive=False):
 
     # If we want to sort from pos x, we need to ensure that the negative angles
     # Are actually big positive angles.
-    if positive:
+    if not clockwise:
         cond = np.less(theta, 0)
         theta = np.where(cond, theta + 2 * np.pi, theta)
 
