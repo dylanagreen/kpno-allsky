@@ -282,7 +282,7 @@ def download_image(date, image, camera='kpno'):
     Notes
     -----
     Over the course of the run time of this method various status updates will
-    be printed. The method will exit early and fail to downlod the image
+    be printed. The method will exit early and fail to download the image
     with a failure print out.
 
     Images will be saved to Images/Original/`camera`/`date`/.
