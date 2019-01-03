@@ -10,8 +10,29 @@ import io_util
 center = (256, 252)
 
 
-# This method is essentially a switch block for different exposures.
 def cloud_contrast(img):
+    """Darken cloud pixels in an image.
+
+    This is a convenience method that will determine the appropriate method
+    to use.
+
+    Parameters
+    ----------
+    img : numpy.ndarray
+        A greyscale image.
+
+    Returns
+    -------
+    numpy.ndarray
+        A higher contrast version of the original image.
+
+    See Also
+    --------
+    zero_three_cloud_contrast: Darken cloud pixels in images with 0.3 second
+     exposure times.
+    six_cloud_contrast: Darken cloud pixels in images with 6 second
+     exposure times.
+    """
     exposure = io_util.get_exposure(img)
     print(exposure)
 
@@ -23,8 +44,37 @@ def cloud_contrast(img):
     return img
 
 
-# Takes in an image as an np ndarray.
 def zero_three_cloud_contrast(img):
+    """Darken cloud pixels in an image taken with an exposure time of 0.3
+    seconds.
+
+    Parameters
+    ----------
+    img : numpy.ndarray
+        A greyscale image.
+
+    Returns
+    -------
+    numpy.ndarray
+        A higher contrast version of the original image.
+
+    Notes
+    -----
+    In order to first determine which pixels should be considered clouds
+    this method first finds the difference between the pixel at position (510,
+    510) in the given image and the image taken at 05:29:36 on
+    November 8, 2017. This difference is then subtracted from all the pixels,
+    normalizing the image to have the same background pixel value. A greyscale
+    closing is then performed, smudging out white pixel noise.
+
+    The average value of all the pixels in this new normalized image is
+    calculated and any pixel that is above this average value is considered a
+    cloud pixel. This is because light reflected off the moon illuminates
+    the clouds, raising them above the average pixel value.
+
+    Once the cloud pixels are found, all non-cloud pixels are raised in value
+    by 40, while the cloud pixels are reduced to 0.
+    """
     # Temprary, I intend to change this slightly later.
     img2 = ndimage.imread('Images/Original/20171108/r_ut052936s31200.png',
                           mode='L')
@@ -60,9 +110,56 @@ def zero_three_cloud_contrast(img):
     return final
 
 
-# Takes in an image as an np ndarray.
-# Name and date are for saving purposes
 def six_cloud_contrast(img):
+    """Darken cloud pixels in an image taken with an exposure time of 6 seconds.
+
+    Parameters
+    ----------
+    img : numpy.ndarray
+        A greyscale image.
+
+    Returns
+    -------
+    numpy.ndarray
+        A higher contrast version of the original image.
+
+    Notes
+    -----
+    At the start of this method, the dead pixels and horizon objects are
+    masked out. The image is inverted, and subtracted from itself four times.
+    This highly increases the contrast between the clouds (which fall close to
+    0 in the original pixel value) and the background,
+    which will get reduced to 0. A copy of this image is used later in a
+    separate calculation. Meanwhile, a greyscale closing is performed on this
+    resulting image, which smooths out stars that were turned into small black
+    dots in the inversion process.
+
+    This result then gets thresholded, which creates a two tone, black and white
+    version of the image. This is done by making each pixel with a value above
+    10 as white and anything below as black.
+    A binary closing is performed to remove any created
+    singular white pixels. The horizon items are once again masked out, and
+    a buffer circle of black pixels is created around the image content. As
+    a result, the image is filled with white regions
+    that correspond to the original clouds, with the rest of the image being
+    black.
+
+    In some images, however, the center of the Milky Way is bright enough to
+    be recorded at a pixel value approximately equal to the value at which
+    the clouds appear. To account for this, for each white region in the binary
+    image, count the number of stars in the original image that would appear
+    within that region. Removes any region where the density of stars
+    is too high to be a cloud. This leaves a binary image with clouds in
+    white, and everything else in black.
+
+    From here, a scaling darkness fraction is determined by
+    the original inversion image. Cloud pixels that are close to white
+    in the inversion, from the darkest regions of the clouds, are scaled
+    to 0, while the rest of the pixels are scaled less dark. This preserves
+    the large scale structure of the clouds, but reduces them in brightness
+    to nearly 0. The exact formula used to calculate this scaling darkness
+    is 0.6 - (inverted pixel value) / 255.
+    """
 
     # Find the mask and black out those pixels.
     masking = mask.generate_mask()
