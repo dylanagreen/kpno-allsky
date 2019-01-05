@@ -18,12 +18,30 @@ d1 = coordinates.timestring_to_obj('20171001', 'r_ut013603s08160').plot_date
 d2 = coordinates.timestring_to_obj('20171031', 'r_ut132350s57840').plot_date
 
 
-# Creates a histogram of the greyscale values in the image and saves it.
-# Saves histogram to passed in path.
-# Returns the histogram bin values.
-# If a mask is passed, it uses that mask in addition to the one generated
-# Mask
 def plot_histogram(img, hist, masking, path, date, save=True):
+    """Plot and save an image and histogram.
+    
+    Parameters
+    ----------
+    img : numpy.ndarray
+        A greyscale image.
+    hist : array_like
+        Histogram of image pixel values.
+    masking : numpy.ndarray, optional
+        A masking array of pixels to ignore. Defaults to None.
+    path : str
+        The location to save the image within Images/Histogram/.
+    date : str
+        The Julien day on which the image was taken.
+    save : bool
+        If the plot should be saved. Defaults to True.
+    
+    Notes
+    -----
+    This method will always write the date and the cloudiness fraction of the
+    image to a file named data.txt in the current directory.
+    
+    """
     # Sets up the image so that the images are on the left
     # and the histogram and plot are on the right
     fig, ax = plt.subplots(2, 2)
@@ -118,6 +136,21 @@ def plot_histogram(img, hist, masking, path, date, save=True):
 
 
 def generate_histogram(img, masking=None):
+    """Generate a histogram of pixel values.
+    
+    Parameters
+    ----------
+    img : numpy.ndarray
+        A greyscale image.
+    masking : numpy.ndarray, optional
+        A masking array of pixels to ignore. Defaults to None.
+    
+    Returns
+    -------
+    tuple
+        A tuple with two items. The first item is a list of histogram values 
+        and the second item is a list of lower bounds for each bin.
+    """
     # This first applies any passed in mask (like the moon mask)
     img1 = np.ma.masked_array(img, masking)
 
@@ -136,6 +169,24 @@ def generate_histogram(img, masking=None):
 
 
 def cloudiness(hist):
+    """Calculate the cloudiness of a histogram.
+    
+    Parameters
+    ----------
+    hist : array_like
+        List of histogram bin values.
+    
+    Returns
+    -------
+    float
+        Cloudiness value of a given histogram.
+    
+    Notes
+    -----
+    The cloudiness fraction for a histogram is calculated by taking the number
+    of greyscale pixel values above 160 and dividing it by the total number of 
+    greyscale pixel values that appear in the histogram.
+    """
     # Pretty straight forward math here:
     # Num of pixels > thresh / total num of pixels.
     thresh = 160
@@ -146,10 +197,19 @@ def cloudiness(hist):
     return round(frac, 3)
 
 
-# Intializes the category defining histograms.
-# Returns a dictionary where the key is the category number and the value is
-# the defining histogram for that category.
 def init_categories():
+    """Initialize histogram categories.
+    
+    Returns
+    -------
+    dict
+        A dictionary mapping category names to the histograms that define them.
+    
+    Notes
+    -----
+    Images used for initializing each category are stored in Images/Category/. 
+    These images can be downloaded from the GitHub repository.
+    """
     # Loads up the category numbers
     directory = 'Images/Category/'
     files = sorted(os.listdir(directory))
@@ -177,11 +237,37 @@ def init_categories():
     return categories
 
 
-# This method categorizes the histogram given based on the categories given.
-# Categories should be a dict of categories, from init_categories for example.
-# This method uses an algorithm called the histogram intersection algorithm.
 def categorize(histogram, categories):
-
+    """Categorize a histogram based on the given categories.
+    
+    Parameters
+    ----------
+    histogram : array_like
+        List of histogram bin values.
+    categories : dict
+        A dictionary mapping category names to the histograms that define them.
+    
+    Returns
+    -------
+    object or None
+        The category that the histogram belongs to.
+    
+    Notes
+    -----
+    This method uses the histogram intersection algorithm. The
+    algorithm is defined originally by Swain and Ballard in an article
+    entitled Color Indexing [1]. 
+    
+    In essence the method decides what category the histogram belongs to by 
+    finding the category whose histogram's shape most closely 
+    matches that of the input histogram.
+    
+    References
+    ----------
+    .. [1] Swain, M.J. & Ballard, D.H. Int J Comput Vision (1991) 7: 11. 
+     https://doi.org/10.1007/BF00130487
+    
+    """
     best = 0
     category = None
 
