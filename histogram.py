@@ -147,9 +147,10 @@ def generate_histogram(img, masking=None):
     
     Returns
     -------
-    tuple
-        A tuple with two items. The first item is a list of histogram values 
-        and the second item is a list of lower bounds for each bin.
+    hist : list
+        The histogram values.
+    bins : list
+        The lower bounds for each bin.
     """
     # This first applies any passed in mask (like the moon mask)
     img1 = np.ma.masked_array(img, masking)
