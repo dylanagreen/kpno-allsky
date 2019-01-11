@@ -56,10 +56,10 @@ def find_threshold():
 
     Returns
     -------
-    tuple
-        A tuple with two items. The first item is the threshold value if each
-        day is considered individually, and the second item is the threshold
-        value if the days are grouped by week.
+    float
+        The threshold value if each day is considered individually.
+    float
+        The threshold value if the days are grouped by week.
 
     Notes
     -----
