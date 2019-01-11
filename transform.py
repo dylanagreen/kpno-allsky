@@ -331,10 +331,10 @@ def mollweide(ra, dec):
 
     Returns
     -------
-    tuple
-        Tuple where the first item is the x coordinates
-        and the second item is the y coordinates corresponding to the given
-        points.
+    x : array_like
+        The x coordinates corresponding to the given points.
+    y : array_like
+        The y coordinates corresponding to the given points.
 
     See Also
     --------
@@ -438,10 +438,10 @@ def eckertiv(ra, dec):
 
     Returns
     -------
-    tuple
-        Tuple where the first item is the x coordinates
-        and the second item is the y coordinates corresponding to the given
-        points.
+    x : array_like
+        The x coordinates corresponding to the given points.
+    y : array_like
+        The y coordinates corresponding to the given points.
 
     See Also
     --------
@@ -529,15 +529,16 @@ def clockwise_sort(x, y, clockwise=True):
 
     Returns
     -------
-    tuple
-        Tuple of the data set sorted, where the first item is the ra coordinates
-        and the second item is the dec coordinates.
+    x : array_like
+        The sorted set of x coordinates.
+    y : array_like
+        The sorted set of y coordinates.
 
     Notes
     -----
     This method sorts a data set clockwise from the calculated center of the
-    data. The center is found by taking the maximum of the sorted ra and
-    dec values and then finding the midpoint between the two. While for some
+    data. The center is found by taking the maximum of the sorted x and
+    y values and then finding the midpoint between the two. While for some
     strange dataset this may not be the actual center (for example, a crescent
     moon), it is a reasonably fast approximation. The dataset will always
     be sorted by theta first, then radius. Points with the same angular
@@ -549,15 +550,15 @@ def clockwise_sort(x, y, clockwise=True):
     2pi.
 
     """
-    x = sorted(ra)
-    y = sorted(dec)
+    x1 = sorted(x)
+    y1 = sorted(y)
 
     # Finds the center of the circle ish object
-    centerx = (x[0] + x[-1])/2
-    centery = (y[0] + y[-1])/2
+    centerx = (x1[0] + x1[-1])/2
+    centery = (y1[0] + y1[-1])/2
 
-    x = np.subtract(ra, centerx)
-    y = np.subtract(dec, centery)
+    x = np.subtract(x, centerx)
+    y = np.subtract(y, centery)
 
     # Creates polar nonsense
     r = np.hypot(x, y)
