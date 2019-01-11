@@ -515,7 +515,7 @@ def desi_patch():
 # Or clockwise from the negative x.
 # Anticlockwise = True, clockwise = False
 def clockwise_sort(x, y, clockwise=True):
-    """Sort a set of coordinates clockwise.
+    """Sort a set of coordinates clockwise, element-wise.
 
     Parameters
     ----------
