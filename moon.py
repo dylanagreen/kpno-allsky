@@ -12,11 +12,6 @@ import coordinates
 import histogram
 
 
-# Radii in kilometers
-# Radius of the earth is the radius of the earth shadow at the moon's orbit.
-R_moon = 1737
-R_earth = 4500
-
 # Sets up a pyephem object for the camera.
 camera = ephem.Observer()
 camera.lat = '31.959417'
@@ -24,9 +19,25 @@ camera.lon = '-111.598583'
 camera.elevation = 2120
 
 
-# Returns the amount of the moon that is lit up still by the sun, and not
-# shaded by the earth.
-def eclipse_visible(d, R, r):
+def eclipse_phase(d):
+    """Calculate the proportion of the moon that is lit up during an eclipse.
+
+    Parameters
+    ----------
+    d : float
+        The distance between the center of Earth's shadow and the center of the
+        moon in kilometers.
+
+    Returns
+    -------
+    float
+        The phase of the moon, ranging between 0.0 and 1.0, where 0.0 is a new
+        moon and 1.0 is a full moon.
+    """
+
+    # In kilometers.
+    r = 1737 # R_moon
+    R = 4500  #R_earth
 
     # This makes addition work as addition and not concatenates
     d = np.asarray(d)
@@ -66,9 +77,24 @@ def eclipse_visible(d, R, r):
     return P
 
 
-# Calculates the proportion of the moon that is lit up for noneclipse nights.
 # 1.0 = Full moon, 0.0 = New Moon
-def moon_visible(date, file):
+def moon_phase(date, file):
+    """Calculate the proportion of the moon that is lit up for non-eclipse
+    nights.
+
+    Parameters
+    ----------
+    date : str
+        The date on which the image was taken in yyyymmdd format.
+    file : str
+        The image's file name.
+
+    Returns
+    -------
+    float
+        The phase of the moon, ranging between 0.0 and 1.0, where 0.0 is a new
+        moon and 1.0 is a full moon.
+    """
 
     # Nicked this time formatting code from timestring to object.
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
@@ -85,9 +111,39 @@ def moon_visible(date, file):
     return moon.moon_phase
 
 
-# Finds the size of the moon region (approximately) by taking pixels that are
-# "close to white" (in this case, > 255 - threshold)
 def moon_size(date, file):
+    """Calculate the area of the moon in pixels in a given image.
+
+    Parameters
+    ----------
+    date : str
+        The date on which the image was taken in yyyymmdd format.
+    file : str
+        The image's file name.
+
+    Returns
+    -------
+    int
+        The size of the moon in pixels.
+
+    Notes
+    -----
+    This method first converts the image to a black and white two-tone image
+    where pixels with greyscale values above or equal to 250 is set to
+    white and everything below is set to black. A binary closing is performed
+    on the image, which smooths over any small black pixel regions within the
+    moon. These black regions are created when the pixels are brighter than the
+    maximum of 255 for white pixels and overflow back to 0.
+    The white regions are labeled and their sizes are found using
+    ndimage.label. Then, the approximate position of the center of the moon
+    is found using find_moon.
+
+    If the pixel at the moon's center is black (due to aforementioned pixel
+    value overflow), the nearest white region along the x axis is found and
+    the size of this region is returned.
+
+    If this pixel is white, the size of this white region is returned.
+    """
     img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
     thresh = 5
     img = np.where(img >= 255 - thresh, 1, 0)
@@ -131,10 +187,30 @@ def moon_size(date, file):
     return biggest
 
 
-# Finds the x,y coordinates of the moon's center in a given image.
-# Also returns the moon's altitude, to check that it is even up.
 def find_moon(date, file):
+    """Find the (x, y, alt) coordinate of the moon's center in a given image.
 
+    Parameters
+    ----------
+    date : str
+        The date on which the image was taken in yyyymmdd format.
+    file : str
+        The image's file name.
+
+    Returns
+    -------
+    x : float
+        The x coordinate of the moon's center.
+    y : float
+        The y coordinate of the moon's center.
+    alt : float
+        The altitude angle of the moon's center.
+
+    Notes
+    -----
+    The x and y coordinates are corrected for irregularities in the lens using
+    coordinates.galactic_conv.
+    """
     # Nicked this time formatting code from timestring to object.
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
     time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
@@ -156,9 +232,23 @@ def find_moon(date, file):
     return (x, y, alt)
 
 
-# Finds the x,y coordinates of the moon's center in a given image.
 def find_sun(date, file):
+    """Find the (alt, az) coordinate of the sun's center in a given image.
 
+    Parameters
+    ----------
+    date : str
+        The date on which the image was taken in yyyymmdd format.
+    file : str
+        The image's file name.
+
+    Returns
+    -------
+    alt : float
+        The altitude coordinate of the sun's center.
+    az : float
+        The azimuth coordinate of the sun's center.
+    """
     # Nicked this time formatting code from timestring to object.
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
     time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
@@ -181,7 +271,22 @@ def find_sun(date, file):
 # Fits a Moffat fit to the moon and returns the estimated radius of the moon.
 # Radius of the moon is the FWHM of the fitting function.
 def fit_moon(img, x, y):
+    """Fit a Moffat function to the moon in a given image.
 
+    Parameters
+    ---------
+    img : numpy.ndarray
+        A greyscale image.
+    x : float
+        The x coordinate of the moon's center.
+    y : float
+        The y coordinate of the moon's center.
+
+    Returns
+    -------
+    float
+        The Full Width at Half Maximum of the Moffat function.
+    """
     # This block of code runs straight vertical from the center of the moon
     # It gives a predicted rough radius of the moon, it starts counting at the
     # first white pixel it encounters (the center may be black)
@@ -191,8 +296,8 @@ def fit_moon(img, x, y):
     size = 0
     xfloor = math.floor(x)
     start = xfloor
-    
-    # The only reason we have this if block is to ensure we don't run for 
+
+    # The only reason we have this if block is to ensure we don't run for
     # moon radii greater than 35 in this case.
     for i in range(0, 35):
         start += 1
@@ -250,7 +355,38 @@ def fit_moon(img, x, y):
 
 # Generates the size vs illuminated fraction for the two eclipse nights.
 def generate_eclipse_data(regen=False):
+    """Generate moon phase data for eclipses.
 
+    Parameters
+    ----------
+    regen : bool, optional
+        If True, regen from scratch. Otherwise, load it from a file.
+        Defaults to False.
+
+    Returns
+    -------
+    truevis : list of lists
+        A list containing one or more lists where each list contains values
+        corresponding to an eclipse. Each value is the phase of the moon
+        ranging from 0.0 to 1.0, in an image taken during that night.
+        0.0 corresponds to a new moon, while 1.0 corresponds to a full moon.
+        The list is ordered in chronological order; that is, the first value
+        within the list is calculated from an image that was taken at the
+        beginning of the eclipse, and the last value is taken from the end of
+        the eclipse. Currently, this is hardcoded such that the first list
+        represents the eclipse on 2018/01/31, and the second list represents
+        the eclipse on 2015/04/04.
+    imvis : list of lists
+        A list containing one or more lists where each list contains values
+        corresponding to an eclipse. Each value is the area of the moon,
+        in pixels, in an image taken during that night. The list is ordered in
+        chronological order; that is, the first value within the list is
+        calculated from an image that was taken at the beginning of the eclipse,
+        and the last value is taken from the end of the eclipse.
+        Currently, this is hardcoded such that the first list represents
+        the eclipse on 2018/01/31, and the second list represents the eclipse
+        on 2015/04/04.
+    """
     dates = ['20180131', '20150404']
 
     # Function within a function to avoid code duplication.
@@ -315,7 +451,7 @@ def generate_eclipse_data(regen=False):
 
         # Calculates the proportion of visible moon for the given distance
         # between the centers.
-        truevis = eclipse_visible(distances, R_earth, R_moon)
+        truevis = eclipse_phase(distances)
 
         imvis = np.asarray(imvis)
 
@@ -343,10 +479,20 @@ def generate_eclipse_data(regen=False):
     return (trues, ims)
 
 
-# Calculates the estimated size of the moon in the image based on the passed in
-# illuminated fraction.
-# Returns the radius of the circle that will cover the moon in the image.
 def moon_circle(frac):
+    """Calculate the estimated pixel size of the moon based on the
+    fraction of the moon that is illuminated.
+
+    Parameters
+    ----------
+    frac : float
+        The proportion of the moon that is illuminated by sunlight.
+
+    Returns
+    -------
+    float
+        The estimated size of the moon.
+    """
     illuminated = [0, 0.345, 0.71, 0.88, 0.97, 1.0]
     size = [650, 4000, 10500, 18000, 30000, 35000]
 
@@ -354,11 +500,25 @@ def moon_circle(frac):
     return np.sqrt(A/np.pi)
 
 
-# Generates a mask that covers up the moon for a given image.
 def moon_mask(date, file):
+    """Generate a masking array that covers the moon in a given image.
+
+    Parameters
+    ----------
+    date : str
+        The date on which the image was taken in yyyymmdd format.
+    file : str
+        The image's file name.
+
+    Returns
+    -------
+    numpy.ndarray
+        An array where pixels inside the moon are marked with False and those
+        outside the moon are marked with True.
+    """
     # Get the fraction visible for interpolation and find the
     # location of the moon.
-    vis = moon_visible(date, file)
+    vis = moon_phase(date, file)
     x, y, alt = find_moon(date, file)
 
     # Creates the circle patch we use.
@@ -390,8 +550,23 @@ def moon_mask(date, file):
     return mask
 
 
-# Generates a plot of illuminated fraction vs apparent moon size.
 def generate_plots():
+    """Generate a plot of illuminated fraction versus apparent moon size.
+
+    Notes
+    -----
+    The eclipse dataset is loaded using generate_eclipse_data and then plotted.
+    The file images.txt contains the illuminated fraction of the moon
+    and the pixel area of the moon in that image. This data is plotted on top
+    of the eclipse data. The illuminated fraction of the moon is found using
+    moon_phase, and the size of the moon in the image is found using moon_size.
+    Once all of these are plotted, two versions of the plot are saved, one
+    with a standard y and x axis, and one with a logarithmic y axis.
+
+    These plots are saved directly to Images/ under the names 'moon-size.png'
+    and 'moon-size-log.png.'
+
+    """
     # Loads the eclipse data
     vis, found = generate_eclipse_data()
     print("Eclipse data loaded!")
@@ -416,7 +591,7 @@ def generate_plots():
     for line in f1:
         line = line.rstrip()
         info = line.split(',')
-        vis.append(moon_visible(info[0], info[1]))
+        vis.append(moon_phase(info[0], info[1]))
         found.append((moon_size(info[0], info[1] + '.png')))
         print("Processed: " + info[0] + '/' + info[1] + '.png')
 
