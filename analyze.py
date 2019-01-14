@@ -15,7 +15,20 @@ import histogram
 import coordinates
 
 
-def get_start():
+def get_latest_analyzed():
+    """Find the latest analyzed date.
+
+    Returns
+    -------
+    str
+        The latest date analyzed in yyyymmdd format.
+
+    Notes
+    -----
+    The latest date analyzed is found by searching through Data/ for the
+    latest month that has been analyzed, and then searching through that month
+    for the latest day that has been analyzed.
+    """
     # Gets the downloaded months
     directory = 'Data/'
     months = sorted(os.listdir(directory))
@@ -41,6 +54,19 @@ def get_start():
 
 
 def analyze():
+    """Determine cloudiness of images for every day from January 1, 2017 onward.
+
+    See Also
+    --------
+    histogram.cloudiness : Calculate the cloudiness of a histogram.
+
+    Notes
+    -----
+    For each night, all images taken that day are downloaded. For every night
+    analyzed, the cloudiness values for every image taken during that night
+    are written to 'Data/yyyymm/yyyymmdd.txt' where yyyymmdd corresponds to the
+    date analyzed.
+    """
     t1 = time.perf_counter()
     link = 'http://kpasca-archives.tuc.noao.edu/'
 
@@ -177,6 +203,14 @@ def analyze():
 
 
 def month_plot():
+    """Generate a plot of nightly cloudiness for each month.
+
+    Notes
+    -----
+    The cloudiness values for every image saved using :func:`~analyze` are loaded. These
+    values are plotted, with all images for a given month on a single plot.
+    Plots are saved in 'Images/Plots/' with the filename "scatter-`month`.png".
+    """
     # Gets the downloaded months
     directory = 'Data/'
 
@@ -280,6 +314,17 @@ camera.horizon = '-17'
 
 
 def plot():
+    """Generate various cloudiness plots and save them to Images/Plots.
+
+    Notes
+    -----
+    The cloudiness values for every image saved using :func:`~analyze` are loaded.
+    These values are further analyzed to create new plots. The generated
+    plots include plots of Cloudiness vs Moon Phase, Cloudiness vs Hours since
+    sunset, Cloudiness vs Normalized time after sunset, Cloudiness vs Hours
+    before sunrise, and Cloudiness vs Week Number. These plots are saved to
+    Images/Plots.
+    """
     # Gets the downloaded months
     directory = 'Data/'
 
@@ -514,6 +559,8 @@ def plot():
     for i in range(0, len(tclose)):
         closeav.append(np.mean(tclose[i]))
 
+    print(closeav)
+
     plt.plot(x, closeav, label='Average Closed Fraction', color=(0,1,0,1))
     plt.legend()
 
@@ -628,6 +675,15 @@ def plot():
 
 
 def model():
+    """Model the dependence of cloudiness on the moon phase.
+
+    Notes
+    -----
+    Cloudiness is plotted on the y-axis against the moon phase on the x-axis,
+    and then np.linalg is used to find a quadratic model that fits this data.
+    This model is used to remove the dependence of moon phase on the
+    cloudiness data.
+    """
     loc = 'phase.txt'
 
     data = []
@@ -688,6 +744,16 @@ def model():
 
 
 def histo():
+    """Generate weekly histograms of cloudiness values for 2016 and 2017.
+
+    Notes
+    -----
+    The cloudiness values for every image saved using :func:`~analyze` are loaded and
+    collated into histograms containing one week each. Each week produces
+    three histograms: one with only 2016 images, one with only 2017
+    images, and one with both on the same histogram. The 159 histograms are
+    saved to 'Images/Plots/Weeks'.
+    """
     directory = 'Data/'
 
     months = sorted(os.listdir(directory))
@@ -865,6 +931,24 @@ def histo():
 
 # Divs is the divisions to use, used in finding the guess parameters
 def find_fit(data, divs):
+    """Find the best fit to a weekly histogram.
+
+    Parameters
+    ----------
+    data : array_like
+        The cloudiness data used in generating a histogram.
+    divs : array_like
+        The lower bounds on the divisions used in generating a histogram.
+
+    Returns
+    -------
+    tuple
+        Tuple, where the first item is a list of coefficients corresponding
+        to the best fit, and the second item is an identifying number that
+        corresponds to which fit (a double gaussian or a Gaussian and Poisson
+        hybrid) is the best. 0 and 1 correspond to a double Gaussian, and 2 and
+        3 correspond to a Gaussian and Poisson hybrid.
+    """
     split = 10
     w = 0.61 / split
 
@@ -941,6 +1025,33 @@ def find_fit(data, divs):
 # Inverted the args for this, so they match those used by scipy's minmize.
 # Minimize changes the coefficients making those the variables here.
 def function_gp(params, x):
+    """A Gaussian and Poisson hybrid function.
+
+    Parameters
+    ----------
+    params : array_like
+        A list containing all of the defining parameters for the function.
+        The first item is the standard deviation of the Gaussian, the second is
+        the mean of the Gaussian, the third is the mean and variance
+        of the Poisson, and the fourth is a fraction that defines how biased
+        the function should be towards the Gaussian. For example, if the
+        provided fraction is 1 then the function is only a Gaussian,
+        whereas if the provided fraction is 0 the function is only the a
+        Poisson.
+    x : array_like
+        The x coordinates to plug into the function.
+
+    Returns
+    -------
+    numpy.ndarray
+        The function values corresponding to the input x values.
+
+    Notes
+    -----
+    The function is normalized so that the area under the curve from 0 to
+    infinity is equal to 1.
+
+    """
     sigma = params[0]
     mu = params[1]
     lamb = params[2]
@@ -962,6 +1073,34 @@ def function_gp(params, x):
 
 
 def function_gg(params, x):
+    """A double Gaussian hybrid function.
+
+    Parameters
+    ----------
+    params : array_like
+        A list containing all of the defining parameters for the function.
+        The first item is the standard deviation of the first (lower) Gaussian,
+        the second is the mean of the first Gaussian, the third is the standard
+        deviation of the second (higher) Gaussian, the fourth is the mean of
+        the second Gaussian, and the fifth is a fraction that defines how
+        biased the function should be towards the first Gaussian.
+        For example, if the provided fraction is 1 then the function is only
+        the first Gaussian, whereas if the provided fraction is 0 the function
+        is only the second Gaussian.
+    x : array_like
+        The x coordinates to plug into the function.
+
+    Returns
+    -------
+    numpy.ndarray
+        The function values corresponding to the input x values.
+
+    Notes
+    -----
+    The function is normalized so that the area under the curve from 0 to
+    infinity is equal to 1.
+
+    """
     sigma1 = params[0]
     mu1 = params[1]
     sigma2 = params[2]
@@ -985,6 +1124,34 @@ def function_gg(params, x):
 
 
 def likelihood_gg(params, data):
+    """The log likelihood value corresponding to the double Gaussian hybrid
+    function.
+
+    Parameters
+    ----------
+    params : array_like
+        A list containing all of the defining parameters for the function.
+        The first item is the standard deviation of the first (lower) Gaussian,
+        the second is the mean of the first Gaussian, the third is the standard
+        deviation of the second (higher) Gaussian, the fourth is the mean of
+        the second Gaussian, and the fifth is a fraction that defines how
+        biased the function should be towards the first Gaussian.
+        For example, if frac = 1 then the function is only the first Gaussian,
+        whereas if frac = 0 the function is only the second Gaussian.
+    data : array_like
+        The x coordinates to plug into the function.
+
+    Returns
+    -------
+    float
+        The log likelihood value.
+
+    Notes
+    -----
+    The log likelihood of a function is calulated using a chi-squared analysis,
+    and thus is the negative sum of the natural logarithm of the function
+    values.
+    """
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
     chi = -np.sum(np.log(function_gg(params, data)))
@@ -992,6 +1159,31 @@ def likelihood_gg(params, data):
 
 
 def likelihood_gp(params, data):
+    """The log likelihood value corresponding to the Gaussian and Poisson hybrid
+    function.
+
+    params : array_like
+        A list containing all of the defining parameters for the function.
+        The first item is the standard deviation of the Gaussian, the second is
+        the mean of the Gaussian, the third is the mean and standard deviation
+        of the Poisson, and the fourth is a fraction that defines how biased
+        the function should be towards the Gaussian. For example, if frac = 1
+        then the function is only a Gaussian, whereas if frac = 0 the function
+        is only a Poisson.
+    data : array_like
+        The x coordinates to plug into the function.
+
+    Returns
+    -------
+    float
+        The log likelihood value.
+
+    Notes
+    -----
+    The log likelihood of a function is calulated using a chi-squared analysis,
+    and thus is the negative sum of the natural logarithm of the function
+    values.
+    """
     # In chi-squared there's a 2 in front but since we're minimizing I've
     # dropped it.
     chi = -np.sum(np.log(function_gp(params, data)))
@@ -1001,8 +1193,27 @@ def likelihood_gp(params, data):
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
 def fit_function(xdata, func='gg', init=None):
-    # Default for maxiter is N * 200 but that's not enough in this case so we
-    # need to specify a higher value
+    """Fit a function to a histogram.
+
+    Parameters
+    ----------
+    xdata : array_like
+        The cloudiness data used to compute a histogram.
+    func : str, optional
+        Which function to fit. 'gg' corresponds to a double Gaussian hybrid,
+        and 'gp' corresponds to a Gaussian and Poisson hybrid function.
+        Defaults to 'gg'.
+    init : list, optional
+        A list of initial guesses for the function fitting. Defaults to
+        None. If None, uses an initial guess of [0.1,0.5,0.5,3,0] for
+        a double Gaussian hybrid function, and [0.1,0.5,3,0] for a Gaussian
+        and Poisson hybrid function.
+
+    Returns
+    -------
+    scipy.optimize.OptimizeResult
+        An object corresponding to the fit function.
+    """
     if func == 'gg':
         likelihood = likelihood_gg
 
@@ -1014,6 +1225,8 @@ def fit_function(xdata, func='gg', init=None):
         if init is None:
             init = [0.1,0.5,3,0]
 
+    # Default for maxiter is N * 200 but that's not enough in this case so we
+    # need to specify a higher value
     fit = optimize.minimize(likelihood, x0=init, args=xdata,
                             method='Nelder-Mead',
                             options={'disp':False, 'maxiter':1200})
@@ -1022,6 +1235,15 @@ def fit_function(xdata, func='gg', init=None):
 
 # Saves the cloudiness data as a csv file.
 def to_csv():
+    """Convert the saved daily cloudiness data to a CSV file.
+
+    Notes
+    -----
+    The cloudiness values for every image saved using :func:`~analyze` are loaded and
+    converted to a single CSV file: data.csv.
+    The CSV file has 5 headers: Date & Time, Year, Week Number, Normalized Time
+    after Sunset and Cloudiness Relative to the Mean.
+    """
     directory = 'Data/'
 
     months = sorted(os.listdir(directory))
@@ -1111,7 +1333,7 @@ def to_csv():
     data = np.asarray(data)
 
     d2 = pd.DataFrame(data, columns=['Date & Time', 'Year', 'Week Number',
-                                     'Normlaized Time after Sunset',
+                                     'Normalized Time after Sunset',
                                      'Cloudiness Relative to the Mean'])
 
     d2.to_csv('data.csv')
