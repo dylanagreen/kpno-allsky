@@ -1,3 +1,12 @@
+"""A module providing facilities for creating and saving median images.
+
+A median image for a date is created by collating all the images taken that 
+night and finding the median greyscale value for every pixel position. 
+A method is provided to save the median image. 
+Two other methods are used to support the median creation: one implementing 
+the median of medains algorithm and one that converts a list of lists to a 
+list of tuples.
+"""
 import os
 import numpy as np
 from scipy import ndimage

@@ -1,3 +1,13 @@
+"""A module containing various methods for analyzing the cloudiness of images.
+
+This module is designed to be used in conjunction with downloaded images to
+perform statistical analyses and plotting. Methods are provided for
+analyzing months of data and saving the cloudiness values to a file. It is
+then possible to take this data and plot it in various forms, across a variety
+of different plots. The cloudiness can be plotted as a histogram, and two
+different models can be fit to the histograms. These two models are a double
+Gaussian and a Gaussian-Poisson hybrid.
+"""
 import os
 import time
 import ast

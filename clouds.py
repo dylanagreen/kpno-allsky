@@ -1,3 +1,10 @@
+"""A module providing facilities to darken clouds in images.
+
+Images taken with the camera at the Kitt Peak National Observatory are
+taken with either 0.3-second or 6-second exposure times. This module provides 
+support for finding and darkening clouds for each of the two exposure
+times. 
+"""
 import math
 import os
 import numpy as np

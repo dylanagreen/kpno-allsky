@@ -1,3 +1,15 @@
+"""A module providing facilities for converting all-sky images into map-style
+projections of the visible night sky.
+
+Methods in this module are designed to build a projection of the visible night
+sky from an all-sky image. The predominant method, :func:~`transform`, performs
+the transformation from an all-sky image to an Eckert-IV projection. Additional
+methods are included that convert the all-sky image coordinates to a Mollweide
+projection. There are also methods that draw defining contours on top of the
+transformed image. One method draws altitude contours at 0, 30, and 60 degrees
+of altitude angle, and one method draws an outline of the DESI survey area.
+"""
+
 import math
 import os
 import ast
@@ -37,12 +49,12 @@ def transform(img, name, date):
     First applies a mask generated from mask.generate_mask().
     From there, lists of x and y pixels inside each image is built.
     These lists are converted to right ascension and declination
-    representations of each pixel. These are passed to eckertiv(), which 
-    converts these points to x and y positions on the Eckert-IV projection. 
-    The map is then built as a scatter plot using these x and y positions, 
-    where the color of each dot is taken from the pixel originally used. 
-    Each point is the same size, which is a valid assumption since the 
-    Eckert-IV projection is an equal area projection. 
+    representations of each pixel. These are passed to eckertiv(), which
+    converts these points to x and y positions on the Eckert-IV projection.
+    The map is then built as a scatter plot using these x and y positions,
+    where the color of each dot is taken from the pixel originally used.
+    Each point is the same size, which is a valid assumption since the
+    Eckert-IV projection is an equal area projection.
     The plot is then saved to Images/Transform/`date`/`name`.
 
     """
@@ -167,8 +179,6 @@ def transform(img, name, date):
     plot.close()
 
 
-# Adds 0-30-60 degree alt contours to the axis passed in.
-# Time parameter is required for altaz -> radec conversion.
 def contours(axis, time):
     """Add three altitude contours to an axis based on a given time.
 

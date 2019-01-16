@@ -1,3 +1,11 @@
+"""A module providing facilities for loading, saving, and downloading
+
+Methods are provided for downloading and saving images taken at two different
+all-sky cameras. These cameras are located at Kitt Peak, designated KPNO, and
+at the Multiple Mirror Telescope Observatory, designated MMTO.
+One class is provided to read the raw HTML provided by each camera's website.
+"""
+
 import os
 import math
 import time
@@ -330,7 +338,7 @@ def load_all_date(date):
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         An ``ndarray`` that contains all images for that date. ``ndarray`` is
         of the shape (512, 512, 4, N) where N is the number of images for
         that day.
@@ -379,7 +387,7 @@ def gray_and_color_image(file):
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The ndarray representing the grayscale and color combination image.
 
     See Also
@@ -412,7 +420,7 @@ def get_exposure(image):
 
     Parameters
     ----------
-    image : ndarray
+    image : numpy.ndarray
         The image data.
 
     Returns
@@ -457,14 +465,14 @@ def image_diff(img1, img2):
 
     Parameters
     ----------
-    img1 : ndarray
+    img1 : numpy.ndarray
         The first image.
-    img2 : ndarray
+    img2 : numpy.ndarray
         The second image.
 
     Returns
     -------
-    ndarray
+    numpy.ndarray
         The difference image.
 
     Notes

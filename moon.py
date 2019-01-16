@@ -1,3 +1,14 @@
+"""A module providing facilities to analyze the moon in an image.
+
+Methods in this module predominantly deal with determining the relationship
+between the phase of the moon and the apparent size of the moon in an all-sky
+image. The phase of the moon is provided on a scale from 0.0 (a new moon) to
+1.0 (a full moon). Methods are provided to find the position of the moon and
+sun. The phase of the moon in an eclipse and outside of an eclipse are
+separated into their own methods. There is also a method provided to plot this
+data and the model linking the apparent size of the image to the moon phase.
+"""
+
 import os
 import math
 import warnings
@@ -480,7 +491,7 @@ def generate_eclipse_data(regen=False):
 
 
 def moon_circle(frac):
-    """Calculate the estimated pixel size of the moon based on the
+    """Calculate the estimated pixel radius of the moon based on the
     fraction of the moon that is illuminated.
 
     Parameters
@@ -491,7 +502,29 @@ def moon_circle(frac):
     Returns
     -------
     float
-        The estimated size of the moon.
+        The estimated radius of the moon.
+
+    Notes
+    -----
+    The model used in this method to convert between the fraction of the moon
+    that is illuminated to the estimated pixel area was found by plotting the
+    moon pixel area versus the moon phase and picking representative points
+    to model the relation. The
+    model is designed to always overestimate the size of the moon. The model
+    is defined by interpolating from the following table of representative
+    points:
+
+    =========================   ==================
+    Moon fraction illuminated   Moon area (pixels)
+    -------------------------   ------------------
+    0                            650
+    0.345                        4000
+    0.71                         10500
+    0.88                         18000
+    0.97                         30000
+    1.0                          35000
+    =========================   ==================
+
     """
     illuminated = [0, 0.345, 0.71, 0.88, 0.97, 1.0]
     size = [650, 4000, 10500, 18000, 30000, 35000]
@@ -560,8 +593,9 @@ def generate_plots():
     and the pixel area of the moon in that image. This data is plotted on top
     of the eclipse data. The illuminated fraction of the moon is found using
     moon_phase, and the size of the moon in the image is found using moon_size.
-    Once all of these are plotted, two versions of the plot are saved, one
-    with a standard y and x axis, and one with a logarithmic y axis.
+    On top of this data the theoretical moon size model used in moon_circle is
+    plotted. Once all of these are plotted, two versions of the plot are saved,
+    one with a standard y and x axis, and one with a logarithmic y axis.
 
     These plots are saved directly to Images/ under the names 'moon-size.png'
     and 'moon-size-log.png.'

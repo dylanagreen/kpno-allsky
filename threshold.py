@@ -1,9 +1,24 @@
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+"""A module providing analysis methods for determining cloudiness thresholds.
+
+The predominant function of this module is to analyze saved cloudiness data
+to try and determine the cloudiness value that corresponds to whether or not
+the telescope dome is closed or open. The main method analyzes the cloudiness
+of each image relative to the mean cloudiness for the phase of the moon on that
+night. Each night images were taken when the dome was closed. Images whose
+cloudiness is above a certain value are considered to have been taken when the
+dome was closed. If the proportion of images above this value is
+approximately equal to the known percentage of the night when the dome was
+closed then this value is designated the threshold for each night.
+Two helper methods are provided: one to find the number of days into a year a 
+given date is, and one to convert a date to a format accepted by pyephem.
+"""
+
 import os
 import datetime
 import math
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 import ephem
 
 
@@ -17,7 +32,7 @@ def daynum(date):
 
     Returns
     -------
-    int
+    num : int
         The number of days into the year the given date is.
     """
     # Strips out the information from the pass in string
@@ -43,7 +58,7 @@ def format_date(date, name):
 
     Returns
     -------
-    str
+    date : str
         A date and time in yyyy/mm/dd hh:mm:ss format.
     """
     formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:8]
@@ -56,9 +71,9 @@ def find_threshold():
 
     Returns
     -------
-    float
+    total : float
         The threshold value if each day is considered individually.
-    float
+    weektotal : float
         The threshold value if the days are grouped by week.
 
     Notes
@@ -70,7 +85,7 @@ def find_threshold():
     have been taken when the dome was closed. This method finds that value by
     using the percentage of each night when the dome is closed, which is
     already known. The proportion of images above this value will be
-    approximately equal to the known percentage.This value is designated the
+    approximately equal to the known percentage. This value is designated the
     threshold for each night. The method finds this threshold for every night
     and then returns the median of that dataset.
 

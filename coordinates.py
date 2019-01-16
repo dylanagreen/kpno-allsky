@@ -1,3 +1,18 @@
+"""A module providing facilities for coordinate conversion.
+
+This module provides methods that allow for conversion between the Cartesian
+(x, y) image coordinates and two different astrophysical coordinate systems:
+Horizontal (alt, az) and Equatorial (ra, dec).
+Two methods account for irregularities in the lens during these
+conversions. Also included in this module are three methods for drawing analysis
+contours on images, one for 0-30-60 altitude angles, one for drawing a
+clestial horizon and one for squares
+surrounding a pixel location. One method finds stars, and another finds the
+difference between the expected and actual locations of an star in an image. 
+These two methods are used to verify the methods that correct for 
+irregularities in the lens.
+"""
+
 import math
 import os
 from astropy.coordinates import SkyCoord, EarthLocation
@@ -5,7 +20,6 @@ from astropy.time import Time
 import astropy.time.core as aptime
 from astropy import units as u
 import numpy as np
-
 from matplotlib.patches import Circle, Rectangle
 import matplotlib.pyplot as plot
 from scipy import ndimage
