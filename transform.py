@@ -16,10 +16,11 @@ import ast
 import numpy as np
 import matplotlib.pyplot as plot
 from matplotlib.patches import Polygon
-from scipy import ndimage
 
 import coordinates
 import mask
+import image
+from image import AllSkyImage
 
 
 center = (256, 252)
@@ -27,18 +28,14 @@ center = (256, 252)
 
 # This takes the file and the given date and then transforms it
 # from the circle into an eckert-iv projected ra-dec map.
-def transform(img, name, date):
+def transform(img):
     """Transform a circular all-sky image into an Eckert-IV projection of the
     visible night sky.
 
     Parameters
     ----------
-    img : numpy.ndarray
+    img : image.AllSkyImage
         The image.
-    name : str
-        The image's file name.
-    date : str
-        Date on which the image was taken, in yyyymmdd format.
 
     See Also
     --------
@@ -55,14 +52,14 @@ def transform(img, name, date):
     where the color of each dot is taken from the pixel originally used.
     Each point is the same size, which is a valid assumption since the
     Eckert-IV projection is an equal area projection.
-    The plot is then saved to Images/Transform/`date`/`name`.
+    The plot is then saved to Images/Transform/`img.date`/`img.name`.
 
     """
-    time = coordinates.timestring_to_obj(date, name)
+    time = img.time
 
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
-    masking = mask.generate_mask()
+    masking = mask.generate_full_mask()
     img = mask.apply_mask(masking, img)
 
     # Sets up the figure and axes objects
@@ -97,18 +94,15 @@ def transform(img, name, date):
     xpoints = []
     ypoints = []
 
-    for row in range(0, img.shape[0]):
-        for column in range(0, img.shape[1]):
+    for row in range(0, img.data.shape[0]):
+        for column in range(0, img.data.shape[1]):
 
             x = column - center[0]
             y = center[1] - row
             r = math.hypot(x, y)
-
-            # Zeros out ignorable objects first
-            if r > 241:
-                img[row, column] = 0
+            
             # Only want points in the circle to convert
-            else:
+            if r <= 241:
                 xpoints.append(column)
                 ypoints.append(row)
 
@@ -128,7 +122,7 @@ def transform(img, name, date):
         # The reason for this is so the outline survey area is 2 rather than 3
         # polygons.
         rot = 60
-        if ra > (360-rot):
+        if ra > (360 - rot):
             ra = ra + rot - 360
         else:
             ra = ra + rot
@@ -136,7 +130,7 @@ def transform(img, name, date):
         x = xpoints[i]
         y = ypoints[i]
 
-        colors.append(img[y, x])
+        colors.append(img.data[y, x])
 
     # Scatter for the image conversion
     x, y = eckertiv(rapoints, decpoints)
@@ -145,14 +139,10 @@ def transform(img, name, date):
     # Add the contours
     ax1 = contours(ax1, time)
 
-    # Date formatting for lower left corner text.
-    formatted = date[:4] + '-' + date[4:6] + '-' + date[6:]
-    time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
-
-    # These coord: -265.300085635, -132.582101423
-    # are the minimum x and y of the projection.
+    # These coord: -265.300085635, -132.582101423 are the minimum x and y of
+    # the projection.
     # I found them by sorting x and y.
-    ax1.text(-290, -143, formatted + '  ut' + time, style='italic')
+    ax1.text(-290, -143, img.formatdate, style='italic')
 
     patches = desi_patch()
     for patch in patches:
@@ -162,12 +152,12 @@ def transform(img, name, date):
     fig.add_axes(ax1)
 
     # Make sure the folder location exists
-    directory = 'Images/Transform/' + date + '/'
+    directory = 'Images/Transform/' + img.date + '/'
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     # Save name.
-    conv = directory + name
+    conv = directory + img.name
 
     # Want it to be 1920 wide.
     dpi = 1920 / (fig.get_size_inches()[0])
@@ -606,12 +596,6 @@ def clockwise_sort(x, y, clockwise=True):
 
 
 if __name__ == "__main__":
-    date = '20171108'
-    directory = 'Images/Original/KPNO/' + date + '/'
-    files = os.listdir(directory)
-
-    # Loop for transforming a whole day.
-    for file in files:
-        # Read in the file on given date.
-        img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
-        transform(img, file, date)
+    date = '20170623'
+    img = image.load_image('r_ut030204s76080', date, 'KPNO')
+    transform(img)
