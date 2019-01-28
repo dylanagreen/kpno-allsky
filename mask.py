@@ -14,15 +14,14 @@ and to apply a masking array to an image.
 
 import os
 import math
-from scipy import ndimage
 import numpy as np
+from PIL import Image
 
 import io_util
+import image
+from image import AllSkyImage
 
 
-# Looks through the median images to make the mask and returns a mask array.
-# "Clean" in this case means no horizon objects.
-# The mask thus only contains likely "hot" pixels.
 def generate_clean_mask():
     """Generate a clean mask for KPNO images.
 
@@ -48,12 +47,12 @@ def generate_clean_mask():
 
     # Sets up the mask to be the right size
     file1 = fileloc + files[0]
-    img = ndimage.imread(file1, mode='L')
+    img = np.asarray(Image.open(file1).convert('L'))
     mask = np.zeros((img.shape[0], img.shape[1]))
 
     for file in files:
         file = fileloc + file
-        img = ndimage.imread(file, mode='L')
+        img = np.asarray(Image.open(file).convert('L'))
 
         for y in range(0, img.shape[1]):
             for x in range(0, img.shape[0]):
@@ -106,7 +105,7 @@ def generate_mask(forcenew=False):
 
     # Read in the ignore image.
     # I read this in first to make sure the Mask.png is the correct dimensions.
-    ignore = ndimage.imread('Images/Ignore.png', mode='RGB')
+    ignore = np.asarray(Image.open('Images/Ignore.png').convert('RGB'))
 
     # If we've already generated and saved a mask, load that one.
     # This speeds up code execution by a lot, otherwise we loop through 512x512
@@ -114,7 +113,7 @@ def generate_mask(forcenew=False):
     # and go.
     maskloc = 'Images/Mask.png'
     if os.path.isfile(maskloc) and not forcenew:
-        mask = ndimage.imread(maskloc, mode='L')
+        mask = np.asarray(Image.open(maskloc).convert('L'))
         # Converts the 255 bit loaded image to binary 1-0 image.
         mask = np.where(mask == 255, 1, 0)
 
@@ -217,12 +216,12 @@ def apply_mask(mask, img):
     ----------
     mask : numpy.ndarray
         The mask to apply.
-    img : numpy.ndarray
+    img : image.AllSkyImage
         The image to apply the mask to.
 
     Returns
     -------
-    nump.ndarray
+    image.AllSkyImage
         The masked image, where masked pixels have been set to 0.
 
     Notes
@@ -235,12 +234,15 @@ def apply_mask(mask, img):
     you want to mask, instead of setting them to 0.
 
     """
-    img = np.copy(img)
+    data = np.copy(img.data)
 
     # Multiply mask with image to keep only non masked pixels.
     # Invert the mask first since masked pixels are 1 and non masked are 0,
     # And we want the non mask to be 1 so they get kept.
     mask = 1 - mask
-    img = np.multiply(mask, img)
+    data = np.multiply(mask, data)
+
+    img.data = data
 
     return img
+
