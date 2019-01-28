@@ -21,6 +21,8 @@ from astropy.modeling import models, fitting
 
 import coordinates
 import histogram
+import image
+from image import AllSkyImage
 
 
 # Sets up a pyephem object for the camera.
@@ -89,16 +91,14 @@ def eclipse_phase(d):
 
 
 # 1.0 = Full moon, 0.0 = New Moon
-def moon_phase(date, file):
+def moon_phase(img):
     """Calculate the proportion of the moon that is lit up for non-eclipse
     nights.
 
     Parameters
     ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's file name.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -106,14 +106,8 @@ def moon_phase(date, file):
         The phase of the moon, ranging between 0.0 and 1.0, where 0.0 is a new
         moon and 1.0 is a full moon.
     """
-
-    # Nicked this time formatting code from timestring to object.
-    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
-    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
-    formatdate = formatdate + ' ' + time
-
     # Sets the calculation date.
-    camera.date = formatdate
+    camera.date = img.formatdate
 
     # Makes a moon object and calculates it for the observation location/time
     moon = ephem.Moon()
@@ -122,15 +116,13 @@ def moon_phase(date, file):
     return moon.moon_phase
 
 
-def moon_size(date, file):
+def moon_size(img):
     """Calculate the area of the moon in pixels in a given image.
 
     Parameters
     ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's file name.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -155,16 +147,15 @@ def moon_size(date, file):
 
     If this pixel is white, the size of this white region is returned.
     """
-    img = ndimage.imread('Images/Original/KPNO/' + date + '/' + file, mode='L')
     thresh = 5
-    img = np.where(img >= 255 - thresh, 1, 0)
+    dat = np.where(img.data >= 255 - thresh, 1, 0)
 
     # Runs a closing to smooth over local minimums (which are mainly caused by
     # a rogue antenna). Then labels the connected white regions. Structure s
     # Makes it so that regions connected diagonally are counted as 1 region.
     s = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
-    img = ndimage.morphology.binary_closing(img, structure=s)
-    labeled, nums = ndimage.label(img, structure=s)
+    dat = ndimage.morphology.binary_closing(dat, structure=s)
+    labeled, nums = ndimage.label(dat, structure=s)
 
     # Want to find the size of each labeled region.
     sizes = [0] * (nums + 1)
@@ -181,7 +172,7 @@ def moon_size(date, file):
     # Earth's shadow and the center of the moon. Basically just d = v*t.
 
     # Use pyephem to find the labeled region that the moon is in.
-    posx, posy, alt = find_moon(date, file)
+    posx, posy, alt = find_moon(img)
     posx = math.floor(posx)
     posy = math.floor(posy)
 
@@ -198,15 +189,13 @@ def moon_size(date, file):
     return biggest
 
 
-def find_moon(date, file):
+def find_moon(img):
     """Find the (x, y, alt) coordinate of the moon's center in a given image.
 
     Parameters
     ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's file name.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -222,13 +211,9 @@ def find_moon(date, file):
     The x and y coordinates are corrected for irregularities in the lens using
     coordinates.galactic_conv.
     """
-    # Nicked this time formatting code from timestring to object.
-    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
-    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
-    formatdate = formatdate + ' ' + time
 
     # Sets the date of calculation.
-    camera.date = formatdate
+    camera.date = img.formatdate
 
     # Calculates the moon position.
     moon = ephem.Moon()
@@ -243,15 +228,13 @@ def find_moon(date, file):
     return (x, y, alt)
 
 
-def find_sun(date, file):
+def find_sun(img):
     """Find the (alt, az) coordinate of the sun's center in a given image.
 
     Parameters
     ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's file name.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -260,13 +243,9 @@ def find_sun(date, file):
     az : float
         The azimuth coordinate of the sun's center.
     """
-    # Nicked this time formatting code from timestring to object.
-    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
-    time = file[4:6] + ':' + file[6:8] + ':' + file[8:10]
-    formatdate = formatdate + ' ' + time
 
     # Sets the date of calculation.
-    camera.date = formatdate
+    camera.date = img.formatdate
 
     # Calculates the sun position.
     sun = ephem.Sun()
@@ -286,8 +265,8 @@ def fit_moon(img, x, y):
 
     Parameters
     ---------
-    img : numpy.ndarray
-        A greyscale image.
+    img : image.AllSkyImage
+        The image.
     x : float
         The x coordinate of the moon's center.
     y : float
@@ -314,13 +293,13 @@ def fit_moon(img, x, y):
         start += 1
 
         # Breaks if it reaches the edge of the image.
-        if start == img.shape[1]:
+        if start == img.data.shape[1]:
             break
-        if not count and img[yfloor, start] >= 250:
+        if not count and img.data[yfloor, start] >= 250:
             count = True
-        elif count and img[yfloor, start] >= 250:
+        elif count and img.data[yfloor, start] >= 250:
             size += 1
-        elif count and img[yfloor, start] < 250:
+        elif count and img.data[yfloor, start] < 250:
             break
 
     # Add some buffer pixels in case the center is black and the edges of the
@@ -342,7 +321,7 @@ def fit_moon(img, x, y):
     y, x = np.mgrid[0:deltay, 0:deltax]
 
     # Slices out the moon square and finds center coords.
-    z = img[lowery:uppery, lowerx:upperx]
+    z = img.data[lowery:uppery, lowerx:upperx]
     midy = deltay / 2
     midx = deltax / 2
 
@@ -533,15 +512,13 @@ def moon_circle(frac):
     return np.sqrt(A/np.pi)
 
 
-def moon_mask(date, file):
+def moon_mask(img):
     """Generate a masking array that covers the moon in a given image.
 
     Parameters
-    ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's file name.
+    ---------
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -551,8 +528,8 @@ def moon_mask(date, file):
     """
     # Get the fraction visible for interpolation and find the
     # location of the moon.
-    vis = moon_phase(date, file)
-    x, y, alt = find_moon(date, file)
+    vis = moon_phase(img)
+    x, y, alt = find_moon(img)
 
     # Creates the circle patch we use.
     r = moon_circle(vis)
@@ -615,19 +592,18 @@ def generate_plots():
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Illuminated Fraction")
 
-    # Openthe file that tells us what images to use
-    f1 = open("images.txt", 'r')
-
     # Vis is the portion of the moon illuminated by the sun that night
     # Found is the approximate size of the moon in the image
     vis = []
     found = []
-    for line in f1:
-        line = line.rstrip()
-        info = line.split(',')
-        vis.append(moon_phase(info[0], info[1]))
-        found.append((moon_size(info[0], info[1] + '.png')))
-        print("Processed: " + info[0] + '/' + info[1] + '.png')
+    with open('images.txt', 'r') as f:
+        for line in f:
+            line = line.rstrip()
+            info = line.split(',')
+            img = image.load_image(info[1], info[0], 'KPNO')
+            vis.append(moon_phase(img))
+            found.append((moon_size(img)))
+            print("Processed: " + info[0] + '/' + info[1] + '.png')
 
     # Removes out any moons that appear too large in the images to be
     # considered valid.
@@ -662,28 +638,5 @@ def generate_plots():
 
 
 if __name__ == "__main__":
-    #f1 = open("images.txt", 'r')
-
-    date = '20170810'
-    directory = 'Images/Original/KPNO/' + date + '/'
-    f1 = os.listdir(directory)
-    f1 = sorted(f1)
-
-    #for line in f1:
-    for file in f1:
-        #line = line.rstrip()
-        #info = line.split(',')
-
-        info = [None] * 2
-        info[0] = date
-        info[1] = file[:-4]
-
-        path = 'Images/Original/' + info[0] + '/' + info[1]
-
-        img = ndimage.imread(path + '.png', mode='L')
-
-        mask = moon_mask(info[0], info[1])
-        img1 = np.ma.masked_array(img, mask)
-
-        hist, bins = histogram.generate_histogram(img, mask)
-        histogram.plot_hisogram(img, hist, mask, path, date)
+    # 20160326/r_ut071020s70020
+    generate_plots()
