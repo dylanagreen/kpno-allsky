@@ -16,6 +16,7 @@ from scipy import ndimage
 import requests
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
+from PIL import Image
 
 
 def download_url(link):
@@ -350,7 +351,7 @@ def load_all_date(date):
     """
 
     # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/Original/' + date + '/'
+    directory = 'Images/Original/KPNO/' + date + '/'
 
     # In theory this is only ever called from median_all_date.
     # Just in case though.
@@ -398,21 +399,22 @@ def gray_and_color_image(file):
     Notes
     -----
 
-    The SciPy documentation includes the following definition of the
+    The Pillow documentation includes the following definition of the
     ITU-R 601-2 luma grayscale transform:
 
         L = R * 299/1000 + G * 587/1000 + B * 114/1000
 
     """
-    img = ndimage.imread(file, mode='RGB')
-    img2 = ndimage.imread(file, mode='L')
+    
+    img1 = np.asarray(Image.open(file).convert('RGB'))
+    img2 = np.asarray(Image.open(file).convert('L'))
 
     # Reshape to concat
     img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
-    img = np.concatenate((img2, img), axis=2)
+    img1 = np.concatenate((img2, img1), axis=2)
 
     # Return the reshaped image
-    return img.reshape(img.shape[0], img.shape[1], 4, 1)
+    return img1.reshape(img1.shape[0], img1.shape[1], 4, 1)
 
 
 def get_exposure(image):
@@ -497,4 +499,5 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_all_date('20160223')
+    with open('graytest2.txt', 'w') as f:
+        f.write(str(gray_and_color_image('Images/Original/KPNO/20160101/r_ut005728s27480.png')))
