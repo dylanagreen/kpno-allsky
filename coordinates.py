@@ -8,8 +8,8 @@ conversions. Also included in this module are three methods for drawing analysis
 contours on images, one for 0-30-60 altitude angles, one for drawing a
 clestial horizon and one for squares
 surrounding a pixel location. One method finds stars, and another finds the
-difference between the expected and actual locations of an star in an image. 
-These two methods are used to verify the methods that correct for 
+difference between the expected and actual locations of an star in an image.
+These two methods are used to verify the methods that correct for
 irregularities in the lens.
 """
 
@@ -22,10 +22,11 @@ from astropy import units as u
 import numpy as np
 from matplotlib.patches import Circle, Rectangle
 import matplotlib.pyplot as plot
-from scipy import ndimage
+from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 import mask
 import io_util
+import image
 
 # Globals
 # Center of the circle found using super accurate photoshop layering technique
@@ -42,7 +43,7 @@ thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
 
 
 def xy_to_altaz(x, y):
-    """Convert a set of (x, y) coordinates to (alt, az) coordinates, 
+    """Convert a set of (x, y) coordinates to (alt, az) coordinates,
     element-wise.
 
     Parameters
@@ -105,7 +106,7 @@ def xy_to_altaz(x, y):
 
 def altaz_to_radec(alt, az, time):
     """Convert a set of (alt, az) coordinates to (ra, dec) coordinates,
-    element-wise. 
+    element-wise.
 
     Parameters
     ----------
@@ -119,10 +120,10 @@ def altaz_to_radec(alt, az, time):
     Returns
     -------
     ra : array_like
-        The right-ascension coordinates. This is a scalar if alt and az are 
+        The right-ascension coordinates. This is a scalar if alt and az are
         scalars.
     dec : array_like
-        The declination coordinates. This is a scalar if alt and az are 
+        The declination coordinates. This is a scalar if alt and az are
         scalars.
 
     See Also
@@ -156,7 +157,7 @@ def altaz_to_radec(alt, az, time):
 
 
 def radec_to_altaz(ra, dec, time):
-    """Convert a set of (ra, dec) coordinates to (alt, az) coordinates, 
+    """Convert a set of (ra, dec) coordinates to (alt, az) coordinates,
     element-wise.
 
     Parameters
@@ -204,7 +205,7 @@ def radec_to_altaz(ra, dec, time):
 
 
 def altaz_to_xy(alt, az):
-    """Convert a set of (alt, az) coordinates to (x, y) coordinates, 
+    """Convert a set of (alt, az) coordinates to (x, y) coordinates,
     element-wise.
 
     Parameters
@@ -252,7 +253,7 @@ def altaz_to_xy(alt, az):
 
 
 def radec_to_xy(ra, dec, time):
-    """Convert a set of (ra, dec) coordinates to (x, y) coordinates, 
+    """Convert a set of (ra, dec) coordinates to (x, y) coordinates,
     element-wise.
 
     Parameters
@@ -274,7 +275,7 @@ def radec_to_xy(ra, dec, time):
     See Also
     --------
     timestring_to_obj : Convert a date and filename to an astropy.Time object.
-    galactic_conv : Convert from expected galactic coordinates to image 
+    galactic_conv : Convert from expected galactic coordinates to image
                     coordinates accounting for distortions in the camera lens.
 
     Notes
@@ -294,7 +295,7 @@ def radec_to_xy(ra, dec, time):
 
 
 def xy_to_radec(x, y, time):
-    """Convert a set of (x, y) coordinates to (ra, dec) coordinates, 
+    """Convert a set of (x, y) coordinates to (ra, dec) coordinates,
     element-wise.
 
     Parameters
@@ -309,16 +310,16 @@ def xy_to_radec(x, y, time):
     Returns
     -------
     ra : array_like
-        The right-ascension coordinates. This is a scalar if x and y are 
+        The right-ascension coordinates. This is a scalar if x and y are
         scalars.
     dec : array_like
-        The declination coordinates. This is a scalar if x and y are 
+        The declination coordinates. This is a scalar if x and y are
         scalars.
 
     See Also
     --------
     timestring_to_obj : Convert a date and filename to an astropy.Time object.
-    camera_conv : Convert from image coordinates to expected galactic 
+    camera_conv : Convert from image coordinates to expected galactic
                   coordinates accounting for distortions in the camera lens.
 
     Notes
@@ -366,6 +367,8 @@ def timestring_to_obj(date, filename):
 
     formatted = formatted + ' ' + time
 
+    print(formatted)
+
     return Time(formatted)
 
 
@@ -391,9 +394,9 @@ def galactic_conv(x, y, az):
 
     Notes
     -----
-    This method uses a model that depends on x, y and radial distance to 
-    correct for distortions in the fisheye lens. The radial distance is 
-    calculated from the x and y positions. 
+    This method uses a model that depends on x, y and radial distance to
+    correct for distortions in the fisheye lens. The radial distance is
+    calculated from the x and y positions.
     Before the computation is performed, the azimuthal angle is
     decreased by 0.94444 to account for a mismatch between true north and
     north on the image.
@@ -453,9 +456,9 @@ def camera_conv(x, y, az):
 
     Notes
     -----
-    This method uses a model that depends on x, y and radial distance to 
-    correct for distortions in the fisheye lens. The radial distance is 
-    calculated from the x and y positions. 
+    This method uses a model that depends on x, y and radial distance to
+    correct for distortions in the fisheye lens. The radial distance is
+    calculated from the x and y positions.
     Before the computation is performed, the azimuthal angle is
     decreased by 0.94444 to account for a mismatch between true north and
     north on the image.
@@ -496,38 +499,36 @@ def camera_conv(x, y, az):
     return (x.tolist(), y.tolist())
 
 
-def draw_celestial_horizon(date, file):
+def draw_celestial_horizon(img):
     """Draw a path representing where the declination angle is zero.
 
     Parameters
     ----------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's filename.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
     numpy.ndarray
         A greyscale image with a pink path representing the celestial horizon.
     """
-    file = 'Images/Radius/' + date + '-' + file + '.png'
-    img = ndimage.imread(file, mode='L')
-    time = timestring_to_obj(date, file)
+
+    data = np.copy(img.data)
 
     dec = 0
     ra = 0
     while ra <= 360:
-        xy = radec_to_xy(ra, dec, time)
+        xy = radec_to_xy(ra, dec, img.time)
         xy = (round(xy[0]), round(xy[1]))
 
         # Remember y is first, then x
         # Also make sure it's on the image at all.
         if xy[1] < 512 and xy[0] < 512:
-            img[xy[1], xy[0]] = (244, 66, 229)
+            data[xy[1], xy[0]] = (244, 66, 229)
 
         ra += 0.5
 
+    img.data = data
     return img
 
 
@@ -586,7 +587,7 @@ def draw_square(x, y, img, color='c', name='Square.png'):
 # square = half a (side length-1). i.e. range from x-square to x+square
 def find_star(img, centerx, centery, square=6):
     """Find a star near a given (x, y) coordinate.
-    
+
     The search area for this method is defined as a square, centered at
     `centerx` and `centery`, with a sidelength of double the `square` parameter.
 
@@ -612,7 +613,7 @@ def find_star(img, centerx, centery, square=6):
     -----
     This method uses a center of mass formula to search for
     a star. The search area is defined as a square of size 2* `square`
-    centered on `centerx` and `centery`. 
+    centered on `centerx` and `centery`.
     The pixel values within this square are increased according to the formula:
 
     .. math:: w = \exp(v/10)
@@ -625,7 +626,7 @@ def find_star(img, centerx, centery, square=6):
 
     In order to increase the method's accuracy, it runs
     recursively. The discovered position of the star is used as the `centerx`
-    and `centery` guesses for the next iteration. The size of the square is 
+    and `centery` guesses for the next iteration. The size of the square is
     decreased by 2 with each iteration until it is less than 2. At this point
     the final position of the star is returned.
 
@@ -687,7 +688,7 @@ def find_star(img, centerx, centery, square=6):
 # Returns a tuple of the form (rexpected, ractual, deltar)
 # Deltar = ractual - rexpected
 def delta_r(img, centerx, centery):
-    """Find the difference between the calculated radial position of a star 
+    """Find the difference between the calculated radial position of a star
     and the true radial position of the star.
 
     Parameters
@@ -714,9 +715,9 @@ def delta_r(img, centerx, centery):
 
     Notes
     -----
-    find_star is used to find the position of the star in the image using the 
-    true position of the star as the initial guess. 
-    
+    find_star is used to find the position of the star in the image using the
+    true position of the star as the initial guess.
+
     This method is useful when performing a chi-squared analysis. Modifications
     to the model representing the irregularities in the lens will change
     the difference between the true radial distance and the radial distance
@@ -768,51 +769,58 @@ stars = {'Polaris': (37.9461429,  89.2641378),
          'Sirius': (101.2875, -16.7161)}
 
 
-def contours(date, file):
+def contours(img):
     """Draw three angular contours on an image.
 
     Parameters
-    ---------
-    date : str
-        The date on which the image was taken in yyyymmdd format.
-    file : str
-        The image's filename.
+    ----------
+    img : image.AllSkyImage
+        The image.
 
     Notes
     -----
-    This method draws contours directly onto an image by loading it,
-    plotting the contours, and then saving the new image to
-    Images/Contour/`date`/`file`.png. These contours represent altitude angles
-    of 0, 30, 60 and 90 degrees up from the horizon.
+    This method draws contours directly onto an image using matplotlib patches.
+    These contours represent altitude angles of 0, 30, 60 and 90 degrees up
+    from the horizon.
     """
 
-    file = 'Images/Original/' + date + '/' + file + '.png'
-
-    img = ndimage.imread(file, mode='L')
+    # Scale in inches
+    scale = 4
+    dpi = img.data.shape[0] / scale
 
     # Generate Figure and Axes objects.
-    figure = plot.figure()
-    figure.set_size_inches(4, 4)  # 4 inches by 4 inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
+    fig = plot.figure()
+    fig.set_size_inches(scale, scale)
+    fig.set_dpi(dpi)
+    ax = plot.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
+    ax.set_axis_off()
+    fig.add_axes(ax)
 
     # Adds the image into the axes and displays it
-    axes.imshow(img, cmap='gray')
+    ax.imshow(img.data, cmap='gray')
 
-    axes.set_aspect('equal')
+    ax.set_aspect('equal')
 
     for alt in range(0, 100, 30):
         r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
         r = r * 240 / 11.6  # mm to pixel rate
 
         circ = Circle(center, radius=r, fill=False, edgecolor='green')
-        axes.add_patch(circ)
+        ax.add_patch(circ)
 
-    name = 'Images/Contour/' + date + '/' + file + '.png'
-    plot.savefig(name, dpi=128)
+    width = scale * dpi
+    height = width
 
-    plot.close()
+    # Extracts the figure into a numpy array and then converts it to greyscale.
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
+
+    # Slices out the RGB components and then multiplies them by RGB conversion.
+    data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
+    img.data = data
+
+    return img
