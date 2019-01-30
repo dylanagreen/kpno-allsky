@@ -364,10 +364,7 @@ def timestring_to_obj(date, filename):
     # File names seem to be machine generated so this should not break.
     # Hopefully.
     time = filename[4:6] + ':' + filename[6:8] + ':' + filename[8:10]
-
     formatted = formatted + ' ' + time
-
-    print(formatted)
 
     return Time(formatted)
 
