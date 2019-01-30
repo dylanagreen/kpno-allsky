@@ -11,7 +11,6 @@ Gaussian and a Gaussian-Poisson hybrid.
 import os
 import time
 import ast
-from scipy import ndimage
 from scipy import optimize
 from scipy import special
 import matplotlib.pyplot as plt
@@ -23,6 +22,7 @@ import io_util
 import moon
 import histogram
 import coordinates
+import image
 
 
 def get_latest_analyzed():
@@ -159,52 +159,50 @@ def analyze():
                 if name == 'allblue.gif' or name == 'allred.gif':
                     continue
 
-                # Finds the moon and the sun in the image. We don't need to
-                # download it if we won't process it.
+                # Finds the moon and the sun in the image.
                 # We only process images where the moon is visble (alt > 0)
                 # And the sun is low enough to not wash out the image
                 # (sun alt < -17)
-                moonalt = moon.find_moon(d, name)[2]
-                sunalt = moon.find_sun(d, name)[0]
+
+                # This creates an AllSkyImage we use for subsequent methods.
+                # This is the path the image is saved to.
+                # We need to check if it exists first, just in case.
+                path = 'Images/Original/KPNO/' + d + '/' + name
+
+                # Download the image, if it hasn't been downloaded
+                if not os.path.isfile(path):
+                    io_util.download_image(d, name)
+                img = image.load_image(name, d, 'KPNO')
+
+                moonalt = moon.find_moon(img)[2]
+                sunalt = moon.find_sun(img)[0]
 
                 # Checks that the analysis conditions are met.
                 if moonalt > 0 and sunalt < -17:
-                    # This is the path the image is saved to.
-                    # We need to check if it exists first, just in case.
-                    path = 'Images/Original/KPNO/' + d + '/' + name
 
-                    # Here is where the magic happens.
-                    # First we download the image, if it hasn't been downloaded
-                    if not os.path.isfile(path):
-                        io_util.download_image(d, name)
 
                     # Then we make a histogram and a "cloudiness fraction"
-                    img = ndimage.imread(path, mode='L')
-
                     # Generates the moon mask.
-                    mask = moon.moon_mask(d, name)
-                    hist = histogram.generate_histogram(img, mask)[0]
+                    mask = moon.moon_mask(img)
+                    hist = histogram.generate_histogram(img, mask)
 
                     frac = histogram.cloudiness(hist)
 
                     # Correction for moon phase.
-                    phase = moon.moon_visible(d, name)
-                    val = b*phase*phase + c*phase
-
-                    print(phase)
-                    print(val)
-
-                    #with open('values.txt', 'a') as f2:
-                     #   towrite = str(phase) + ',' + str(val) + ',' + str(frac)
-                      #  f2.write(towrite + '\n')
-
-                    frac = frac/val
+                    phase = moon.moon_phase(img)
+                    val = b * phase * phase + c * phase
+                    frac = frac / val
 
                     # Then we save the cloudiness fraction to the file for that
                     # date.
                     dataline = name + ',' + str(frac) + '\n'
-                    print(dataline)
                     f.write(dataline)
+
+                    print('Analyzed: ' + img.formatdate)
+
+                # Deletes an image if we didn't analyze it.
+                else:
+                    os.remove(path)
     t2 = time.perf_counter()
 
     print(t2 - t1)
@@ -1350,4 +1348,4 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    plot()
+    analyze()
