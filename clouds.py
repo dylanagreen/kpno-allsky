@@ -9,9 +9,12 @@ import math
 import os
 import numpy as np
 from scipy import ndimage
+from PIL import Image
 
 import mask
 import io_util
+from image import AllSkyImage
+import image
 
 
 center = (256, 252)
@@ -25,9 +28,8 @@ def cloud_contrast(img):
 
     Parameters
     ----------
-    img : numpy.ndarray
-        A greyscale image.
-
+    img : image.AllSkyImage
+        The image.
     Returns
     -------
     numpy.ndarray
@@ -40,7 +42,7 @@ def cloud_contrast(img):
     six_cloud_contrast: Darken cloud pixels in images with 6 second
      exposure times.
     """
-    exposure = io_util.get_exposure(img)
+    exposure = io_util.get_exposure(img.data)
     print(exposure)
 
     if exposure == 0.3:
@@ -57,8 +59,8 @@ def zero_three_cloud_contrast(img):
 
     Parameters
     ----------
-    img : numpy.ndarray
-        A greyscale image.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -83,22 +85,21 @@ def zero_three_cloud_contrast(img):
     by 40, while the cloud pixels are reduced to 0.
     """
     # Temprary, I intend to change this slightly later.
-    img2 = ndimage.imread('Images/Original/20171108/r_ut052936s31200.png',
-                          mode='L')
+    img2 = np.asarray(Image.open('Images/Original/KPNO/20171108/r_ut052936s31200.png').convert('L'))
 
-    img3 = np.copy(img)
-    img = np.int16(img)
+    img3 = np.copy(img.data)
+    img1 = np.int16(img.data)
     img2 = np.int16(img2)
 
     # Finds the difference from the "standard" .03s image.
     # Then subtracts that value from the entire image to normalize it to
     # standard image color.
-    val = img[510, 510] - img2[510, 510]
-    img = img - val
+    val = img1[510, 510] - img2[510, 510]
+    img1 = img1 - val
 
     # Subtracts standard image from current image.
     # Performs closing to clean up some speckling in lower band of image.
-    test = io_util.image_diff(img, img2)
+    test = io_util.image_diff(img1, img2)
     test = ndimage.grey_closing(test, size=(2, 2))
 
     # Clouds are regions above the average value of the completed transform.
@@ -112,6 +113,8 @@ def zero_three_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
     masking = mask.generate_mask()
+    
+    final = AllSkyImage(img.name, img.date, img.camera, final)
     final = mask.apply_mask(masking, final)
 
     return final
@@ -122,8 +125,8 @@ def six_cloud_contrast(img):
 
     Parameters
     ----------
-    img : numpy.ndarray
-        A greyscale image.
+    img : image.AllSkyImage
+        The image.
 
     Returns
     -------
@@ -170,13 +173,13 @@ def six_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
     masking = mask.generate_mask()
-    img = mask.apply_mask(masking, img)
+    img1 = mask.apply_mask(masking, img)
 
     # Inverts and subtracts 4 * the original image. This replicates previous
     # behaviour in one step.
     # Previous work flow: Invert, subtract, subtract, subtract.
     # If it goes negative I want it to be 0 rather than positive abs of num.
-    invert = 255 - 4 * np.int16(img)
+    invert = 255 - 4 * np.int16(img1.data)
     invert = np.where(invert < 0, 0, invert)
 
     # Smooth out the black holes left where stars were in the original.
@@ -191,15 +194,16 @@ def six_cloud_contrast(img):
     binimg = ndimage.binary_opening(binimg)
 
     # Mask out the horizon objects so they don't mess with cloud calculations.
-    binimg = mask.apply_mask(mask, binimg)
+    img1.data = binimg
+    binimg = mask.apply_mask(masking, img1).data
 
     # Expand the white areas to make sure they cover the items they represent
     # from the inverted image.
     binimg = ndimage.binary_dilation(binimg)
 
     # Creates a buffer circle keeping the image isolated from the background.
-    for row in range(0, img.shape[1]):
-        for column in range(0, img.shape[0]):
+    for row in range(0, binimg.shape[1]):
+        for column in range(0, binimg.shape[0]):
             x = column - center[0]
             y = center[1] - row
             r = math.hypot(x, y)
@@ -213,13 +217,13 @@ def six_cloud_contrast(img):
     regionsize = [0] * (num_features + 1)
     starnums = [0] * (num_features + 1)
 
-    for row in range(0, img.shape[1]):
-        for column in range(0, img.shape[0]):
+    for row in range(0, binimg.shape[1]):
+        for column in range(0, binimg.shape[0]):
             regionsize[labeled[row, column]] += 1
 
             # This finds stars in "cloud" regions
             # Basically, if somewhat bright, and the region is marked "cloud."
-            if img[row, column] >= (95) and binimg[row, column] == 1:
+            if img1.data[row, column] >= (95) and binimg[row, column] == 1:
                 x = column - center[0]
                 y = center[1] - row
                 r = math.hypot(x, y)
@@ -261,19 +265,13 @@ def six_cloud_contrast(img):
     # darker it should be in the original. Thus increasing cloud contrast
     # without making it look like sketchy black blobs.
     multiple = .6 - invert2 / 255
-    newimg = np.multiply(img, multiple)
+    
+    # Resets the img1 data since I used the img1 object to mask the binary.
+    img1 = mask.apply_mask(masking, img)
+    newimg = np.multiply(img1.data, multiple)
+    
+    # Creates a new AllSkyImage so that we don't modify the original.
+    new = AllSkyImage(img.name, img.date, img.camera, newimg)
 
-    return newimg
+    return new
 
-
-if __name__ == "__main__":
-    date = '20171108'
-    directory = 'Images/Original/' + date + '/'
-    files = os.listdir(directory)
-    # file = 'r_ut105647s18240.png'
-    # file = 'r_ut080515s07920.png'
-    # file = 'r_ut113241s20400.png'
-    for file in files:
-        img = ndimage.imread(directory + file, mode='L')
-        img = cloud_contrast(img)
-        io_util.save_image(img, file, 'Images/Cloud/' + date + '/', 'gray')
