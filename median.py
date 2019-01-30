@@ -1,15 +1,15 @@
 """A module providing facilities for creating and saving median images.
 
-A median image for a date is created by collating all the images taken that 
-night and finding the median greyscale value for every pixel position. 
-A method is provided to save the median image. 
-Two other methods are used to support the median creation: one implementing 
-the median of medains algorithm and one that converts a list of lists to a 
+A median image for a date is created by collating all the images taken that
+night and finding the median greyscale value for every pixel position.
+A method is provided to save the median image.
+Two other methods are used to support the median creation: one implementing
+the median of medains algorithm and one that converts a list of lists to a
 list of tuples.
 """
 import os
 import numpy as np
-from scipy import ndimage
+from PIL import Image
 
 import io_util
 
@@ -59,11 +59,11 @@ def median_of_medians(arr, i):
     -------
     float
         The ith smallest element of arr.
-    
+
     Notes
     -----
     i = len(arr) // 2 corresponds to finding the median of arr. Details on the
-    median of medians algorithm can be found at Wikipedia 
+    median of medians algorithm can be found at Wikipedia
     (https://en.wikipedia.org/wiki/Median_of_medians).
     """
 
@@ -153,15 +153,15 @@ def median_all_date(date, color=False):
     # If not color load all the ones and seperate by exposure time
     # If color, then just load all of them ignoring exposure, for now.
     if not color:
-        for file in files:
+        for f in files:
             # Make sure we look in the directory to load the image.
-            file = directory + file
+            name = directory + f
 
             # We have to reshape the images so that the lowest level
             # single value is a 1D array rather than just a number.
             # This is so when you concat the arrays it actually turns the
             # lowest value into a multivalue array.
-            img = ndimage.imread(file, mode='L')
+            img = np.asarray(Image.open(name).convert('L'))
             temp = img.reshape(img.shape[0], img.shape[1], 1)
 
             exposure = io_util.get_exposure(img)
@@ -242,7 +242,7 @@ def save_medians(medians, date, color=False):
 
     Notes
     -----
-    Saves median images to Images/Median/`date`/ if the medians are grayscale, 
+    Saves median images to Images/Median/`date`/ if the medians are grayscale,
     and Images/Median-Color/`date`/ if the medians are in color.
 
     """
