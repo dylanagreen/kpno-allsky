@@ -242,7 +242,7 @@ def apply_mask(mask, img):
     mask = 1 - mask
     data = np.multiply(mask, data)
 
-    img.data = data
+    new = AllSkyImage(img.name, img.date, img.camera, data)
 
-    return img
+    return new
 
