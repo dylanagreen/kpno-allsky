@@ -11,10 +11,11 @@ from copy import copy
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
-from scipy import ndimage
+from PIL import Image
 
 import coordinates
 import mask
+import image
 
 center = (256, 252)
 
@@ -26,7 +27,7 @@ d1 = coordinates.timestring_to_obj('20171001', 'r_ut013603s08160').plot_date
 d2 = coordinates.timestring_to_obj('20171031', 'r_ut132350s57840').plot_date
 
 
-def plot_histogram(img, hist, masking, path, date, save=True):
+def plot_histogram(img, hist, masking=None, save=True):
     """Plot and save an image and histogram.
 
     Parameters
@@ -37,17 +38,13 @@ def plot_histogram(img, hist, masking, path, date, save=True):
         Histogram of image pixel values.
     masking : numpy.ndarray, optional
         A masking array of pixels to ignore. Defaults to None.
-    path : str
-        The location to save the image within Images/Histogram/.
-    date : str
-        The Julien day on which the image was taken.
-    save : bool
+    save : bool, optional
         If the plot should be saved. Defaults to True.
 
     Notes
     -----
-    This method will always write the date and the cloudiness fraction of the
-    image to a file named data.txt in the current directory.
+    This method will save the histogram into Images/Histogram/`img.date`/
+    `img.name`.
 
     """
     # Sets up the image so that the images are on the left
@@ -61,8 +58,8 @@ def plot_histogram(img, hist, masking, path, date, save=True):
     ax[1, 0].set_axis_off()
 
     # Display the original image underneath for transparency.
-    ax[0, 0].imshow(img, cmap='gray')
-    ax[1, 0].imshow(img, cmap='gray')
+    ax[0, 0].imshow(img.data, cmap='gray')
+    ax[1, 0].imshow(img.data, cmap='gray')
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     # Kept this super general in case we want to change the amount of bins.
@@ -75,7 +72,7 @@ def plot_histogram(img, hist, masking, path, date, save=True):
 
     # Cloudy pixels thresholded first, then the horizon and moon are masked.
     thresh = 160
-    img2 = np.where(img >= thresh, 400, img)
+    img2 = np.where(img.data >= thresh, 400, img.data)
     mask2 = mask.generate_full_mask()
     mask2 = np.ma.make_mask(mask2)
     img2 = np.ma.masked_array(img2, masking)
@@ -103,7 +100,7 @@ def plot_histogram(img, hist, masking, path, date, save=True):
     ax[0, 1].set_ylim(1, 40000)
 
     data.append(frac)
-    x.append(date)
+    x.append(img.time.plot_date)
 
     ax[1, 1].plot_date(x, data, xdate=True, markersize=1)
     ax[1, 1].set_ylim(0, 1.0)
@@ -122,6 +119,7 @@ def plot_histogram(img, hist, masking, path, date, save=True):
     ax[1, 1].xaxis.set_ticklabels([])
 
     # Saving code.
+    path = img.date + '/' + img.name
     name = 'Images/Histogram/' + path
 
     # This ensures that the directory you're saving to actually exists.
@@ -138,18 +136,14 @@ def plot_histogram(img, hist, masking, path, date, save=True):
     # Close the plot at the end.
     plt.close()
 
-    f = open('data.txt', 'a+')
-    f.write(str(date) + ',' + str(frac) + '\n')
-    f.close()
-
 
 def generate_histogram(img, masking=None):
     """Generate a histogram of pixel values.
 
     Parameters
     ----------
-    img : numpy.ndarray
-        A greyscale image.
+    img : image.AllSkyImage
+        The image.
     masking : numpy.ndarray, optional
         A masking array of pixels to ignore. Defaults to None.
 
@@ -157,11 +151,9 @@ def generate_histogram(img, masking=None):
     -------
     hist : list
         The histogram values.
-    bins : list
-        The lower bounds for each bin.
     """
     # This first applies any passed in mask (like the moon mask)
-    img1 = np.ma.masked_array(img, masking)
+    img1 = np.ma.masked_array(img.data, masking)
 
     # This then applies the horizon/circle mask.
     # Converts the 1/0 array to True/False so it can be used as an index.
@@ -174,7 +166,7 @@ def generate_histogram(img, masking=None):
     bins = list(range(0, 256))
     hist, bins = np.histogram(img1.compressed(), bins)
 
-    return (hist, bins)
+    return hist
 
 
 def cloudiness(hist):
@@ -229,7 +221,8 @@ def init_categories():
         # Opens the image, then uses np.histogram to generate the histogram
         # for that image, where the image is masked the same way as in the
         # histogram method.
-        img = ndimage.imread('Images/Category/' + file, mode='L')
+        log = 'Images/Category/' + file
+        img = np.asarray(Image.open(loc).convert('L'))
         masking = mask.generate_full_mask()
         masking = 1 - masking
 
@@ -264,7 +257,7 @@ def categorize(histogram, categories):
     Notes
     -----
     This method uses the histogram intersection algorithm. The
-    algorithm is defined originally by Swain and Ballard in an article
+    algorithm is defined originally by Swain and Ballard in a paper
     entitled Color Indexing [1].
 
     In essence the method decides what category the histogram belongs to by
@@ -305,3 +298,12 @@ def categorize(histogram, categories):
         print(best)
         return category
     return None
+
+if __name__ == '__main__':
+    date = '20170810'
+    name = 'r_ut024053s86160'
+    img = image.load_image(name, date, 'KPNO')
+    #img = np.asarray(Image.open('Images/Original/KPNO/' + date + '/' + name + '.png').convert('L'))
+
+    hist = generate_histogram(img)
+    print(plot_histogram(img, hist))
