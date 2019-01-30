@@ -20,7 +20,7 @@ class AllSkyImage():
         
 
 
-def load_image(name, date, camera):
+def load_image(name, date, camera, format='L'):
     # If the name was passed without .png at the end append it so we know what
     # format this bad boy is in.
     if not name[-4:] == '.png':
@@ -28,7 +28,7 @@ def load_image(name, date, camera):
     
     # Loads the image using Pillow and converts it to greyscale
     loc = os.path.join('Images', *['Original', camera, date, name])
-    img = np.asarray(pil_image.open(loc).convert('L'))
+    img = np.asarray(pil_image.open(loc).convert(format))
     return AllSkyImage(name, date, camera, img)
     
 if __name__ == "__main__":
