@@ -9,6 +9,7 @@ kitt-peak
    coordinates
    histogram
    io_util
+   image
    mask
    median
    moon
