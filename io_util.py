@@ -12,7 +12,6 @@ import time
 from html.parser import HTMLParser
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy import ndimage
 import requests
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
@@ -393,8 +392,8 @@ def gray_and_color_image(file):
 
     See Also
     --------
-    scipy.ndimage.imread : For more details on the ITU-R 601-2 luma grayscale
-                        transform used by this method.
+    PIL.Image.Image.convert : For more details on the ITU-R 601-2 luma 
+                              grayscale transform used by this method.
 
     Notes
     -----
@@ -499,5 +498,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    with open('graytest2.txt', 'w') as f:
-        f.write(str(gray_and_color_image('Images/Original/KPNO/20160101/r_ut005728s27480.png')))
+    download_image('20171108', 'r_ut052936s31200.png')
