@@ -32,8 +32,8 @@ def plot_histogram(img, hist, masking=None, save=True):
 
     Parameters
     ----------
-    img : numpy.ndarray
-        A greyscale image.
+    img : image.AllSkyImage
+        The image.
     hist : array_like
         Histogram of image pixel values.
     masking : numpy.ndarray, optional
