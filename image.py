@@ -9,6 +9,25 @@ from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 
 class AllSkyImage():
+    """An all-sky image taken at a certain point in time.
+
+    Attributes
+    ----------
+    name : str
+        The name of the image.
+    date : str
+        The date on which the image was taken.
+    camera : str
+        The camera used to take the image. Either `KPNO` for the all-sky 
+        camera at Kitt-Peak or `MMTO` for the all-sky camera at the MMT 
+        Observatory.
+    data : numpy.ndarray
+        The image data.
+    formatdate : str
+        The date and time the image was taken in yyyy-mm-dd hh:mm:ss format.
+    time : astropy.time.Time
+        The time at which the image was taken.
+    """
     def __init__(self, name, date, camera, data):
         self.name = name
         self.date = date
@@ -25,7 +44,29 @@ class AllSkyImage():
             self.time = None
 
 
-def load_image(name, date, camera, format='L'):
+def load_image(name, date, camera, mode='L'):
+    """Load an image.
+    
+    Parameters
+    ----------
+    name : str
+        The name of the image.
+    date : str
+        The date on which the image was taken.
+    camera : {'KPNO', 'MMTO'}
+        The camera used to take the image. 'KPNO' represents the all-sky 
+        camera at Kitt-Peak and 'MMTO' represents the all-sky camera at the MMT 
+        Observatory.
+    mode : {'L', 'RGB', 'RGBA'}, optional
+        The color mode to load the image in. Defaults to 'L' for greyscale.
+        Use 'RGB' for color and 'RGBA' for color with an alpha layer.
+    
+    Returns
+    -------
+    img : image.AllSkyImage
+        The image.
+    
+    """
     # If the name was passed without .png at the end append it so we know what
     # format this bad boy is in.
     if not name[-4:] == '.png':
@@ -33,11 +74,11 @@ def load_image(name, date, camera, format='L'):
 
     # Loads the image using Pillow and converts it to greyscale
     loc = os.path.join('Images', *['Original', camera, date, name])
-    img = np.asarray(pil_image.open(loc).convert(format))
+    img = np.asarray(pil_image.open(loc).convert(mode))
     return AllSkyImage(name, date, camera, img)
 
 
-def save_image(img, location, cmap='gray', patch=None):
+def save_image(img, location, cmap='gray'):
     """Save an image.
 
     Save an image passed in `img` with the name `img.name` into the location in
@@ -54,9 +95,6 @@ def save_image(img, location, cmap='gray', patch=None):
     cmap : str, optional
         A colormap to use when saving the image. Supports any matplotlib
         supported colormap. Defaults to 'gray' to save in grayscale.
-    patch : matplotlib.patches.Patch, optional
-        A matplotlib patch to apply on top of the saved image. By default no
-        patch is applied.
 
     Notes
     -----
@@ -85,9 +123,6 @@ def save_image(img, location, cmap='gray', patch=None):
     # Then saves
     ax.imshow(img.data, cmap=cmap)
 
-    if patch:
-        ax.add_patch(patch)
-
     # If location was passed with / on the end, don't append another one.
     if not location[-1:] == '/':
         name = os.path.join(location, img.name)
@@ -112,7 +147,7 @@ def draw_celestial_horizon(img):
 
     Returns
     -------
-    numpy.ndarray
+    img : image.AllSkyImage
         A greyscale image with a pink path representing the celestial horizon.
     """
 
