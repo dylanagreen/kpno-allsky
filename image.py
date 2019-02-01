@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
+import coordinates
+
 
 class AllSkyImage():
     """An all-sky image taken at a certain point in time.
@@ -156,7 +158,7 @@ def draw_celestial_horizon(img):
     dec = 0
     ra = 0
     while ra <= 360:
-        xy = radec_to_xy(ra, dec, img.time)
+        xy = coordinates.radec_to_xy(ra, dec, img.time)
         xy = (round(xy[0]), round(xy[1]))
 
         # Remember y is first, then x
@@ -206,7 +208,7 @@ def draw_contours(img):
     fig = plt.figure()
     fig.set_size_inches(scale, scale)
     fig.set_dpi(dpi)
-    ax = plot.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
+    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
@@ -219,13 +221,13 @@ def draw_contours(img):
     ax.set_aspect('equal')
 
     for alt in range(0, 100, 30):
-        r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
+        r = np.interp(90 - alt, xp=coordinates.thetapoints, fp=coordinates.rpoints)
         r = r * 240 / 11.6  # mm to pixel rate
 
-        circ = Circle(center, radius=r, fill=False, edgecolor='green')
+        circ = Circle(coordinates.center, radius=r, fill=False, edgecolor='green')
         ax.add_patch(circ)
 
-    width = scale * dpi
+    width = int(scale * dpi)
     height = width
 
     # Extracts the figure into a numpy array and then converts it to greyscale.
@@ -280,9 +282,9 @@ def draw_square(x, y, img):
         greyscale = False
 
     # Generate Figure and Axes objects.
-    fig = plot.figure()
+    fig = plt.figure()
     fig.set_size_inches(scale, scale)  # 4 inches by 4 inches
-    ax = plot.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
+    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
 
     # Turn off the actual visual axes for visual niceness.
     # Then add axes to figure
@@ -297,6 +299,9 @@ def draw_square(x, y, img):
         rect = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
         rect.set_edgecolor('c')
         ax.add_patch(rect)
+
+    width = int(scale * dpi)
+    height = width
 
     # Extracts the figure into a numpy array and then converts it to greyscale.
     canvas = FigureCanvas(fig)
@@ -357,4 +362,5 @@ def get_exposure(img):
 
 if __name__ == "__main__":
     test = load_image('r_ut005728s27480', '20160101', 'KPNO', 'RGB')
+    test = draw_contours(test)
     save_image(test, 'Test')
