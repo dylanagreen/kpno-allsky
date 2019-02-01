@@ -155,9 +155,6 @@ def median_all_date(date, color=False):
     # If color, then just load all of them ignoring exposure, for now.
     if not color:
         for f in files:
-            # Make sure we look in the directory to load the image.
-            name = directory + f
-
             # We have to reshape the images so that the lowest level
             # single value is a 1D array rather than just a number.
             # This is so when you concat the arrays it actually turns the

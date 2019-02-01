@@ -20,7 +20,6 @@ from matplotlib.patches import Polygon
 import coordinates
 import mask
 import image
-from image import AllSkyImage
 
 
 center = (256, 252)
@@ -100,7 +99,7 @@ def transform(img):
             x = column - center[0]
             y = center[1] - row
             r = math.hypot(x, y)
-            
+
             # Only want points in the circle to convert
             if r <= 241:
                 xpoints.append(column)

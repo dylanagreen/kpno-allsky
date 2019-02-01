@@ -9,13 +9,12 @@ cloudiness is above a certain value are considered to have been taken when the
 dome was closed. If the proportion of images above this value is
 approximately equal to the known percentage of the night when the dome was
 closed then this value is designated the threshold for each night.
-Two helper methods are provided: one to find the number of days into a year a 
+Two helper methods are provided: one to find the number of days into a year a
 given date is, and one to convert a date to a format accepted by pyephem.
 """
 
 import os
 import datetime
-import math
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -105,7 +104,6 @@ def find_threshold():
 
     # This array is for calculating the total average
     total = []
-    years = {}
     for year in ['2016', '2017']:
         # Gets the downloaded months
         directory = 'Data/'
@@ -177,28 +175,6 @@ def find_threshold():
 
                     weekdict[weeknum].append(float(line[1]))
 
-                # This block only runs if we actually analyzed images.
-                if images:
-                    # The first image analyzed that night.
-                    name = images[0]
-                    firstdate = format_date(day, name)
-                    camera.date = firstdate
-                    date1 = ephem.Date(firstdate)
-
-                    # The final image analyzed that night.
-                    name = images[-1]
-                    date2 = ephem.Date(format_date(day, name))
-
-                    # Calculates the previous setting and next rising of the sun
-                    # using the first image analyzed that night.
-                    sun = ephem.Sun()
-                    setting = camera.previous_setting(sun, use_center=True)
-                    rising = camera.next_rising(sun, use_center=True)
-
-                    night = rising - setting
-                    covered = date2 - date1
-
-
         # An ndarray of open fractions where index + 1 = day number
         opens = data.get('Y' + year).values
         thresh = []
@@ -224,7 +200,7 @@ def find_threshold():
             working = sorted(val)
 
             # If we don't have any images that night then just bail.
-            if len(working) == 0:
+            if not working:
                 continue
 
             # Multiply the frac by the length, to find the index above which
@@ -256,7 +232,7 @@ def find_threshold():
             working = np.asarray(working)
             above = working[working > num]
 
-            if len(working) > 0:
+            if not working.size == 0:
                 frac = opens[key - 1]
                 true.append(len(above)/len(working))
                 x1.append(frac)
@@ -272,7 +248,7 @@ def find_threshold():
             working = sorted(weekdict[i])
 
             # If we don't have any images that night then just bail.
-            if len(working) == 0:
+            if not working:
                 continue
 
             # Multiply the frac by the length, to find the index above which
@@ -304,7 +280,7 @@ def find_threshold():
             working = np.asarray(working)
             above = working[working > num]
 
-            if len(working) > 0:
+            if not working.size == 0:
                 frac = np.mean(openweeks[i])
                 weektrue.append(len(above)/len(working))
                 x3.append(frac)
@@ -472,21 +448,21 @@ def test_threshold():
                 working = np.asarray(val)
 
                 above = working[working > test1]
-                if len(working) > 0:
+                if not working.size == 0:
                     true.append(len(above)/len(working))
                     x.append(frac)
 
             x1 = []
             weektrue = []
             # Runs over the week number
-            for i in range(0,len(weekdict)):
+            for i, val in enumerate(weekdict):
                 # The fraction is the average of the whole week.
                 frac = np.mean(weekfrac[i])
 
                 working = np.asarray(weekdict[i])
 
                 above = working[working > test2]
-                if len(working) > 0:
+                if not working.size == 0:
                     weektrue.append(len(above)/len(working))
                     x1.append(frac)
 
@@ -508,4 +484,4 @@ def test_threshold():
 
 
 if __name__ == "__main__":
-    test_threshold()
+    find_threshold()

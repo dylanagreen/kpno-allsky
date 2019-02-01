@@ -1,12 +1,11 @@
 """A module providing facilities to darken clouds in images.
 
 Images taken with the camera at the Kitt Peak National Observatory are
-taken with either 0.3-second or 6-second exposure times. This module provides 
+taken with either 0.3-second or 6-second exposure times. This module provides
 support for finding and darkening clouds for each of the two exposure
-times. 
+times.
 """
 import math
-import os
 import numpy as np
 from scipy import ndimage
 from PIL import Image
@@ -113,7 +112,7 @@ def zero_three_cloud_contrast(img):
 
     # Find the mask and black out those pixels.
     masking = mask.generate_mask()
-    
+
     final = AllSkyImage(img.name, img.date, img.camera, final)
     final = mask.apply_mask(masking, final)
 
@@ -265,11 +264,11 @@ def six_cloud_contrast(img):
     # darker it should be in the original. Thus increasing cloud contrast
     # without making it look like sketchy black blobs.
     multiple = .6 - invert2 / 255
-    
+
     # Resets the img1 data since I used the img1 object to mask the binary.
     img1 = mask.apply_mask(masking, img)
     newimg = np.multiply(img1.data, multiple)
-    
+
     # Creates a new AllSkyImage so that we don't modify the original.
     new = AllSkyImage(img.name, img.date, img.camera, newimg)
 

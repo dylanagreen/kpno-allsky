@@ -221,7 +221,7 @@ def init_categories():
         # Opens the image, then uses np.histogram to generate the histogram
         # for that image, where the image is masked the same way as in the
         # histogram method.
-        log = 'Images/Category/' + file
+        loc = 'Images/Category/' + file
         img = np.asarray(Image.open(loc).convert('L'))
         masking = mask.generate_full_mask()
         masking = 1 - masking
@@ -300,10 +300,4 @@ def categorize(histogram, categories):
     return None
 
 if __name__ == '__main__':
-    date = '20170810'
-    name = 'r_ut024053s86160'
-    img = image.load_image(name, date, 'KPNO')
-    #img = np.asarray(Image.open('Images/Original/KPNO/' + date + '/' + name + '.png').convert('L'))
-
-    hist = generate_histogram(img)
-    print(plot_histogram(img, hist))
+    init_categories()

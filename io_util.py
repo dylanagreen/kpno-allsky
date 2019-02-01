@@ -7,11 +7,9 @@ One class is provided to read the raw HTML provided by each camera's website.
 """
 
 import os
-import math
 import time
 from html.parser import HTMLParser
 import numpy as np
-import matplotlib.pyplot as plt
 import requests
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
@@ -294,8 +292,8 @@ def load_all_date(date):
 
     # Up to 7 seconds quicker than the old method!
     # Has a bonus of being way way easier to read.
-    for i in range(0, len(files)):
-        f = directory + files[i]
+    for i, f in enumerate(files):
+        f = directory + f
         temp = gray_and_color_image(f)
         imgs.append(temp)
 
@@ -321,7 +319,7 @@ def gray_and_color_image(file):
 
     See Also
     --------
-    PIL.Image.Image.convert : For more details on the ITU-R 601-2 luma 
+    PIL.Image.Image.convert : For more details on the ITU-R 601-2 luma
                               grayscale transform used by this method.
 
     Notes
@@ -333,7 +331,7 @@ def gray_and_color_image(file):
         L = R * 299/1000 + G * 587/1000 + B * 114/1000
 
     """
-    
+
     img1 = np.asarray(Image.open(file).convert('RGB'))
     img2 = np.asarray(Image.open(file).convert('L'))
 

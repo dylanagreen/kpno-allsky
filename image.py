@@ -1,4 +1,15 @@
+"""A module containing various methods for loading, saving and modifying images.
+
+This module is designed to facilitate image processing. A class is provided
+that defines a custom AllSkyImage object that contains all necessary details
+about an image when it is loaded. This AllSkyImage object is used in all
+image processing methods throughout the other modules. Methods are provided
+to load and save an image in this format. Additional methods are provided to
+draw analysis objects on top of the images.
+"""
+
 import os
+import math
 
 from PIL import Image as pil_image
 from astropy.time import Time
@@ -20,8 +31,8 @@ class AllSkyImage():
     date : str
         The date on which the image was taken.
     camera : str
-        The camera used to take the image. Either `KPNO` for the all-sky 
-        camera at Kitt-Peak or `MMTO` for the all-sky camera at the MMT 
+        The camera used to take the image. Either `KPNO` for the all-sky
+        camera at Kitt-Peak or `MMTO` for the all-sky camera at the MMT
         Observatory.
     data : numpy.ndarray
         The image data.
@@ -48,7 +59,7 @@ class AllSkyImage():
 
 def load_image(name, date, camera, mode='L'):
     """Load an image.
-    
+
     Parameters
     ----------
     name : str
@@ -56,18 +67,18 @@ def load_image(name, date, camera, mode='L'):
     date : str
         The date on which the image was taken.
     camera : {'KPNO', 'MMTO'}
-        The camera used to take the image. 'KPNO' represents the all-sky 
-        camera at Kitt-Peak and 'MMTO' represents the all-sky camera at the MMT 
+        The camera used to take the image. 'KPNO' represents the all-sky
+        camera at Kitt-Peak and 'MMTO' represents the all-sky camera at the MMT
         Observatory.
     mode : {'L', 'RGB', 'RGBA'}, optional
         The color mode to load the image in. Defaults to 'L' for greyscale.
         Use 'RGB' for color and 'RGBA' for color with an alpha layer.
-    
+
     Returns
     -------
     img : image.AllSkyImage
         The image.
-    
+
     """
     # If the name was passed without .png at the end append it so we know what
     # format this bad boy is in.
@@ -295,7 +306,7 @@ def draw_square(x, y, img):
     ax.imshow(img, cmap='gray')
 
     ax.set_aspect('equal')
-    for i in range(0, len(x)):
+    for i, val in enumerate(x):
         rect = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
         rect.set_edgecolor('c')
         ax.add_patch(rect)

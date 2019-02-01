@@ -121,7 +121,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not(20160101 <= int(d) <= 20170131):
+        if not 20160101 <= int(d) <= 20170131:
             continue
 
         print(d)
@@ -397,8 +397,11 @@ def plot():
                 val = float(line[1])
                 name = line[0]
 
+                # A phantom image for calculation that doesn't actually have
+                # any data in it.
+                img = image.AllSkyImage(name, day, 'KPNO', None)
                 # Moon phase calculation.
-                phase = moon.moon_visible(day, name)
+                phase = moon.moon_phase(img)
 
                 # Ignores cloudiness with moon phase less than 0.2
                 if phase < 0.2:
@@ -406,12 +409,7 @@ def plot():
 
                 b = int(phase // phasediv)
                 tphase[b].append(val)
-
-                # Sunset time calculation.
-                # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
-                formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:]
-                time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
-                formatdate = formatdate + ' ' + time
+                formatdate = img.formatdate
 
                 # Sets the date of calculation.
                 camera.date = formatdate
@@ -437,7 +435,7 @@ def plot():
 
                 # Week of the year calculation.
                 # Gets the date object for the image
-                date = coordinates.timestring_to_obj(day, name)
+                date = img.time
 
                 # Finds the difference since the beginning of the year to find
                 # The week number.
@@ -552,7 +550,7 @@ def plot():
 
     tclose = [[] for i in range(0, 53)]
     closeav = []
-    for j in range(0, len(close2016)):
+    for j, val in enumerate(close2016):
         if j >= 60:
             i = j + 1
         else:
@@ -564,8 +562,8 @@ def plot():
         tclose[week1].append(close2017[j])
         tclose[week2].append(close2016[j])
 
-    for i in range(0, len(tclose)):
-        closeav.append(np.mean(tclose[i]))
+    for i, val in enumerate(tclose):
+        closeav.append(np.mean(val))
 
     print(closeav)
 
@@ -602,7 +600,7 @@ def plot():
         else:
             # Passes the data to the fitting method.
             temp = np.delete(temp, np.where(temp < 0.061))
-            d, best = find_fit(temp, divs)
+            d, _ = find_fit(temp, divs)
 
             # Inserts a the sqaure root of the lambda for the mu-2 if the fit
             # Is a gaussian-poisson combo.
@@ -883,19 +881,19 @@ def histo():
 
                 # For all, we plot everything, then 2016 on top for separation.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
-                                align='edge', tick_label=labels[:binstop],
-                                label='2017 (' + str(num) + ')')
+                               align='edge', tick_label=labels[:binstop],
+                               label='2017 (' + str(num) + ')')
 
                 hist2, bins2 = np.histogram(temp2, bins=divs)
                 plot = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
-                                align='edge', tick_label=labels[:binstop],
-                                label='2016 (' + str(num2) + ')')
+                               align='edge', tick_label=labels[:binstop],
+                               label='2016 (' + str(num2) + ')')
 
             else:
                 # Plots just the year histogram.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
-                                align='edge', tick_label=labels[:binstop],
-                                label=year + ' (' + str(num) + ')')
+                               align='edge', tick_label=labels[:binstop],
+                               label=year + ' (' + str(num) + ')')
 
             coeffs, best = find_fit(temp, divs)
 
@@ -962,7 +960,7 @@ def find_fit(data, divs):
 
     # Assign a new array so we don't edit the original
     temp = np.copy(data)
-    hist, bins = np.histogram(temp, bins=divs)
+    hist, _ = np.histogram(temp, bins=divs)
 
     # The guess for the first mean is the maximum that occurs before the cutoff
     # at index 35 (about 2.44)
@@ -1019,7 +1017,7 @@ def find_fit(data, divs):
         fitarr = np.delete(fitarr, best)
         coeffsarr.pop(best)
 
-        if not len(fitarr) == 0:
+        if fitarr.size == 0:
             best = np.argmin(fitarr)
         else:
             best = orig
@@ -1348,4 +1346,4 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    analyze()
+    plot()

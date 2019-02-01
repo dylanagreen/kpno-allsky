@@ -20,9 +20,7 @@ from matplotlib.patches import Circle
 from astropy.modeling import models, fitting
 
 import coordinates
-import histogram
 import image
-from image import AllSkyImage
 
 
 # Sets up a pyephem object for the camera.
@@ -172,7 +170,7 @@ def moon_size(img):
     # Earth's shadow and the center of the moon. Basically just d = v*t.
 
     # Use pyephem to find the labeled region that the moon is in.
-    posx, posy, alt = find_moon(img)
+    posx, posy, _ = find_moon(img)
     posx = math.floor(posx)
     posy = math.floor(posy)
 
@@ -403,17 +401,13 @@ def generate_eclipse_data(regen=False):
         images = sorted(os.listdir(directory))
 
         # Finds the size of the moon in each image.
-        for img in images:
-
-            # Nicked this time formatting code from timestring to object.
-            formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:]
-            time = img[4:6] + ':' + img[6:8] + ':' + img[8:10]
-            formatdate = formatdate + ' ' + time
+        for name in images:
+            img = image.load_image(name, date, 'KPNO')
 
             # This basically hacks us to use the center of the earth as our
             # observation point.
             camera.elevation = - ephem.earth_radius
-            camera.date = formatdate
+            camera.date = img.formatdate
 
             # Calculates the sun and moon positions.
             moon = ephem.Moon()
@@ -433,11 +427,11 @@ def generate_eclipse_data(regen=False):
             # should ad d to pi, i.e. the earth's shadow is across from the sun.
             d = R * (np.pi - sep)
 
-            size = moon_size(date, img)
+            size = moon_size(img)
             imvis.append(size)
             distances.append(d)
 
-            print("Processed: " + date + '/' + img)
+            print("Processed: " + date + '/' + name)
 
         # Calculates the proportion of visible moon for the given distance
         # between the centers.
@@ -529,7 +523,7 @@ def moon_mask(img):
     # Get the fraction visible for interpolation and find the
     # location of the moon.
     vis = moon_phase(img)
-    x, y, alt = find_moon(img)
+    x, y, _ = find_moon(img)
 
     # Creates the circle patch we use.
     r = moon_circle(vis)
@@ -639,4 +633,4 @@ def generate_plots():
 
 if __name__ == "__main__":
     # 20160326/r_ut071020s70020
-    generate_plots()
+    generate_eclipse_data(True)

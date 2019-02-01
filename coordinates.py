@@ -11,17 +11,11 @@ irregularities in the lens.
 """
 
 import math
-import os
 from astropy.coordinates import SkyCoord, EarthLocation
 from astropy.time import Time
 import astropy.time.core as aptime
 from astropy import units as u
 import numpy as np
-import matplotlib.pyplot as plot
-
-import mask
-import io_util
-import image
 
 # Globals
 # Center of the circle found using super accurate photoshop layering technique
