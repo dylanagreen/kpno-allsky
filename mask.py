@@ -17,7 +17,6 @@ import math
 import numpy as np
 from PIL import Image
 
-import io_util
 import image
 from image import AllSkyImage
 
@@ -202,11 +201,11 @@ def save_mask(mask):
 
     See Also
     --------
-    io_util.save_image : The method used by this method to save the masking
-                         image.
+    image.save_image : Save an image.
 
     """
-    io_util.save_image(mask, 'Mask.png', 'Images/', 'gray')
+    img = AllSkyImage('Mask.png', None, None, mask)
+    image.save_image(img, 'Images/')
 
 
 def apply_mask(mask, img):
@@ -246,3 +245,5 @@ def apply_mask(mask, img):
 
     return new
 
+if __name__ == '__main__':
+    generate_mask(True)

@@ -9,9 +9,10 @@ list of tuples.
 """
 import os
 import numpy as np
-from PIL import Image
 
 import io_util
+import image
+from image import AllSkyImage
 
 
 # This is necessary.
@@ -161,10 +162,10 @@ def median_all_date(date, color=False):
             # single value is a 1D array rather than just a number.
             # This is so when you concat the arrays it actually turns the
             # lowest value into a multivalue array.
-            img = np.asarray(Image.open(name).convert('L'))
-            temp = img.reshape(img.shape[0], img.shape[1], 1)
+            img = image.load_image(f, date, 'KPNO')
+            temp = img.data.reshape(img.data.shape[0], img.data.shape[1], 1)
 
-            exposure = io_util.get_exposure(img)
+            exposure = image.get_exposure(img)
 
             # All Median
             # Make the super image have the correct
@@ -237,7 +238,7 @@ def save_medians(medians, date, color=False):
 
     See Also
     --------
-    io_util.save_image : Save an image.
+    image.save_image : Save an image.
     median_all_date : Generate median images for a given date.
 
     Notes
@@ -258,11 +259,14 @@ def save_medians(medians, date, color=False):
 
         # If blocks to only save the ones with actual data
         if not color and not np.array_equal(median, np.zeros((1, 1))):
-            io_util.save_image(median, name, loc, cmap)
+            img = AllSkyImage(name, None, None, median)
+            image.save_image(img, loc, cmap)
 
         elif color and not np.array_equal(median, np.zeros((512, 512, 3))):
-            io_util.save_image(np.uint8(median), name, loc)
+            img = AllSkyImage(name, None, None, np.uint8(median))
+            image.save_image(img, loc, cmap)
 
 
 if __name__ == "__main__":
-    print(median_of_medians(list(range(0, 200, 2)), 99))
+    medians = median_all_date('20160101')
+    save_medians(medians, '20160101')

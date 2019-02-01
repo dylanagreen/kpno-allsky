@@ -42,7 +42,7 @@ def cloud_contrast(img):
     six_cloud_contrast: Darken cloud pixels in images with 6 second
      exposure times.
     """
-    exposure = io_util.get_exposure(img.data)
+    exposure = image.get_exposure(img)
     print(exposure)
 
     if exposure == 0.3:

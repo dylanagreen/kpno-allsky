@@ -4,10 +4,7 @@ This module provides methods that allow for conversion between the Cartesian
 (x, y) image coordinates and two different astrophysical coordinate systems:
 Horizontal (alt, az) and Equatorial (ra, dec).
 Two methods account for irregularities in the lens during these
-conversions. Also included in this module are three methods for drawing analysis
-contours on images, one for 0-30-60 altitude angles, one for drawing a
-clestial horizon and one for squares
-surrounding a pixel location. One method finds stars, and another finds the
+conversions. One method finds stars, and another finds the
 difference between the expected and actual locations of an star in an image.
 These two methods are used to verify the methods that correct for
 irregularities in the lens.
@@ -20,9 +17,7 @@ from astropy.time import Time
 import astropy.time.core as aptime
 from astropy import units as u
 import numpy as np
-from matplotlib.patches import Circle, Rectangle
 import matplotlib.pyplot as plot
-from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 
 import mask
 import io_util
@@ -40,6 +35,15 @@ thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
                28.95, 32.66, 36.40, 40.17, 43.98, 47.83, 51.73,
                55.67, 59.67, 63.72, 67.84, 72.03, 76.31, 80.69,
                85.21, 89.97, 90]
+
+# Radec
+stars = {'Polaris': (37.9461429,  89.2641378),
+         'Altair': (297.696, 8.86832),
+         'Vega': (279.235, 38.7837),
+         'Arcturus': (213.915, 19.1822),
+         'Alioth': (193.507, 55.9598),
+         'Spica': (201.298, -11.1613),
+         'Sirius': (101.2875, -16.7161)}
 
 
 def xy_to_altaz(x, y):
@@ -496,92 +500,6 @@ def camera_conv(x, y, az):
     return (x.tolist(), y.tolist())
 
 
-def draw_celestial_horizon(img):
-    """Draw a path representing where the declination angle is zero.
-
-    Parameters
-    ----------
-    img : image.AllSkyImage
-        The image.
-
-    Returns
-    -------
-    numpy.ndarray
-        A greyscale image with a pink path representing the celestial horizon.
-    """
-
-    data = np.copy(img.data)
-
-    dec = 0
-    ra = 0
-    while ra <= 360:
-        xy = radec_to_xy(ra, dec, img.time)
-        xy = (round(xy[0]), round(xy[1]))
-
-        # Remember y is first, then x
-        # Also make sure it's on the image at all.
-        if xy[1] < 512 and xy[0] < 512:
-            data[xy[1], xy[0]] = (244, 66, 229)
-
-        ra += 0.5
-
-    img.data = data
-    return img
-
-
-# Draws a circle at the x y coord list with radius 5.
-# Should probably note that right now it draws a square.
-def draw_square(x, y, img, color='c', name='Square.png'):
-    """Draw squares centered at the given coordinates.
-
-    Parameters
-    ----------
-    x : array_like
-        The x coordinates of the centers of each square.
-    y : array_like
-        The x coordinates of the centers of each square.
-    img : numpy.ndarray
-        A greyscale image.
-    color : str, optional
-        The color of the squares. Accepts any color accepted by
-        matplotlib. See https://matplotlib.org/2.0.2/api/colors_api.html for
-        more information. Defaults to 'c', which is cyan.
-    name : str, optional
-        The name to save the resulting image. Defaults to 'Square.png.'
-
-    Notes
-    -----
-    The drawn squares will have a side length of 10 pixels.
-
-    """
-    # Generate Figure and Axes objects.
-    figure = plot.figure()
-    figure.set_size_inches(4, 4)  # 4 inches by 4 inches
-    axes = plot.Axes(figure, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    axes.set_axis_off()
-    figure.add_axes(axes)
-
-    # Adds the image into the axes and displays it
-    axes.imshow(img, cmap='gray')
-
-    axes.set_aspect('equal')
-    for i in range(0, len(x)):
-        circ = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
-        circ.set_edgecolor(color)
-        axes.add_patch(circ)
-
-    plot.savefig(name, dpi=128)
-    plot.close()
-
-
-# Looks for a star in a variable size pixel box centered at x,y
-# This just finds the "center of mass" for the square patch,
-# with mass = greyscale value. With some modifications
-# Mass is converted to exp(mass/10)
-# square = half a (side length-1). i.e. range from x-square to x+square
 def find_star(img, centerx, centery, square=6):
     """Find a star near a given (x, y) coordinate.
 
@@ -740,84 +658,3 @@ def delta_r(img, centerx, centery):
 
     return (rexpected, ractual, deltar)
 
-
-#tempfile = 'r_ut043526s01920' #7/21
-#tempfile = 'r_ut113451s29520' #7/31
-#tempfile = 'r_ut035501s83760' #7/12
-#tempfile = 'r_ut054308s05520' #7/19
-#tempfile = 'r_ut063128s26700' #10/4 2016
-date = '20170911'
-tempfile = 'r_ut120511s41280'
-
-
-# Polaris = 37.9461429,  89.2641378
-# Sirius = 101.2875, -16.7161
-# Vega = 279.235, 38.7837
-# Arcturus = 213.915, 19.1822
-# Alioth = 193.507, 55.9598
-# Altair = 297.696, 8.86832
-# Radec
-stars = {'Polaris': (37.9461429,  89.2641378),
-         'Altair': (297.696, 8.86832),
-         'Vega': (279.235, 38.7837),
-         'Arcturus': (213.915, 19.1822),
-         'Alioth': (193.507, 55.9598),
-         'Spica': (201.298, -11.1613),
-         'Sirius': (101.2875, -16.7161)}
-
-
-def contours(img):
-    """Draw three angular contours on an image.
-
-    Parameters
-    ----------
-    img : image.AllSkyImage
-        The image.
-
-    Notes
-    -----
-    This method draws contours directly onto an image using matplotlib patches.
-    These contours represent altitude angles of 0, 30, 60 and 90 degrees up
-    from the horizon.
-    """
-
-    # Scale in inches
-    scale = 4
-    dpi = img.data.shape[0] / scale
-
-    # Generate Figure and Axes objects.
-    fig = plot.figure()
-    fig.set_size_inches(scale, scale)
-    fig.set_dpi(dpi)
-    ax = plot.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    ax.set_axis_off()
-    fig.add_axes(ax)
-
-    # Adds the image into the axes and displays it
-    ax.imshow(img.data, cmap='gray')
-
-    ax.set_aspect('equal')
-
-    for alt in range(0, 100, 30):
-        r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
-        r = r * 240 / 11.6  # mm to pixel rate
-
-        circ = Circle(center, radius=r, fill=False, edgecolor='green')
-        ax.add_patch(circ)
-
-    width = scale * dpi
-    height = width
-
-    # Extracts the figure into a numpy array and then converts it to greyscale.
-    canvas = FigureCanvas(fig)
-    canvas.draw()
-    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
-
-    # Slices out the RGB components and then multiplies them by RGB conversion.
-    data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
-    img.data = data
-
-    return img

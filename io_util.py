@@ -80,77 +80,6 @@ def download_url(link):
             return data
 
 
-def save_image(img, name, location, cmap='gray', patch=None):
-    """Save an image.
-
-    Save an image passed in `img` with the name `name` into the location in
-    `location`. `cmap` provides an option to save the image in greyscale, and
-    `patch` allows matplotlib patches to be applied on top of the saved image.
-
-    Parameters
-    ----------
-    img : ndarray
-        The image to be saved.
-    name : str
-        The name of the saved image.
-    location : str
-        The relative path to save the image to. If the path does not exist,
-        it is created.
-    cmap : str, optional
-        A colormap to use when saving the image. Supports any matplotlib
-        supported colormap. Defaults to 'gray' to save in grayscale.
-    patch : matplotlib.patches.Patch, optional
-        A matplotlib patch to apply on top of the saved image. By default no
-        patch is applied.
-
-    Notes
-    -----
-    See https://matplotlib.org/tutorials/colors/colormaps.html for more detail
-    on matplotlib colormaps.
-
-    """
-    if not os.path.exists(location):
-        os.makedirs(location)
-
-    dpi = 128
-    y = img.shape[0] / dpi
-    x = img.shape[1] / dpi
-
-    # Generate Figure and Axes objects.
-    fig = plt.figure()
-    fig.set_size_inches(x, y)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    ax.set_axis_off()
-    fig.add_axes(ax)
-
-    # Adds the image into the axes and displays it
-    # Then saves
-    ax.imshow(img, cmap=cmap)
-
-    if patch:
-        ax.add_patch(patch)
-
-    # If location was passed with / on the end, don't append another one.
-    if not location[-1:] == '/':
-        name = location + '/' + name
-    else:
-        name = location + name
-
-    # Append .png if it wasn't passed in like that already.
-    if not name[-4:] == '.png':
-        name = name + '.png'
-
-    # Print "saved" after saving, in case saving messes up.
-    plt.savefig(name, dpi=dpi)
-    print('Saved: ' + name)
-
-    # Close the plot in case you're running multiple saves.
-    plt.close()
-
-
 class DateHTMLParser(HTMLParser):
     """Parser for data passed from image websites.
 
@@ -416,51 +345,6 @@ def gray_and_color_image(file):
     return img1.reshape(img1.shape[0], img1.shape[1], 4, 1)
 
 
-def get_exposure(image):
-    """Get the exposure time of an image.
-
-    Parameters
-    ----------
-    image : numpy.ndarray
-        The image data.
-
-    Returns
-    -------
-    float or int
-        The exposure time in seconds of the provided image.
-        Possible values are 0.3, 0.02 or 6.
-
-    Notes
-    -----
-    get_exposure works by looking at two specific pixels in an image taken on
-    the KPNO camera. The first pixel is at (174, 19) in (x, y) coordinates,
-    where (0, 0) is the top left corner of the image. This pixel appears as
-    gray in images taken at 0.3s or 0.02s exposure times, but as
-    black in images taken in 6s exposure times. In order to differentiate
-    between 0.3s and 0.02s a second pixel at (119, 17) is used, which appears
-    as gray in images taken at 0.02s exposure time but as black in images taken
-    in 0.3s exposure time.
-
-    """
-    pix1 = image[19, 174]
-    pix2 = image[17, 119]
-
-    # Handles separate cases for greyscale and RGB images.
-    # Greyscale conversion below is the same one used by imread.
-    if len(image.shape) == 3:
-        pix1 = pix1[0] * 299/1000 + pix1[1] * 587/1000 + pix1[2] * 114/1000
-        pix1 = math.floor(pix1)
-
-        pix2 = pix2[0] * 299/1000 + pix2[1] * 587/1000 + pix2[2] * 114/1000
-        pix2 = math.floor(pix2)
-
-    if pix1 == 225:
-        return 0.3
-    if pix2 == 225:
-        return 0.02
-    return 6
-
-
 def image_diff(img1, img2):
     """Find the mathematical difference between two grayscale images.
 
@@ -498,4 +382,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_image('20171108', 'r_ut052936s31200.png')
+    download_image('20170810', 'r_ut024053s86160.png')
