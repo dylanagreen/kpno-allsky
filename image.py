@@ -131,13 +131,12 @@ def draw_celestial_horizon(img):
 
         ra += 0.5
 
-    img.data = data
-    return img
+    return AllSkyImage(img.name, img.date, img.camera, data)
 
 
 def draw_contours(img):
     """Draw three angular contours on an image.
-    
+
     Contours will be drawn in lime green.
 
     Parameters
@@ -154,9 +153,9 @@ def draw_contours(img):
     -----
     This method draws contours directly onto an image using matplotlib patches.
     These contours represent altitude angles of 0, 30, and 60 degrees up
-    from the horizon. The returned image will be in the same color mode as the 
-    input image, i.e. if the input image is in RGB color, then the returned 
-    image will be also. If the input image is greyscale, then the returned 
+    from the horizon. The returned image will be in the same color mode as the
+    input image, i.e. if the input image is in RGB color, then the returned
+    image will be also. If the input image is greyscale, then the returned
     image will be also.
     """
 
