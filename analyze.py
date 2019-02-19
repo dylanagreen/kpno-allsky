@@ -98,7 +98,7 @@ def analyze():
     # 20080306 is the first date the camera is located correctly
     # 20080430 is the first date the images are printed correctly
 
-    startdate = 20170101
+    startdate = 20100101
 
     # Reads in the model coefficients.
     with open('clouds.txt', 'r') as f:
@@ -121,9 +121,11 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not 20180101 <= int(d) <= 20181231:
+        if not 20150304 <= int(d) <= 20151231:
             continue
 
+        # Print a new line to differentiate dates.
+        print()
         print(d)
 
         rdate = io_util.download_url(link + date)
@@ -321,14 +323,14 @@ camera.elevation = 2120
 camera.horizon = '-17'
 
 
-def plot(years=['2016','2017','2018'], fit_histograms=False):
+def plot(years=['2015','2016','2017'], fit_histograms=False):
     """Generate various cloudiness plots and save them to Images/Plots.
 
     Parameters
     ----------
     years : list, optional
         List of years to include in the plots. Defaults to
-        ['2016','2017','2018'].
+        ['2015','2016','2017'].
     fit_histograms : bool, optional
         To fit the weekly histograms and plot the resulting fit variables
         or not. Defaults to False.
@@ -565,13 +567,21 @@ def plot(years=['2016','2017','2018'], fit_histograms=False):
 
     #Reads in the csv file using pandas.
     domedata = pd.read_csv('daily-2007-2017.csv')
-    close2016 = domedata.get('Y2016').values
-    close2017 = domedata.get('Y2017').values
-    #close2018 = domedata.get('Y2018').values
+
+    closedict = dict.fromkeys(years)
+    for y in years:
+        name = 'Y' + y
+        closedict[y] = domedata.get(name).values
 
     tclose = [[] for i in range(0, 53)]
     closeav = []
-    for j, val in enumerate(close2016):
+
+    # i represents the day number of the year in 2016. If it is larger than 59
+    # (31 + 28) we need to increase the day by 1 to account for the leap day.
+    # This is because the domedata csv does not include February 29.
+    # For example, March 1st is considered day 60, when in 2016 it
+    # is actually day 61.
+    for j, val in enumerate(closedict['2016']):
         if j >= 60:
             i = j + 1
         else:
@@ -580,8 +590,12 @@ def plot(years=['2016','2017','2018'], fit_histograms=False):
         week1 = j // 7
         week2 = i // 7
 
-        tclose[week1].append(close2017[j])
-        tclose[week2].append(close2016[j])
+        for key, val in closedict.items():
+            # We need to append to a different week if it's a leap year, due
+            # to the leap day changing the day number of the year after
+            # February.
+            week = week2 if int(key) % 4 == 0 else week1
+            tclose[week].append(val[j])
 
     for i, val in enumerate(tclose):
         closeav.append(np.mean(val))
@@ -1366,4 +1380,5 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    plot(['2016', '2017'])
+    #analyze()
+    plot()
