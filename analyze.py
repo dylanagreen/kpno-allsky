@@ -380,6 +380,7 @@ def plot(fit_histograms=False):
     if '.DS_Store' in months:
         months.remove('.DS_Store')
 
+    year1 = months[0][:4]
     for month in months:
         # Gets the days that were analyzed for that month
         directory = 'Data/' + month + '/'
@@ -387,6 +388,12 @@ def plot(fit_histograms=False):
 
         # Strips out the year from the month
         year = month[:4]
+        
+        if not year == str(year1):
+            print('Collated ' + year1 + ' data')
+            year1 = year
+        if month == months[-1]:
+            print('Collated ' + year + ' data')
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
