@@ -121,7 +121,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not 20160101 <= int(d) <= 20170131:
+        if not 20180101 <= int(d) <= 20181231:
             continue
 
         print(d)
@@ -321,8 +321,14 @@ camera.elevation = 2120
 camera.horizon = '-17'
 
 
-def plot():
+def plot(fit_histograms=False):
     """Generate various cloudiness plots and save them to Images/Plots.
+
+    Parameters
+    ----------
+    fit_histograms : bool, optional
+        To fit the weekly histograms and plot the resulting fit variables
+        or not. Defaults to False.
 
     Notes
     -----
@@ -331,7 +337,10 @@ def plot():
     plots include plots of Cloudiness vs Moon Phase, Cloudiness vs Hours since
     sunset, Cloudiness vs Normalized time after sunset, Cloudiness vs Hours
     before sunrise, and Cloudiness vs Week Number. These plots are saved to
-    Images/Plots.
+    Images/Plots. If `fit_histograms` is true, the weekly histograms will be 
+    fit by a double Gaussian or Gaussian-Poisson hybrid function, after which
+    plots of week number versus the various fit parameters will be made and
+    saved as well.
     """
     # Gets the downloaded months
     directory = 'Data/'
@@ -538,7 +547,6 @@ def plot():
     num_imgs = []
     for i, val in enumerate(tweek):
         moon_avgs.append(np.mean(tmoon[i]))
-        #print(str(i + 1) + ': ' + str(len(val)))
         num_imgs.append(len(val))
 
     setup_plot(x, tweek)
@@ -547,6 +555,7 @@ def plot():
     domedata = pd.read_csv('daily-2007-2017.csv')
     close2016 = domedata.get('Y2016').values
     close2017 = domedata.get('Y2017').values
+    #close2018 = domedata.get('Y2018').values
 
     tclose = [[] for i in range(0, 53)]
     closeav = []
@@ -565,119 +574,118 @@ def plot():
     for i, val in enumerate(tclose):
         closeav.append(np.mean(val))
 
-    print(closeav)
+    # Alternative additional data.
+    #plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
+
+    #num_imgs = np.asarray(num_imgs)
+    #num_imgs = num_imgs * 1 / (np.amax(num_imgs))
+    #plt.plot(x, num_imgs, label='Normalized number of images',
+             #color=(0, 1, 0, 1))
 
     plt.plot(x, closeav, label='Average Closed Fraction', color=(0,1,0,1))
     plt.legend()
 
     plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
     plt.close()
-    # plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
 
-    #num_imgs = np.asarray(num_imgs)
+    if fit_histograms:
+        data = np.asarray([[0, 0, 0, 0, 0]])
 
-    #num_imgs = num_imgs * 1 / (np.amax(num_imgs))
+        split = 10
+        w = 0.61 / split
+        num = np.amax(tweek[2]) / w
+        divs = np.asarray(range(0, int(num) + 1))
+        divs = divs * w
 
-    #plt.plot(x, num_imgs, label='Normalized number of images',
-             #color=(0, 1, 0, 1))
+        for i, val in enumerate(tweek):
+            temp = np.asarray(val)
 
-    data = np.asarray([[0, 0, 0, 0, 0]])
+            # Percentile returns an array of each of the three values.
+            # We're creating a data array where each column is all the
+            # percentile values for each bin value.
+            if temp.size == 0:
+                data = np.append(data, nanarray, axis=0)
+            else:
+                # Passes the data to the fitting method.
+                temp = np.delete(temp, np.where(temp < 0.061))
+                d, _ = find_fit(temp, divs)
 
-    split = 10
-    w = 0.61 / split
-    num = np.amax(tweek[2]) / w
-    divs = np.asarray(range(0, int(num) + 1))
-    divs = divs * w
+                # Inserts a the sqaure root of the lambda for the mu-2 if the fit
+                # Is a gaussian-poisson combo.
+                if len(d) < 5:
+                    d = np.asarray(d)
+                    d = np.insert(d, 3, np.sqrt(d[2]))
 
-    for i, val in enumerate(tweek):
-        temp = np.asarray(val)
+                d = d.reshape(1,5)
+                data = np.append(data, d, axis=0)
 
-        # Percentile returns an array of each of the three values.
-        # We're creating a data array where each column is all the
-        # percentile values for each bin value.
-        if temp.size == 0:
-            data = np.append(data, nanarray, axis=0)
-        else:
-            # Passes the data to the fitting method.
-            temp = np.delete(temp, np.where(temp < 0.061))
-            d, _ = find_fit(temp, divs)
-
-            # Inserts a the sqaure root of the lambda for the mu-2 if the fit
-            # Is a gaussian-poisson combo.
-            if len(d) < 5:
-                d = np.asarray(d)
-                d = np.insert(d, 3, np.sqrt(d[2]))
-
-            d = d.reshape(1,5)
-            data = np.append(data, d, axis=0)
-
-    # Deletes the first 0,0,0 array.
-    data = np.delete(data, 0, 0)
+        # Deletes the first 0,0,0 array.
+        data = np.delete(data, 0, 0)
 
 
-    # Code to plot the fits, abstracted because it was getting a little
-    # cumbersome to copy paste.
-    def fit_plot(x, data, name):
-        loc = 'Images/Plots/week-' + name.lower() + '.png'
-        plt.plot(x, data, label=name)
-        plt.scatter(x, data, label=name, s=2, c='r')
+        # Code to plot the fits, abstracted because it was getting a little
+        # cumbersome to copy paste.
+        def fit_plot(x, data, name):
+            loc = 'Images/Plots/week-' + name.lower() + '.png'
+            plt.plot(x, data, label=name)
+            plt.scatter(x, data, label=name, s=2, c='r')
+            plt.xlabel('Week Number')
+            plt.ylabel('Cloudiness Relative to Mean')
+            plt.legend()
+            plt.savefig(loc, dpi=256, bbox_inches='tight')
+            plt.close()
+
+        # This code plots the variables individually
+        sigma1 = data[0:data.shape[0], 0]
+        fit_plot(x, sigma1, 'Sigma-1')
+
+        mu1 = data[0:data.shape[0], 1]
+        fit_plot(x, mu1, 'Mu-1')
+
+        cv1 = sigma1 / mu1
+        fit_plot(x, cv1, 'CV-1')
+
+        sigma2 = data[0:data.shape[0], 2]
+        fit_plot(x, sigma2, 'Sigma-2')
+
+        mu2 = data[0:data.shape[0], 3]
+        print(np.argmin(mu2))
+        mu2 = np.where(mu2 < -100, mu1, mu2)
+        fit_plot(x, mu2, 'Mu-2')
+
+        cv2 = sigma2 / mu2
+        fit_plot(x, cv2, 'CV-2')
+
+        frac = data[0:data.shape[0], 4]
+        frac = (np.tanh(frac) + 1) / 2
+        fit_plot(x, frac, 'Frac')
+
+        plt.plot(x, mu1 + mu2, label='Plus')
+        plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
+        plt.plot(x, np.abs(mu1 - mu2), label='Minus')
+        plt.scatter(x, np.abs(mu1 - mu2), label='Minus', s=2, c='g')
         plt.xlabel('Week Number')
-        plt.ylabel('Cloudiness Relative to Mean')
         plt.legend()
-        plt.savefig(loc, dpi=256, bbox_inches='tight')
+        plt.savefig('Images/Plots/week-mu-test.png', dpi=256, bbox_inches='tight')
         plt.close()
 
-    # This code plots the variables individually
-    sigma1 = data[0:data.shape[0], 0]
-    fit_plot(x, sigma1, 'Sigma-1')
+        plt.plot(x, sigma1 + sigma2, label='Plus')
+        plt.scatter(x, sigma1 + sigma2, label='Plus', s=2, c='r')
+        plt.plot(x, np.abs(sigma1 - sigma2), label='Minus')
+        plt.scatter(x, np.abs(sigma1 - sigma2), label='Minus', s=2, c='g')
+        plt.xlabel('Week Number')
+        plt.legend()
+        plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
+        plt.close()
 
-    mu1 = data[0:data.shape[0], 1]
-    fit_plot(x, mu1, 'Mu-1')
-
-    cv1 = sigma1 / mu1
-    fit_plot(x, cv1, 'CV-1')
-
-    sigma2 = data[0:data.shape[0], 2]
-    fit_plot(x, sigma2, 'Sigma-2')
-
-    mu2 = data[0:data.shape[0], 3]
-    print(np.argmin(mu2))
-    mu2 = np.where(mu2 < -100, mu1, mu2)
-    fit_plot(x, mu2, 'Mu-2')
-
-    cv2 = sigma2 / mu2
-    fit_plot(x, cv2, 'CV-2')
-
-    frac = data[0:data.shape[0], 4]
-    frac = (np.tanh(frac) + 1) / 2
-    fit_plot(x, frac, 'Frac')
-
-    plt.plot(x, mu1 + mu2, label='Plus')
-    plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
-    plt.plot(x, np.abs(mu1 - mu2), label='Minus')
-    plt.scatter(x, np.abs(mu1 - mu2), label='Minus', s=2, c='g')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-mu-test.png', dpi=256, bbox_inches='tight')
-    plt.close()
-
-    plt.plot(x, sigma1 + sigma2, label='Plus')
-    plt.scatter(x, sigma1 + sigma2, label='Plus', s=2, c='r')
-    plt.plot(x, np.abs(sigma1 - sigma2), label='Minus')
-    plt.scatter(x, np.abs(sigma1 - sigma2), label='Minus', s=2, c='g')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
-    plt.close()
-
-    plt.plot(x, cv1 + cv2, label='Plus')
-    plt.scatter(x, cv1 + cv2, label='Plus', s=2, c='r')
-    plt.plot(x, np.abs(cv1 - cv2), label='Minus')
-    plt.scatter(x, np.abs(cv1 - cv2), label='Minus', s=2, c='g')
-    plt.xlabel('Week Number')
-    plt.legend()
-    plt.savefig('Images/Plots/week-cv-test.png', dpi=256, bbox_inches='tight')
-    plt.close()
+        plt.plot(x, cv1 + cv2, label='Plus')
+        plt.scatter(x, cv1 + cv2, label='Plus', s=2, c='r')
+        plt.plot(x, np.abs(cv1 - cv2), label='Minus')
+        plt.scatter(x, np.abs(cv1 - cv2), label='Minus', s=2, c='g')
+        plt.xlabel('Week Number')
+        plt.legend()
+        plt.savefig('Images/Plots/week-cv-test.png', dpi=256, bbox_inches='tight')
+        plt.close()
 
 
 def model():
