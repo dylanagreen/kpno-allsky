@@ -321,11 +321,14 @@ camera.elevation = 2120
 camera.horizon = '-17'
 
 
-def plot(fit_histograms=False):
+def plot(years=['2016','2017','2018'], fit_histograms=False):
     """Generate various cloudiness plots and save them to Images/Plots.
 
     Parameters
     ----------
+    years : list, optional
+        List of years to include in the plots. Defaults to
+        ['2016','2017','2018'].
     fit_histograms : bool, optional
         To fit the weekly histograms and plot the resulting fit variables
         or not. Defaults to False.
@@ -337,7 +340,7 @@ def plot(fit_histograms=False):
     plots include plots of Cloudiness vs Moon Phase, Cloudiness vs Hours since
     sunset, Cloudiness vs Normalized time after sunset, Cloudiness vs Hours
     before sunrise, and Cloudiness vs Week Number. These plots are saved to
-    Images/Plots. If `fit_histograms` is true, the weekly histograms will be 
+    Images/Plots. If `fit_histograms` is true, the weekly histograms will be
     fit by a double Gaussian or Gaussian-Poisson hybrid function, after which
     plots of week number versus the various fit parameters will be made and
     saved as well.
@@ -380,7 +383,6 @@ def plot(fit_histograms=False):
     if '.DS_Store' in months:
         months.remove('.DS_Store')
 
-    year1 = months[0][:4]
     for month in months:
         # Gets the days that were analyzed for that month
         directory = 'Data/' + month + '/'
@@ -388,12 +390,9 @@ def plot(fit_histograms=False):
 
         # Strips out the year from the month
         year = month[:4]
-        
-        if not year == str(year1):
-            print('Collated ' + year1 + ' data')
-            year1 = year
-        if month == months[-1]:
-            print('Collated ' + year + ' data')
+
+        if not year in years:
+            continue
 
         # Day 1 of the year, for week calculation.
         yearstart = year + '0101'
@@ -459,6 +458,12 @@ def plot(fit_histograms=False):
                 week = int(diff.value // 7)
                 tweek[week].append(val)
                 tmoon[week].append(phase)
+
+        # Prints the progress if this is the final month of the year and we
+        # just finished it.
+        if month[4:] == '12':
+            print('Collated ' + year + ' data')
+
 
     percents = ['25', '50', '75']
     colors = [(1, 0, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1)]
@@ -1361,4 +1366,4 @@ def to_csv():
 
 
 if __name__ == "__main__":
-    plot()
+    plot(['2016', '2017'])
