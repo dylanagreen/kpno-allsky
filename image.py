@@ -95,8 +95,7 @@ def save_image(img, location, cmap='gray'):
     """Save an image.
 
     Save an image passed in `img` with the name `img.name` into the location in
-    `location`. `cmap` provides an option to save the image in greyscale, and
-    `patch` allows matplotlib patches to be applied on top of the saved image.
+    `location`. `cmap` provides an option to save the image in greyscale.
 
     Parameters
     ----------
@@ -134,7 +133,7 @@ def save_image(img, location, cmap='gray'):
 
     # Adds the image into the axes and displays it
     # Then saves
-    ax.imshow(img.data, cmap=cmap)
+    ax.imshow(img.data, cmap=cmap, vmin=0, vmax=255)
 
     # If location was passed with / on the end, don't append another one.
     if not location[-1:] == '/':
@@ -148,6 +147,51 @@ def save_image(img, location, cmap='gray'):
 
     # Close the plot in case you're running multiple saves.
     plt.close()
+
+
+def draw_patch(img, patch):
+    """
+    
+    """
+    # Scale in inches
+    scale = 4
+    dpi = img.data.shape[0] / scale
+
+    greyscale = True
+    if len(img.data.shape) == 3:
+        greyscale = False
+
+    # Generate Figure and Axes objects.
+    fig = plt.figure()
+    fig.set_size_inches(scale, scale)
+    fig.set_dpi(dpi)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
+
+    # Turn off the actual visual axes for visual niceness.
+    # Then add axes to figure
+    ax.set_axis_off()
+    fig.add_axes(ax)
+
+    # Adds the image into the axes and displays it
+    ax.imshow(img.data, cmap='gray')
+    ax.set_aspect('equal')
+    ax.add_patch(patch)
+
+    width = int(scale * dpi)
+    height = width
+
+    # Extracts the figure into a numpy array and then converts it to greyscale.
+    canvas = FigureCanvas(fig)
+    canvas.draw()
+    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
+
+    # Slices out the RGB components and then multiplies them by RGB conversion.
+    if greyscale:
+        data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
+
+    plt.close()
+    
+    return AllSkyImage(img.name, img.date, img.camera, data)
 
 
 def draw_celestial_horizon(img):
@@ -207,48 +251,12 @@ def draw_contours(img):
     image will be also.
     """
 
-    # Scale in inches
-    scale = 4
-    dpi = img.data.shape[0] / scale
-
-    greyscale = True
-    if len(img.data.shape) == 3:
-        greyscale = False
-
-    # Generate Figure and Axes objects.
-    fig = plt.figure()
-    fig.set_size_inches(scale, scale)
-    fig.set_dpi(dpi)
-    ax = plt.Axes(fig, [0., 0., 1., 1.])  # 0 - 100% size of figure
-
-    # Turn off the actual visual axes for visual niceness.
-    # Then add axes to figure
-    ax.set_axis_off()
-    fig.add_axes(ax)
-
-    # Adds the image into the axes and displays it
-    ax.imshow(img.data, cmap='gray')
-
-    ax.set_aspect('equal')
-
     for alt in range(0, 100, 30):
         r = np.interp(90 - alt, xp=coordinates.thetapoints, fp=coordinates.rpoints)
         r = r * 240 / 11.6  # mm to pixel rate
 
         circ = Circle(coordinates.center, radius=r, fill=False, edgecolor='green')
-        ax.add_patch(circ)
-
-    width = int(scale * dpi)
-    height = width
-
-    # Extracts the figure into a numpy array and then converts it to greyscale.
-    canvas = FigureCanvas(fig)
-    canvas.draw()
-    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
-
-    # Slices out the RGB components and then multiplies them by RGB conversion.
-    if greyscale:
-        data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
+        draw_patch(img, circ)
 
     return AllSkyImage(img.name, img.date, img.camera, data)
 
@@ -324,6 +332,8 @@ def draw_square(x, y, img):
     if greyscale:
         data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
 
+    plt.close()
+    
     return AllSkyImage(img.name, img.date, img.camera, data)
 
 
