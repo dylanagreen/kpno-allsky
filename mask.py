@@ -204,7 +204,7 @@ def save_mask(mask):
     image.save_image : Save an image.
 
     """
-    img = AllSkyImage('Mask.png', None, None, mask)
+    img = AllSkyImage('Mask.png', None, None, mask * 255)
     image.save_image(img, 'Images/')
 
 
