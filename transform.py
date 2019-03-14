@@ -551,7 +551,7 @@ def clockwise_sort(x, y, clockwise=True):
     """
     # Finds the center of the circle ish object
     centerx = (np.min(x) + np.max(x))/2
-    centery = (np.min(y)) + np.max(y))/2
+    centery = (np.min(y) + np.max(y))/2
 
     x = np.subtract(x, centerx)
     y = np.subtract(y, centery)
