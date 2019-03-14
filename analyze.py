@@ -121,7 +121,7 @@ def analyze():
         if int(d) < startdate:
             continue
 
-        if not 20150304 <= int(d) <= 20151231:
+        if not 20140726 <= int(d) <= 20141231:
             continue
 
         # Print a new line to differentiate dates.
@@ -161,11 +161,6 @@ def analyze():
                 if name == 'allblue.gif' or name == 'allred.gif':
                     continue
 
-                # Finds the moon and the sun in the image.
-                # We only process images where the moon is visble (alt > 0)
-                # And the sun is low enough to not wash out the image
-                # (sun alt < -17)
-
                 # This creates an AllSkyImage we use for subsequent methods.
                 # This is the path the image is saved to.
                 # We need to check if it exists first, just in case.
@@ -176,12 +171,15 @@ def analyze():
                     io_util.download_image(d, name)
                 img = image.load_image(name, d, 'KPNO')
 
+                # Finds the moon and the sun in the image.
+                # We only process images where the moon is visble (alt > 0)
+                # And the sun is low enough to not wash out the image
+                # (sun alt < -17)
                 moonalt = moon.find_moon(img)[2]
                 sunalt = moon.find_sun(img)[0]
 
                 # Checks that the analysis conditions are met.
                 if moonalt > 0 and sunalt < -17:
-
 
                     # Then we make a histogram and a "cloudiness fraction"
                     # Generates the moon mask.
@@ -1381,4 +1379,4 @@ def to_csv():
 
 if __name__ == "__main__":
     #analyze()
-    plot()
+    plot(['2014', '2015', '2016', '2017'])

@@ -84,6 +84,7 @@ def load_image(name, date, camera, mode='L'):
     # format this bad boy is in.
     if not name[-4:] == '.png':
         name = name + '.png'
+    # Actually MMTO takes .fits images so in hindsight this might have been bad
 
     # Loads the image using Pillow and converts it to greyscale
     loc = os.path.join('Images', *['Original', camera, date, name])
@@ -136,6 +137,8 @@ def save_image(img, location, cmap='gray'):
     ax.imshow(img.data, cmap=cmap, vmin=0, vmax=255)
 
     # If location was passed with / on the end, don't append another one.
+    # I changed this since the above comment, now I just slice it off if you
+    # added a /.
     if not location[-1:] == '/':
         name = os.path.join(location, img.name)
     else:
@@ -208,6 +211,7 @@ def draw_celestial_horizon(img):
         A greyscale image with a pink path representing the celestial horizon.
     """
 
+    # So that we don't modify in place. 
     data = np.copy(img.data)
 
     dec = 0
