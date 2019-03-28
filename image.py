@@ -260,9 +260,9 @@ def draw_contours(img):
         r = r * 240 / 11.6  # mm to pixel rate
 
         circ = Circle(coordinates.center, radius=r, fill=False, edgecolor='green')
-        draw_patch(img, circ)
+        img = draw_patch(img, circ)
 
-    return AllSkyImage(img.name, img.date, img.camera, data)
+    return img
 
 
 def draw_square(x, y, img):
