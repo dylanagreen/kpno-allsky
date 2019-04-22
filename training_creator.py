@@ -151,19 +151,23 @@ class TaggableImage:
         # Saves the image.
         image.save_image(save_im, loc)
 
-# Gets all the possible pictures to label and then shuffles the order.
-pics = os.listdir(os.path.join('Images', *['data', 'cloud']))
-random.shuffle(pics)
+if __name__ == "__main__":
+    # Gets all the possible pictures to label and then shuffles the order.
+    pics = os.listdir(os.path.join('Images', *['data', 'cloud']))
+    random.shuffle(pics)
 
-# The list of all the pictures that have already been finished.
-done = os.listdir(os.path.join('Images', *['data', 'labels', '0.3']))
+    # The list of all the pictures that have already been finished.
+    finished_location = os.path.join('Images', *['data', 'labels', '0.3'])
+    if not os.path.exists(finished_location):
+        os.makedirs(finished_location)
+    done = os.listdir(finished_location)
 
-# Loop through all the pictures.
-for name in pics:
-    if not name in done:
-        im = TaggableImage(name)
-        im.set_up_plot()
-        im.connect()
+    # Loop through all the pictures.
+    for name in pics:
+        if not name in done:
+            im = TaggableImage(name)
+            im.set_up_plot()
+            im.connect()
 
-        plt.show()
-        im.save()
+            plt.show()
+            im.save()
