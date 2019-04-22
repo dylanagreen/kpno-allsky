@@ -16,6 +16,8 @@ from matplotlib.patches import Circle, Rectangle
 import coordinates
 import image
 import mask
+from io_util import DateHTMLParser
+import io_util
 
 
 class TaggableImage:
@@ -27,7 +29,7 @@ class TaggableImage:
         self.artists = []
 
         # Loads the image and reshapes to 512 512 in greyscale.
-        loc = os.path.join('Images', *['data', 'cloud', name])
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", name])
         with open(loc, 'rb') as f:
             img = Image.open(f).convert('L')
             self.img = np.asarray(img).reshape((512, 512))
@@ -142,7 +144,8 @@ class TaggableImage:
     def save(self):
         # When the plot is closed we save the newly created label mask.
         save_im = image.AllSkyImage(self.name, None, None, self.mask)
-        loc = os.path.join('Images', *['data', 'labels', '0.3'])
+        exp = image.get_exposure(save_im)
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", str(exp)])
 
         # Maks the antenna
         m = mask.generate_mask()
@@ -151,23 +154,80 @@ class TaggableImage:
         # Saves the image.
         image.save_image(save_im, loc)
 
-if __name__ == "__main__":
-    # Gets all the possible pictures to label and then shuffles the order.
-    pics = os.listdir(os.path.join('Images', *['data', 'cloud']))
-    random.shuffle(pics)
 
+    def cleanup(self):
+        # Deletes the downloaded image so that we don't have it clogging
+        # everything up.
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
+        os.remove(loc)
+        print("Deleted: " + loc)
+
+
+def get_image():
+    # The link to the camera.
+    link = "http://kpasca-archives.tuc.noao.edu/"
+
+    # This extracts the dates listed and then picks one at random.
+    data = io_util.download_url(link)
+    htmldata = data.text
+    parser = DateHTMLParser()
+    parser.feed(htmldata)
+    parser.close()
+    date = random.choice(parser.data)
+    parser.clear_data()
+
+    link = link + date
+
+    # This extracts the images from the given date and then picks on at random.
+    data = io_util.download_url(link)
+    htmldata = data.text
+    parser.feed(htmldata)
+    parser.close()
+    image = random.choice(parser.data)
+
+    # This loop ensures that we don't accidentally download the all night gifs
+    # or an image in a blue filter.
+    while image == 'allblue.gif' or image == 'allred.gif' or image[:1] == 'b':
+        image = random.choice(parser.data)
+
+    # Once we have an image name we download it to Images/data/to_label
+    # First we need to make sure it exists.
+    label_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
+    if not os.path.exists(label_location):
+        os.makedirs(label_location)
+
+    # Downloads the image
+    io_util.download_image(date[:8], image, directory=label_location)
+
+    # Returns the image name.
+    return image
+
+
+if __name__ == "__main__":
+    done = {}
     # The list of all the pictures that have already been finished.
-    finished_location = os.path.join('Images', *['data', 'labels', '0.3'])
+    finished_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3"])
     if not os.path.exists(finished_location):
         os.makedirs(finished_location)
-    done = os.listdir(finished_location)
+    done["0.3"] = os.listdir(finished_location)
 
-    # Loop through all the pictures.
-    for name in pics:
-        if not name in done:
+    # Separate out the 0.3s and 6s images.
+    finished_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "6"])
+    if not os.path.exists(finished_location):
+        os.makedirs(finished_location)
+    done["6"] = os.listdir(finished_location)
+
+    # We run this loop until the user kills the program.
+    while True:
+
+        name = get_image()
+
+        # Loads the image into the frame to label.
+        if not name in done["0.3"] or done["6"]:
             im = TaggableImage(name)
             im.set_up_plot()
             im.connect()
 
             plt.show()
             im.save()
+            im.cleanup()
