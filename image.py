@@ -153,8 +153,28 @@ def save_image(img, location, cmap='gray'):
 
 
 def draw_patch(img, patch):
-    """
-    
+    """Draw a given patch on an image..
+
+    Patches will be drawn in lime green.
+
+    Parameters
+    ----------
+    img : image.AllSkyImage
+        The image.
+    patch : matplotlib.patches.Patch
+        The patch.
+
+    Returns
+    -------
+    img : image.AllSkyImage
+        The image with patches drawn on top.
+
+    Notes
+    -----
+    This method draws patches directly onto an image. The returned image will
+    be in the same color mode as the input image, i.e. if the input image is
+    in RGB color, then the returned image will be also. If the input image is
+    greyscale, then the returned image will be also.
     """
     # Scale in inches
     scale = 4
@@ -193,7 +213,7 @@ def draw_patch(img, patch):
         data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
 
     plt.close()
-    
+
     return AllSkyImage(img.name, img.date, img.camera, data)
 
 
@@ -211,7 +231,7 @@ def draw_celestial_horizon(img):
         A greyscale image with a pink path representing the celestial horizon.
     """
 
-    # So that we don't modify in place. 
+    # So that we don't modify in place.
     data = np.copy(img.data)
 
     dec = 0
@@ -337,7 +357,7 @@ def draw_square(x, y, img):
         data = np.dot(data[...,:3], [0.299, 0.587, 0.114])
 
     plt.close()
-    
+
     return AllSkyImage(img.name, img.date, img.camera, data)
 
 
