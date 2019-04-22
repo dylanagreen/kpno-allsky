@@ -15,6 +15,7 @@ from matplotlib.patches import Circle, Rectangle
 
 import coordinates
 import image
+import mask
 
 
 class TaggableImage:
@@ -141,7 +142,13 @@ class TaggableImage:
     def save(self):
         # When the plot is closed we save the newly created label mask.
         save_im = image.AllSkyImage(self.name, None, None, self.mask)
-        loc = os.path.join('Images', *['data', 'labels-2', '0.3'])
+        loc = os.path.join('Images', *['data', 'labels', '0.3'])
+
+        # Maks the antenna
+        m = mask.generate_mask()
+        save_im = mask.apply_mask(m, save_im)
+
+        # Saves the image.
         image.save_image(save_im, loc)
 
 # Gets all the possible pictures to label and then shuffles the order.
@@ -149,7 +156,7 @@ pics = os.listdir(os.path.join('Images', *['data', 'cloud']))
 random.shuffle(pics)
 
 # The list of all the pictures that have already been finished.
-done = os.listdir(os.path.join('Images', *['data', 'labels-2', '0.3']))
+done = os.listdir(os.path.join('Images', *['data', 'labels', '0.3']))
 
 # Loop through all the pictures.
 for name in pics:
