@@ -12,6 +12,7 @@ import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle, Rectangle
+from matplotlib.widgets import Button
 
 import coordinates
 import image
@@ -36,6 +37,7 @@ class TaggableImage:
 
         # The grid division
         self.div = 16
+        self.good = True
 
 
     def set_up_plot(self):
@@ -144,7 +146,8 @@ class TaggableImage:
     def save(self):
         # When the plot is closed we save the newly created label mask.
         save_im = image.AllSkyImage(self.name, None, None, self.mask)
-        exp = image.get_exposure(save_im)
+        exp_im = image.AllSkyImage(self.name, None, None, self.img)
+        exp = image.get_exposure(exp_im)
         loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", str(exp)])
 
         # Maks the antenna
@@ -154,13 +157,20 @@ class TaggableImage:
         # Saves the image.
         image.save_image(save_im, loc)
 
+        # Moves the downloaded image into the training folder.
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
+        dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
+        os.rename(loc, dest)
+        print("Moved: " + loc)
 
-    def cleanup(self):
+    def cleanup(self, event):
         # Deletes the downloaded image so that we don't have it clogging
         # everything up.
         loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
         os.remove(loc)
+        self.good = False
         print("Deleted: " + loc)
+
 
 
 def get_image():
@@ -217,17 +227,27 @@ if __name__ == "__main__":
         os.makedirs(finished_location)
     done["6"] = os.listdir(finished_location)
 
+    i = 0
     # We run this loop until the user kills the program.
     while True:
 
         name = get_image()
 
         # Loads the image into the frame to label.
-        if not name in done["0.3"] or done["6"]:
+        if (not name in done["0.3"]) or (not name in done["6"]):
             im = TaggableImage(name)
             im.set_up_plot()
             im.connect()
 
+            b_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
+            button = Button(b_ax, "Bad Image")
+            button.on_clicked(im.cleanup)
+
+
             plt.show()
-            im.save()
-            im.cleanup()
+            print(im.good)
+            if im.good:
+                im.save()
+                i += 1
+
+        print("Num images:" + str(i))
