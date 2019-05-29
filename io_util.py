@@ -196,7 +196,7 @@ def download_all_date(date, camera="kpno"):
     print('All photos downloaded for ' + date)
 
 
-def download_image(date, image, camera='kpno'):
+def download_image(date, image, camera='kpno', directory=None):
     """Download a single image.
 
     This method is of a similar form to download_all_date, where `date`
@@ -213,14 +213,15 @@ def download_image(date, image, camera='kpno'):
         Camera to download images from. Defaults to `kpno` (the all-sky camera
         at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
         camera at the MMT Observatory).
+    directory : str, optional
+        The directory to save the downloaded image to. Defaults to
+        Images/Original/`camera`.upper()/`date`.
 
     Notes
     -----
     Over the course of the run time of this method various status updates will
     be printed. The method will exit early and fail to download the image
     with a failure print out.
-
-    Images will be saved to Images/Original/`camera`/`date`/.
 
     The Kitt-Peak National Observatory images are located at
     http://kpasca-archives.tuc.noao.edu/.
@@ -235,7 +236,8 @@ def download_image(date, image, camera='kpno'):
     link = links[camera] + date
 
     # Collects originals in their own folder within Images
-    directory = 'Images/Original/' + camera.upper() + '/' + date
+    if not directory:
+        directory = 'Images/Original/' + camera.upper() + '/' + date
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
         os.makedirs(directory)
@@ -380,4 +382,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_image('20170810', 'r_ut024053s86160.png')
+    download_all_date('20181105')
