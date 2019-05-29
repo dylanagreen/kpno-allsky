@@ -53,16 +53,16 @@ def format_date(date, name):
     date : str
         Date on which the image was taken, in yyyymmdd format.
     name : str
-        The image's file name.
+        The image"s file name.
 
     Returns
     -------
     date : str
         A date and time in yyyy/mm/dd hh:mm:ss format.
     """
-    formatdate = date[:4] + '/' + date[4:6] + '/' + date[6:8]
-    time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
-    return formatdate + ' ' + time
+    formatdate = date[:4] + "/" + date[4:6] + "/" + date[6:8]
+    time = name[4:6] + ":" + name[6:8] + ":" + name[8:10]
+    return formatdate + " " + time
 
 
 def find_threshold():
@@ -94,54 +94,55 @@ def find_threshold():
     """
     # Sets up a pyephem object for the camera.
     camera = ephem.Observer()
-    camera.lat = '31.959417'
-    camera.lon = '-111.598583'
+    camera.lat = "31.959417"
+    camera.lon = "-111.598583"
     camera.elevation = 2120
-    camera.horizon = '-17'
+    camera.horizon = "-17"
 
     # Reads in the csv file using pandas.
-    data = pd.read_csv('daily-2007-2017.csv')
+    data_loc = directory = os.path.join(os.path.dirname(__file__), *["data", "daily-2007-2017.csv"])
+    data = pd.read_csv(data_loc)
 
     # This array is for calculating the total average
     total = []
-    for year in ['2016', '2017']:
+    for year in ["2016", "2017"]:
         # Gets the downloaded months
-        directory = 'Data/'
+        directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
-        # If the data directory doesn't exist we should exit here.
+        # If the data directory doesn"t exist we should exit here.
         # I was remarkably prescient writing this even though I had all the data
         # downloaded already.
         if not os.path.exists(directory):
-            print('No data found.')
+            print("No data found.")
 
         months = sorted(os.listdir(directory))
 
         # Macs are dumb
-        if '.DS_Store' in months:
-            months.remove('.DS_Store')
+        if ".DS_Store" in months:
+            months.remove(".DS_Store")
 
         # We do this as a dict because 2017 is straight up missing some days of
         # images because I guess the camera was down?
-        # Otherwise I'd just make a len 365 list.
+        # Otherwise I"d just make a len 365 list.
         weekdict = [[] for i in range(0, 53)]
         daydict = {}
         for month in months:
             # If the month is not in this year, we skip it analyzing.
-            if int(month) < int(year + '01') or int(month) > int(year + '12'):
+            if int(month) < int(year + "01") or int(month) > int(year + "12"):
                 continue
 
             # Gets the days that were analyzed for that month
-            directory = 'Data/' + month + '/'
+            directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
             days = sorted(os.listdir(directory))
 
             # Macs are still dumb.
-            if '.DS_Store' in days:
-                days.remove('.DS_Store')
+            if ".DS_Store" in days:
+                days.remove(".DS_Store")
 
             # Reads the data for each day.
             for day in days:
                 # Skip the leap day for right now.
-                if day == '20160229.txt':
+                if day == "20160229.txt":
                     continue
 
                 # Get the number for that day to add it to the dict.
@@ -152,31 +153,31 @@ def find_threshold():
                 # Because we skip the leap day we need to bump the day num of
                 # all days after that date down by one.
                 # 60 because 31 + 28 = 59
-                if year == '2016' and i >= 60:
+                if year == "2016" and i >= 60:
                     i = i-1
 
                 # Start with an empty list for that day.
                 daydict[i] = []
 
                 # This is the code that reads in the values and appends them.
-                dataloc = directory + day
-                datafile = open(dataloc, 'r')
+                data_loc = os.path.join(directory, day)
+                datafile = open(data_loc, "r")
 
                 # Images is a list of images that were analyzed that night.
                 images = []
                 for line in datafile:
                     line = line.rstrip()
-                    line = line.split(',')
+                    line = line.split(",")
 
-                    # Appends the image name to images and the cloudiness relative
-                    # to mean to the daydict.
+                    # Appends the image name to images and the cloudiness
+                    # relative to mean to the daydict.
                     images.append(line[0])
                     daydict[i].append(float(line[1]))
 
                     weekdict[weeknum].append(float(line[1]))
 
         # An ndarray of open fractions where index + 1 = day number
-        opens = data.get('Y' + year).values
+        opens = data.get("Y" + year).values
         thresh = []
 
         x = []
@@ -199,17 +200,17 @@ def find_threshold():
             # equal to the amount of the night that the dome was closed.
             working = sorted(val)
 
-            # If we don't have any images that night then just bail.
+            # If we don"t have any images that night then just bail.
             if not working:
                 continue
 
             # Multiply the frac by the length, to find the index above which
-            # the correct fraction of the images is 'dome closed.' Rounds and
+            # the correct fraction of the images is "dome closed." Rounds and
             # Subtracts one to convert it to the integer index.
             index = int(round(frac * len(working))) - 1
 
-            # If the index is the final index then the 'cloudiness relative to the
-            # mean threshold' is slightly below that value so average down.
+            # If the index is the final index then the "cloudiness relative to the
+            # mean threshold" is slightly below that value so average down.
             # Otherwise take the average of that index and the one above since the
             # threshold actually falls inbetween.
             if index == len(working) - 1 and not frac == 1:
@@ -247,17 +248,17 @@ def find_threshold():
 
             working = sorted(weekdict[i])
 
-            # If we don't have any images that night then just bail.
+            # If we don"t have any images that night then just bail.
             if not working:
                 continue
 
             # Multiply the frac by the length, to find the index above which
-            # the correct fraction of the images is 'dome closed.' Rounds and
+            # the correct fraction of the images is "dome closed." Rounds and
             # Subtracts one to convert it to the integer index.
             index = int(round(frac * len(working))) - 1
 
-            # If the index is the final index then the 'cloudiness relative to the
-            # mean threshold' is slightly below that value so average down.
+            # If the index is the final index then the "cloudiness relative to the
+            # mean threshold" is slightly below that value so average down.
             # Otherwise take the average of that index and the one above since the
             # threshold actually falls inbetween.
             if index == len(working) - 1 and not frac == 1:
@@ -285,12 +286,12 @@ def find_threshold():
                 weektrue.append(len(above)/len(working))
                 x3.append(frac)
 
-        print(year + ': ')
-        print('Min: ' + str(np.amin(thresh)))
-        print('25%: ' + str(np.percentile(thresh, 25)))
-        print('50%: ' + str(np.median(thresh)))
-        print('75%: ' + str(np.percentile(thresh, 75)))
-        print('Max: ' + str(np.amax(thresh)))
+        print(year + ": ")
+        print("Min: " + str(np.amin(thresh)))
+        print("25%: " + str(np.percentile(thresh, 25)))
+        print("50%: " + str(np.median(thresh)))
+        print("75%: " + str(np.percentile(thresh, 75)))
+        print("Max: " + str(np.amax(thresh)))
         print()
 
         fig,ax = plt.subplots()
@@ -299,40 +300,40 @@ def find_threshold():
         above = np.ma.masked_where(thresh < np.median(thresh), thresh)
         below = np.ma.masked_where(thresh > np.median(thresh), thresh)
         ax.scatter(x, below, s=1)
-        ax.scatter(x, above, s=1, c='r')
-        ax.set_xlabel('Day')
-        ax.set_ylabel('Cloudiness Relative to Mean')
-        plt.savefig('Images/Dome/Threshold-Day-' + year + '.png', dpi=256)
+        ax.scatter(x, above, s=1, c="r")
+        ax.set_xlabel("Day")
+        ax.set_ylabel("Cloudiness Relative to Mean")
+        plt.savefig("Images/Dome/Threshold-Day-" + year + ".png", dpi=256)
         plt.close()
 
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
         ax.scatter(x1, true, s=1)
-        ax.set_xlabel('True Fraction')
-        ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Dome/Verify-Day-' + year + '.png', dpi=256)
+        ax.set_xlabel("True Fraction")
+        ax.set_ylabel("Found Fraction")
+        plt.savefig("Images/Dome/Verify-Day-" + year + ".png", dpi=256)
         plt.close()
 
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
 
-        print(year + ' Week: ' + str(np.median(weekthresh)))
+        print(year + " Week: " + str(np.median(weekthresh)))
 
         above = np.ma.masked_where(weekthresh < np.median(weekthresh), weekthresh)
         below = np.ma.masked_where(weekthresh > np.median(weekthresh), weekthresh)
         ax.scatter(x2, below, s=1)
-        ax.scatter(x2, above, s=1, c='r')
-        ax.set_xlabel('Day')
-        ax.set_ylabel('Cloudiness Relative to Mean')
-        plt.savefig('Images/Dome/Threshold-Week-' + year + '.png', dpi=256)
+        ax.scatter(x2, above, s=1, c="r")
+        ax.set_xlabel("Day")
+        ax.set_ylabel("Cloudiness Relative to Mean")
+        plt.savefig("Images/Dome/Threshold-Week-" + year + ".png", dpi=256)
         plt.close()
 
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
         ax.scatter(x3, weektrue, s=1)
-        ax.set_xlabel('True Fraction')
-        ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Dome/Verify-Week-' + year + '.png', dpi=256)
+        ax.set_xlabel("True Fraction")
+        ax.set_ylabel("Found Fraction")
+        plt.savefig("Images/Dome/Verify-Week-" + year + ".png", dpi=256)
         plt.close()
 
     #years[year] = daydict
@@ -351,27 +352,28 @@ def test_threshold():
     #wise thresholding, and two with weekwise. One plot contains all 2016 data
     #and the other the 2017 data.
 
-    for year in ['2016', '2017']:
+    for year in ["2016", "2017"]:
 
         # Reads in the csv file using pandas.
-        data = pd.read_csv('daily-2007-2017.csv')
+        data_loc = directory = os.path.join(os.path.dirname(__file__), *["data", "daily-2007-2017.csv"])
+        data = pd.read_csv(data_loc)
 
-        opens = data.get('Y' + year).values
+        opens = data.get("Y" + year).values
 
         # Gets the downloaded months
-        directory = 'Data/'
+        directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
-        # If the data directory doesn't exist we should exit here.
+        # If the data directory doesn"t exist we should exit here.
         # I was remarkably prescient writing this even though I had all the data
         # downloaded already.
         if not os.path.exists(directory):
-            print('No data found.')
+            print("No data found.")
 
         months = sorted(os.listdir(directory))
 
         # Macs are dumb
-        if '.DS_Store' in months:
-            months.remove('.DS_Store')
+        if ".DS_Store" in months:
+            months.remove(".DS_Store")
 
         test1, test2 = find_threshold()
 
@@ -380,26 +382,26 @@ def test_threshold():
 
         # We do this as a dict because 2017 is straight up missing some days of
         # images because I guess the camera was down?
-        # Otherwise I'd just make a len 365 list.
+        # Otherwise I"d just make a len 365 list.
         daydict = {}
         weekdict = [[] for i in range(0, 53)]
         for month in months:
             # If the month is not in this year, we skip it analyzing.
-            if int(month) < int(year + '01') or int(month) > int(year + '12'):
+            if int(month) < int(year + "01") or int(month) > int(year + "12"):
                 continue
 
             # Gets the days that were analyzed for that month
-            directory = 'Data/' + month + '/'
+            directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
             days = sorted(os.listdir(directory))
 
             # Macs are still dumb.
-            if '.DS_Store' in days:
-                days.remove('.DS_Store')
+            if ".DS_Store" in days:
+                days.remove(".DS_Store")
 
             # Reads the data for each day.
             for day in days:
                 # Skip the leap day for right now.
-                if day == '20160229.txt':
+                if day == "20160229.txt":
                     continue
 
                 # Get the number for that day to add it to the dict.
@@ -407,27 +409,27 @@ def test_threshold():
 
                 weeknum = i // 7
 
-                # Because we skip the leap day we need to bump the day num of all
-                # days after that date down by one.
+                # Because we skip the leap day we need to bump the day num of
+                # all days after that date down by one.
                 # 60 because 31 + 28 = 59
-                if year == '2016' and i >= 60:
+                if year == "2016" and i >= 60:
                     i = i-1
 
                 # Start with an empty list for that day.
                 daydict[i] = []
 
                 # This is the code that reads in the values and appends them.
-                dataloc = directory + day
-                datafile = open(dataloc, 'r')
+                data_loc = os.path.join(directory, day)
+                datafile = open(data_loc, "r")
 
                 # Images is a list of images that were analyzed that night.
                 images = []
                 for line in datafile:
                     line = line.rstrip()
-                    line = line.split(',')
+                    line = line.split(",")
 
-                    # Appends the image name to images and the cloudiness relative
-                    # to mean to the daydict.
+                    # Appends the image name to images and the cloudiness
+                    # relative to mean to the daydict.
                     images.append(line[0])
                     daydict[i].append(float(line[1]))
 
@@ -436,8 +438,8 @@ def test_threshold():
             x = []
             true = []
             weekfrac = [[] for i in range(0, 53)]
-            # Runs over the dictionary, key is the day number. Val is the list of
-            # cloudinesses
+            # Runs over the dictionary, key is the day number. Val is the list
+            # of cloudinesses
             for key, val in daydict.items():
                 # The fraction is the fraction of the night the dome was closed.
                 frac = opens[key - 1]
@@ -469,19 +471,19 @@ def test_threshold():
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
         ax.scatter(x, true, s=1)
-        ax.set_xlabel('True Fraction')
-        ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Dome/Differences-Day-' + year + '.png', dpi=256)
+        ax.set_xlabel("True Fraction")
+        ax.set_ylabel("Found Fraction")
+        plt.savefig("Images/Dome/Differences-Day-" + year + ".png", dpi=256)
         plt.close()
 
         fig,ax = plt.subplots()
         fig.set_size_inches(6, 4)
         ax.scatter(x1, weektrue, s=1)
-        ax.set_xlabel('True Fraction')
-        ax.set_ylabel('Found Fraction')
-        plt.savefig('Images/Dome/Differences-Week-' + year + '.png', dpi=256)
+        ax.set_xlabel("True Fraction")
+        ax.set_ylabel("Found Fraction")
+        plt.savefig("Images/Dome/Differences-Week-" + year + ".png", dpi=256)
         plt.close()
 
 
 if __name__ == "__main__":
-    find_threshold()
+    test_threshold()

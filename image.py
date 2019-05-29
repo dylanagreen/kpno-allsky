@@ -48,16 +48,16 @@ class AllSkyImage():
         self.data = data
 
         if date is not None:
-            format1 = date[:4] + '-' + date[4:6] + '-' + date[6:8]
-            format2 = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
-            self.formatdate = format1 + ' ' + format2
+            format1 = date[:4] + "-" + date[4:6] + "-" + date[6:8]
+            format2 = name[4:6] + ":" + name[6:8] + ":" + name[8:10]
+            self.formatdate = format1 + " " + format2
             self.time = Time(self.formatdate)
         else:
             self.formatdate = None
             self.time = None
 
 
-def load_image(name, date, camera, mode='L'):
+def load_image(name, date, camera, mode="L"):
     """Load an image.
 
     Parameters
@@ -66,13 +66,13 @@ def load_image(name, date, camera, mode='L'):
         The name of the image.
     date : str
         The date on which the image was taken.
-    camera : {'KPNO', 'MMTO'}
-        The camera used to take the image. 'KPNO' represents the all-sky
-        camera at Kitt-Peak and 'MMTO' represents the all-sky camera at the MMT
+    camera : {"KPNO", "MMTO"}
+        The camera used to take the image. "KPNO" represents the all-sky
+        camera at Kitt-Peak and "MMTO" represents the all-sky camera at the MMT
         Observatory.
-    mode : {'L', 'RGB', 'RGBA'}, optional
-        The color mode to load the image in. Defaults to 'L' for greyscale.
-        Use 'RGB' for color and 'RGBA' for color with an alpha layer.
+    mode : {"L", "RGB", "RGBA"}, optional
+        The color mode to load the image in. Defaults to "L" for greyscale.
+        Use "RGB" for color and "RGBA" for color with an alpha layer.
 
     Returns
     -------
@@ -82,17 +82,17 @@ def load_image(name, date, camera, mode='L'):
     """
     # If the name was passed without .png at the end append it so we know what
     # format this bad boy is in.
-    if not name[-4:] == '.png':
-        name = name + '.png'
+    if not name[-4:] == ".png":
+        name = name + ".png"
     # Actually MMTO takes .fits images so in hindsight this might have been bad
 
     # Loads the image using Pillow and converts it to greyscale
-    loc = os.path.join('Images', *['Original', camera, date, name])
+    loc = os.path.join("Images", *["Original", camera, date, name])
     img = np.asarray(pil_image.open(loc).convert(mode))
     return AllSkyImage(name, date, camera, img)
 
 
-def save_image(img, location, cmap='gray'):
+def save_image(img, location, cmap="gray"):
     """Save an image.
 
     Save an image passed in `img` with the name `img.name` into the location in
@@ -107,7 +107,7 @@ def save_image(img, location, cmap='gray'):
         it is created.
     cmap : str, optional
         A colormap to use when saving the image. Supports any matplotlib
-        supported colormap. Defaults to 'gray' to save in grayscale.
+        supported colormap. Defaults to "gray" to save in grayscale.
 
     Notes
     -----
@@ -136,19 +136,19 @@ def save_image(img, location, cmap='gray'):
     # Then saves
     ax.imshow(img.data, cmap=cmap, vmin=0, vmax=255)
 
-    # If location was passed with / on the end, don't append another one.
+    # If location was passed with / on the end, don"t append another one.
     # I changed this since the above comment, now I just slice it off if you
     # added a /.
-    if not location[-1:] == '/':
+    if not location[-1:] == "/":
         name = os.path.join(location, img.name)
     else:
         name = os.path.join(location[:-1], img.name)
 
     # Print "saved" after saving, in case saving messes up.
     plt.savefig(name, dpi=dpi)
-    print('Saved: ' + name)
+    print("Saved: " + name)
 
-    # Close the plot in case you're running multiple saves.
+    # Close the plot in case you"re running multiple saves.
     plt.close()
 
 
@@ -196,8 +196,8 @@ def draw_patch(img, patch):
     fig.add_axes(ax)
 
     # Adds the image into the axes and displays it
-    ax.imshow(img.data, cmap='gray')
-    ax.set_aspect('equal')
+    ax.imshow(img.data, cmap="gray")
+    ax.set_aspect("equal")
     ax.add_patch(patch)
 
     width = int(scale * dpi)
@@ -206,7 +206,7 @@ def draw_patch(img, patch):
     # Extracts the figure into a numpy array and then converts it to greyscale.
     canvas = FigureCanvas(fig)
     canvas.draw()
-    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
+    data = np.fromstring(canvas.tostring_rgb(), dtype="uint8").reshape((height, width, 3))
 
     # Slices out the RGB components and then multiplies them by RGB conversion.
     if greyscale:
@@ -231,7 +231,7 @@ def draw_celestial_horizon(img):
         A greyscale image with a pink path representing the celestial horizon.
     """
 
-    # So that we don't modify in place.
+    # So that we don"t modify in place.
     data = np.copy(img.data)
 
     dec = 0
@@ -241,7 +241,7 @@ def draw_celestial_horizon(img):
         xy = (round(xy[0]), round(xy[1]))
 
         # Remember y is first, then x
-        # Also make sure it's on the image at all.
+        # Also make sure it"s on the image at all.
         if xy[1] < 512 and xy[0] < 512:
             data[xy[1], xy[0]] = (244, 66, 229)
 
@@ -279,7 +279,7 @@ def draw_contours(img):
         r = np.interp(90 - alt, xp=coordinates.thetapoints, fp=coordinates.rpoints)
         r = r * 240 / 11.6  # mm to pixel rate
 
-        circ = Circle(coordinates.center, radius=r, fill=False, edgecolor='green')
+        circ = Circle(coordinates.center, radius=r, fill=False, edgecolor="green")
         img = draw_patch(img, circ)
 
     return img
@@ -335,12 +335,12 @@ def draw_square(x, y, img):
     fig.add_axes(ax)
 
     # Adds the image into the axes and displays it
-    ax.imshow(img, cmap='gray')
+    ax.imshow(img, cmap="gray")
 
-    ax.set_aspect('equal')
+    ax.set_aspect("equal")
     for i, val in enumerate(x):
         rect = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
-        rect.set_edgecolor('c')
+        rect.set_edgecolor("c")
         ax.add_patch(rect)
 
     width = int(scale * dpi)
@@ -349,7 +349,7 @@ def draw_square(x, y, img):
     # Extracts the figure into a numpy array and then converts it to greyscale.
     canvas = FigureCanvas(fig)
     canvas.draw()
-    data = np.fromstring(canvas.tostring_rgb(), dtype='uint8').reshape((height, width, 3))
+    data = np.fromstring(canvas.tostring_rgb(), dtype="uint8").reshape((height, width, 3))
 
     # Slices out the RGB components and then multiplies them by RGB conversion.
     # Only done if returning an image in greyscale.
@@ -406,6 +406,6 @@ def get_exposure(img):
     return 6
 
 if __name__ == "__main__":
-    test = load_image('r_ut005728s27480', '20160101', 'KPNO', 'RGB')
+    test = load_image("r_ut005728s27480", "20160101", "KPNO", "RGB")
     test = draw_contours(test)
-    save_image(test, 'Test')
+    save_image(test, "Test")

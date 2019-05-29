@@ -84,7 +84,7 @@ def zero_three_cloud_contrast(img):
     by 40, while the cloud pixels are reduced to 0.
     """
     # Temprary, I intend to change this slightly later.
-    img2 = np.asarray(Image.open('Images/Original/KPNO/20171108/r_ut052936s31200.png').convert('L'))
+    img2 = np.asarray(Image.open("Images/Original/KPNO/20171108/r_ut052936s31200.png").convert("L"))
 
     img3 = np.copy(img.data)
     img1 = np.int16(img.data)
@@ -182,7 +182,7 @@ def six_cloud_contrast(img):
     invert = np.where(invert < 0, 0, invert)
 
     # Smooth out the black holes left where stars were in the original.
-    # We need them to be "not black" so we can tell if they're in a region.
+    # We need them to be "not black" so we can tell if they"re in a region.
     closedimg = ndimage.grey_closing(invert, size=(2, 1))
 
     # Thresholds the image into black and white with a value of 10.
@@ -192,7 +192,7 @@ def six_cloud_contrast(img):
     # Cleans up "floating" white pixels.
     binimg = ndimage.binary_opening(binimg)
 
-    # Mask out the horizon objects so they don't mess with cloud calculations.
+    # Mask out the horizon objects so they don"t mess with cloud calculations.
     img1.data = binimg
     binimg = mask.apply_mask(masking, img1).data
 
@@ -232,13 +232,13 @@ def six_cloud_contrast(img):
 
     # The reason why I use density is mainly because of very small non-clouds.
     # They contain few stars, which rules out a strictly star count method.
-    # This, however, is actually density^-1. I.e. it's size/stars rather than
+    # This, however, is actually density^-1. I.e. it"s size/stars rather than
     # stars/size. This is because stars/size is very small sometimes.
-    # I'm aware of a division by 0 warning here. If a region has no stars, then
+    # I"m aware of a division by 0 warning here. If a region has no stars, then
     # this divides by 0. In fact this np.where exists to ignore that and set
     # zero star regions to a density of 0, since I ignore those later.
-    # Hence I'm supressing the divide by 0 warning for these two lines.
-    with np.errstate(divide='ignore'):
+    # Hence I"m supressing the divide by 0 warning for these two lines.
+    with np.errstate(divide="ignore"):
         density = np.divide(regionsize, starnums)
         density = np.where(np.asarray(starnums) < 1, 0, density)
 
@@ -269,7 +269,7 @@ def six_cloud_contrast(img):
     img1 = mask.apply_mask(masking, img)
     newimg = np.multiply(img1.data, multiple)
 
-    # Creates a new AllSkyImage so that we don't modify the original.
+    # Creates a new AllSkyImage so that we don"t modify the original.
     new = AllSkyImage(img.name, img.date, img.camera, newimg)
 
     return new

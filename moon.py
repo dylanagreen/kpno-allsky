@@ -25,8 +25,8 @@ import image
 
 # Sets up a pyephem object for the camera.
 camera = ephem.Observer()
-camera.lat = '31.959417'
-camera.lon = '-111.598583'
+camera.lat = "31.959417"
+camera.lon = "-111.598583"
 camera.elevation = 2120
 
 
@@ -36,7 +36,7 @@ def eclipse_phase(d):
     Parameters
     ----------
     d : float
-        The distance between the center of Earth's shadow and the center of the
+        The distance between the center of Earth"s shadow and the center of the
         moon in kilometers.
 
     Returns
@@ -139,7 +139,7 @@ def moon_size(img):
     ndimage.label. Then, the approximate position of the center of the moon
     is found using find_moon.
 
-    If the pixel at the moon's center is black (due to aforementioned pixel
+    If the pixel at the moon"s center is black (due to aforementioned pixel
     value overflow), the nearest white region along the x axis is found and
     the size of this region is returned.
 
@@ -162,12 +162,12 @@ def moon_size(img):
             sizes[val] = sizes[val] + 1
 
     # We want to exclude the background from the "biggest region" calculation.
-    # It's quicker to just set the background (0) region to 0 than to check
+    # It"s quicker to just set the background (0) region to 0 than to check
     # every single value above before adding it to the array.
     sizes[0] = 0
 
     # Following code calculates d, the distance between the center of
-    # Earth's shadow and the center of the moon. Basically just d = v*t.
+    # Earth"s shadow and the center of the moon. Basically just d = v*t.
 
     # Use pyephem to find the labeled region that the moon is in.
     posx, posy, _ = find_moon(img)
@@ -188,7 +188,7 @@ def moon_size(img):
 
 
 def find_moon(img):
-    """Find the (x, y, alt) coordinate of the moon's center in a given image.
+    """Find the (x, y, alt) coordinate of the moon"s center in a given image.
 
     Parameters
     ----------
@@ -198,11 +198,11 @@ def find_moon(img):
     Returns
     -------
     x : float
-        The x coordinate of the moon's center.
+        The x coordinate of the moon"s center.
     y : float
-        The y coordinate of the moon's center.
+        The y coordinate of the moon"s center.
     alt : float
-        The altitude angle of the moon's center.
+        The altitude angle of the moon"s center.
 
     Notes
     -----
@@ -227,7 +227,7 @@ def find_moon(img):
 
 
 def find_sun(img):
-    """Find the (alt, az) coordinate of the sun's center in a given image.
+    """Find the (alt, az) coordinate of the sun"s center in a given image.
 
     Parameters
     ----------
@@ -237,9 +237,9 @@ def find_sun(img):
     Returns
     -------
     alt : float
-        The altitude coordinate of the sun's center.
+        The altitude coordinate of the sun"s center.
     az : float
-        The azimuth coordinate of the sun's center.
+        The azimuth coordinate of the sun"s center.
     """
 
     # Sets the date of calculation.
@@ -266,9 +266,9 @@ def fit_moon(img, x, y):
     img : image.AllSkyImage
         The image.
     x : float
-        The x coordinate of the moon's center.
+        The x coordinate of the moon"s center.
     y : float
-        The y coordinate of the moon's center.
+        The y coordinate of the moon"s center.
 
     Returns
     -------
@@ -285,7 +285,7 @@ def fit_moon(img, x, y):
     xfloor = math.floor(x)
     start = xfloor
 
-    # The only reason we have this if block is to ensure we don't run for
+    # The only reason we have this if block is to ensure we don"t run for
     # moon radii greater than 35 in this case.
     for i in range(0, 35):
         start += 1
@@ -304,7 +304,7 @@ def fit_moon(img, x, y):
     # moon are fuzzed and then convert radius to diameter.
     size = (size + 10) * 2
 
-    # Makes sure the lower/upper slices don't out of bounds error.
+    # Makes sure the lower/upper slices don"t out of bounds error.
     lowerx = xfloor - size if (xfloor - size > 0) else 0
     lowery = yfloor - size if (yfloor - size > 0) else 0
     upperx = xfloor + size if (xfloor + size < 511) else 511
@@ -331,7 +331,7 @@ def fit_moon(img, x, y):
 
     with warnings.catch_warnings():
         # Ignore model linearity warning from the fitter
-        warnings.simplefilter('ignore')
+        warnings.simplefilter("ignore")
         model = fit(model_init, x, y, z)
 
     # /2 is average FWHM but FWHM = diameter, so divide by two again.
@@ -375,7 +375,7 @@ def generate_eclipse_data(regen=False):
         the eclipse on 2018/01/31, and the second list represents the eclipse
         on 2015/04/04.
     """
-    dates = ['20180131', '20150404']
+    dates = ["20180131", "20150404"]
 
     # Function within a function to avoid code duplication.
     def data(date):
@@ -386,23 +386,30 @@ def generate_eclipse_data(regen=False):
 
         # Check to see if the data has been generated already.
         # If it has then read it from the file.
-        save = 'eclipse-' + date + '.txt'
+        save = os.path.join(os.path.dirname(__file__), *["data", "eclipse-" + date + ".txt"])
         if os.path.isfile(save) and not regen:
             f = open(save)
             for line in f:
-                line = line.rstrip().split(',')
+                line = line.rstrip().split(",")
                 truevis.append(float(line[0]))
                 imvis.append(float(line[1]))
             f.close()
             return (truevis, imvis)
 
         # If we're regenerating the data we do it here.
-        directory = 'Images/Original/KPNO/' + date + '/'
+        directory = os.path.join(os.path.dirname(__file__), *["Images", "Original", "KPNO", date])
         images = sorted(os.listdir(directory))
+
+        # I need a better way to check this.
+        if ".DS_Store" in images:
+            images.remove(".DS_Store")
 
         # Finds the size of the moon in each image.
         for name in images:
-            img = image.load_image(name, date, 'KPNO')
+            print(name)
+            print(date)
+            print(directory)
+            img = image.load_image(name, date, "KPNO")
 
             # This basically hacks us to use the center of the earth as our
             # observation point.
@@ -423,15 +430,15 @@ def generate_eclipse_data(regen=False):
 
             # For angles this small theta ~ sin(theta), so I dropped the sine
             # to save computation time.
-            # Angle between moon and earth's shadow + angle between moon and sun
-            # should ad d to pi, i.e. the earth's shadow is across from the sun.
+            # Angle between moon and earth"s shadow + angle between moon and sun
+            # should ad d to pi, i.e. the earth"s shadow is across from the sun.
             d = R * (np.pi - sep)
 
             size = moon_size(img)
             imvis.append(size)
             distances.append(d)
 
-            print("Processed: " + date + '/' + name)
+            print("Processed: " + date + "/" + name)
 
         # Calculates the proportion of visible moon for the given distance
         # between the centers.
@@ -442,13 +449,13 @@ def generate_eclipse_data(regen=False):
         # If the moon is greater than 40,000 pixels then I know that the moon
         # has merged with the light that comes from the sun and washes out the
         # horizon.
-        imvis = np.where(imvis < 80000, imvis, float('NaN'))
+        imvis = np.where(imvis < 80000, imvis, float("NaN"))
 
-        f = open(save, 'w')
+        f = open(save, "w")
 
         # Writes the data to a file so we can read it later for speed.
         for i in range(0, len(truevis)):
-            f.write(str(truevis[i]) + ',' + str(imvis[i]) + '\n')
+            f.write(str(truevis[i]) + "," + str(imvis[i]) + "\n")
         f.close()
 
         return (truevis, imvis)
@@ -568,8 +575,8 @@ def generate_plots():
     plotted. Once all of these are plotted, two versions of the plot are saved,
     one with a standard y and x axis, and one with a logarithmic y axis.
 
-    These plots are saved directly to Images/ under the names 'moon-size.png'
-    and 'moon-size-log.png.'
+    These plots are saved directly to Images/ under the names "moon-size.png"
+    and "moon-size-log.png."
 
     """
     # Loads the eclipse data
@@ -581,8 +588,8 @@ def generate_plots():
     #found[1] = np.asarray(found[1]) / np.nanmax(found[1])
 
     # Plots the two eclipses, the first in blue (default), the second in green
-    plt.scatter(vis[0], found[0], label='2018/01/31 Eclipse', s=7)
-    #plt.scatter(vis[1], found[1], label='2015/04/04 Eclipse', s=7, c='g')
+    plt.scatter(vis[0], found[0], label="2018/01/31 Eclipse", s=7)
+    #plt.scatter(vis[1], found[1], label="2015/04/04 Eclipse", s=7, c="g")
     plt.ylabel("Approx Moon Size (pixels)")
     plt.xlabel("Illuminated Fraction")
 
@@ -590,42 +597,43 @@ def generate_plots():
     # Found is the approximate size of the moon in the image
     vis = []
     found = []
-    with open('images.txt', 'r') as f:
+    loc = os.path.join(os.path.dirname(__file__), *["data", "images.txt"])
+    with open(loc, "r") as f:
         for line in f:
             line = line.rstrip()
-            info = line.split(',')
-            img = image.load_image(info[1], info[0], 'KPNO')
+            info = line.split(",")
+            img = image.load_image(info[1], info[0], "KPNO")
             vis.append(moon_phase(img))
             found.append((moon_size(img)))
-            print("Processed: " + info[0] + '/' + info[1] + '.png')
+            print("Processed: " + info[0] + "/" + info[1] + ".png")
 
     # Removes out any moons that appear too large in the images to be
     # considered valid.
     found = np.asarray(found)
-    found = np.where(found < 40000, found, float('NaN'))
+    found = np.where(found < 40000, found, float("NaN"))
 
     # Normalizes the non eclipse data.
     #found1 = found / np.nanmax(found)
 
     # Adds the noneclipse data to the plot.
-    plt.scatter(vis, found, label='Regular', s=7)
+    plt.scatter(vis, found, label="Regular", s=7)
 
     # This plots the estimated model of moon size on top of the graph.
     vis2 = [0, 0.345, 0.71, 0.88, 0.97, 1.0]
     found2 = [650, 4000, 10500, 18000, 30000, 35000]
-    plt.plot(vis2, found2, label='Model', c='r')
+    plt.plot(vis2, found2, label="Model", c="r")
 
     # Interpolation estimate for the moon size in the image based on the
     # illuminated fractions.
     found3 = np.interp(vis, vis2, found2)
-    plt.scatter(vis, found3, label='Interpolated', s=7)
+    plt.scatter(vis, found3, label="Interpolated", s=7)
     plt.legend()
 
     # Saves the figure, and then saves the same figure with a log scale.
     plt.savefig("Images/moon-size.png", dpi=256)
 
     ax = plt.gca()
-    ax.set_yscale('log')
+    ax.set_yscale("log")
     plt.savefig("Images/moon-size-log.png", dpi=256)
 
     plt.close()
@@ -633,4 +641,4 @@ def generate_plots():
 
 if __name__ == "__main__":
     # 20160326/r_ut071020s70020
-    generate_eclipse_data(True)
+    generate_plots()

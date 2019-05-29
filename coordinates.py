@@ -31,13 +31,13 @@ thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
                85.21, 89.97, 90]
 
 # Radec
-stars = {'Polaris': (37.9461429,  89.2641378),
-         'Altair': (297.696, 8.86832),
-         'Vega': (279.235, 38.7837),
-         'Arcturus': (213.915, 19.1822),
-         'Alioth': (193.507, 55.9598),
-         'Spica': (201.298, -11.1613),
-         'Sirius': (101.2875, -16.7161)}
+stars = {"Polaris": (37.9461429,  89.2641378),
+         "Altair": (297.696, 8.86832),
+         "Vega": (279.235, 38.7837),
+         "Arcturus": (213.915, 19.1822),
+         "Alioth": (193.507, 55.9598),
+         "Spica": (201.298, -11.1613),
+         "Sirius": (101.2875, -16.7161)}
 
 
 def xy_to_altaz(x, y):
@@ -92,7 +92,7 @@ def xy_to_altaz(x, y):
     alt = 90 - np.interp(r, xp=rpoints, fp=thetapoints)
 
     # For now if r is on the edge of the circle or beyond
-    # we'll have it just be 0 degrees. (Up from horizontal)
+    # we"ll have it just be 0 degrees. (Up from horizontal)
     cond = np.greater(r, 240)
     alt = np.where(cond, 0, alt)
 
@@ -147,7 +147,7 @@ def altaz_to_radec(alt, az, time):
 
     alt = alt * u.deg
     az = az * u.deg
-    altazcoord = SkyCoord(alt=alt, az=az, frame='altaz',
+    altazcoord = SkyCoord(alt=alt, az=az, frame="altaz",
                           obstime=time, location=cameraearth)
     radeccoord = altazcoord.icrs
 
@@ -192,12 +192,12 @@ def radec_to_altaz(ra, dec, time):
                                 height=2120 * u.meter)
 
     # Creates the SkyCoord object
-    radeccoord = SkyCoord(ra=ra, dec=dec, unit='deg', obstime=time,
-                          location=cameraearth, frame='icrs',
+    radeccoord = SkyCoord(ra=ra, dec=dec, unit="deg", obstime=time,
+                          location=cameraearth, frame="icrs",
                           temperature=5 * u.deg_C, pressure=78318 * u.Pa)
 
     # Transforms
-    altazcoord = radeccoord.transform_to('altaz')
+    altazcoord = radeccoord.transform_to("altaz")
 
     return (altazcoord.alt.degree, altazcoord.az.degree)
 
@@ -348,7 +348,7 @@ def timestring_to_obj(date, filename):
     date : str
         The date on which the image was taken in yyyymmdd format.
     filename : str
-        The image's filename.
+        The image"s filename.
 
     Returns
     -------
@@ -356,13 +356,13 @@ def timestring_to_obj(date, filename):
         When the image was taken.
     """
     # Add the dashes
-    formatted = date[:4] + '-' + date[4:6] + '-' + date[6:]
+    formatted = date[:4] + "-" + date[4:6] + "-" + date[6:]
 
     # Extracts the time from the file name.
     # File names seem to be machine generated so this should not break.
     # Hopefully.
-    time = filename[4:6] + ':' + filename[6:8] + ':' + filename[8:10]
-    formatted = formatted + ' ' + time
+    time = filename[4:6] + ":" + filename[6:8] + ":" + filename[8:10]
+    formatted = formatted + " " + time
 
     return Time(formatted)
 
@@ -533,7 +533,7 @@ def find_star(img, centerx, centery, square=6):
     are set to 0. Finally, the method finds the center of mass of the weights,
     which approximates the center of the star very well.
 
-    In order to increase the method's accuracy, it runs
+    In order to increase the method"s accuracy, it runs
     recursively. The discovered position of the star is used as the `centerx`
     and `centery` guesses for the next iteration. The size of the square is
     decreased by 2 with each iteration until it is less than 2. At this point
@@ -573,7 +573,7 @@ def find_star(img, centerx, centery, square=6):
 
             m = math.exp(m/10)
             # Ignore the "mass" of that pixel
-            # if it's less than the average of the stamp
+            # if it"s less than the average of the stamp
             if m < averagem:
                 m = 0
 
@@ -588,7 +588,7 @@ def find_star(img, centerx, centery, square=6):
     star = (centerx + R[0], centery + R[1])
 
     # For some reason de-incrementing by 2 is more accurate than 1.
-    # Don't ask me why, I don't understand it either.
+    # Don"t ask me why, I don"t understand it either.
     if square > 2:
         return find_star(img, star[0], star[1], square - 2)
     return star
@@ -605,9 +605,9 @@ def delta_r(img, centerx, centery):
     img : numpy.ndarray
         A greyscale image.
     centerx : float
-        The x coordinate of the star's center.
+        The x coordinate of the star"s center.
     centery : float
-        The y coordinate of the star's center.
+        The y coordinate of the star"s center.
 
     Returns
     -------
@@ -638,7 +638,7 @@ def delta_r(img, centerx, centery):
 
     rexpected = math.sqrt(adjust1[0] ** 2 + adjust1[1] ** 2)
 
-    # If we think it's outside the circle then bail on all the math.
+    # If we think it"s outside the circle then bail on all the math.
     # R of circle is 240, but sometimes the r comes out as 239.9999999
     if rexpected > 239:
         return (-1, -1, -1)

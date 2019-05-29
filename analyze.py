@@ -40,20 +40,20 @@ def get_latest_analyzed():
     for the latest day that has been analyzed.
     """
     # Gets the downloaded months
-    directory = 'Data/'
+    directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
     months = sorted(os.listdir(directory))
 
     # If no dates have been analyzed yet return 0
-    if not months or months[-1] == '.DS_Store':
+    if not months or months[-1] == ".DS_Store":
         return 0
 
     # Gets the singular days that have been analyzed
-    directory = 'Data/' + months[-1] + '/'
+    directory = os.path.join(directory, months[-1])
     days = sorted(os.listdir(directory))
 
     # If no days for this month have been analyzed yet return the first day.
     if not days:
-        start = months[-1] + '01'
+        start = months[-1] + "01"
         return start
 
     # Return the final day analyzed. We will reanalyze this completely,
@@ -74,16 +74,16 @@ def analyze():
     -----
     For each night, all images taken that day are downloaded. For every night
     analyzed, the cloudiness values for every image taken during that night
-    are written to 'Data/yyyymm/yyyymmdd.txt' where yyyymmdd corresponds to the
+    are written to "Data/yyyymm/yyyymmdd.txt" where yyyymmdd corresponds to the
     date analyzed.
     """
     t1 = time.perf_counter()
-    link = 'http://kpasca-archives.tuc.noao.edu/'
+    link = "http://kpasca-archives.tuc.noao.edu/"
 
     rlink = io_util.download_url(link)
 
     if rlink is None:
-        print('Getting dates failed.')
+        print("Getting dates failed.")
         return
 
     html = rlink.text
@@ -101,10 +101,11 @@ def analyze():
     startdate = 20100101
 
     # Reads in the model coefficients.
-    with open('clouds.txt', 'r') as f:
+    cloud_loc = os.path.join(os.path.dirname(__file__), *["data", "clouds.txt"])
+    with open(cloud_loc, "r") as f:
         for line in f:
             line = line.rstrip()
-            line = line.split(',')
+            line = line.split(",")
             b = float(line[0])
             c = float(line[1])
 
@@ -133,7 +134,7 @@ def analyze():
         # If we fail to get the data for the date, log it and move to the next.
         if rdate is None:
             fails.append(date)
-            print('Failed to retrieve data for ' + date)
+            print("Failed to retrieve data for " + date)
             continue
 
         # Extracting the image names.
@@ -143,33 +144,32 @@ def analyze():
         imagenames = parser.data
         parser.clear_data()
 
-        monthloc = 'Data/' + month + '/'
-
+        monthloc = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
         if not os.path.exists(monthloc):
             os.makedirs(monthloc)
 
-        datafile = monthloc + d + '.txt'
+        datafile = os.path.join(monthloc, d + ".txt")
 
-        with open(datafile, 'w') as f:
+        with open(datafile, "w") as f:
 
             for name in imagenames:
-                # This ignores all the blue filter images, since we don't want
+                # This ignores all the blue filter images, since we don"t want
                 # to process those.
-                if name[:1] == 'b':
+                if name[:1] == "b":
                     continue
                 # We want to ignore the all image animations
-                if name == 'allblue.gif' or name == 'allred.gif':
+                if name == "allblue.gif" or name == "allred.gif":
                     continue
 
                 # This creates an AllSkyImage we use for subsequent methods.
                 # This is the path the image is saved to.
                 # We need to check if it exists first, just in case.
-                path = 'Images/Original/KPNO/' + d + '/' + name
+                path = os.path.join(os.path.dirname(__file__), *["Images", "Original", "KPNO", d, name])
 
-                # Download the image, if it hasn't been downloaded
+                # Download the image, if it hasn"t been downloaded
                 if not os.path.isfile(path):
                     io_util.download_image(d, name)
-                img = image.load_image(name, d, 'KPNO')
+                img = image.load_image(name, d, "KPNO")
 
                 # Finds the moon and the sun in the image.
                 # We only process images where the moon is visble (alt > 0)
@@ -195,19 +195,19 @@ def analyze():
 
                     # Then we save the cloudiness fraction to the file for that
                     # date.
-                    dataline = name + ',' + str(frac) + '\n'
+                    dataline = name + "," + str(frac) + "\n"
                     f.write(dataline)
 
-                    print('Analyzed: ' + img.formatdate)
+                    print("Analyzed: " + img.formatdate)
 
-                # Deletes an image if we didn't analyze it.
+                # Deletes an image if we didn"t analyze it.
                 else:
                     os.remove(path)
     t2 = time.perf_counter()
 
     print(t2 - t1)
 
-    print('The following dates failed to download: ' + str(fails))
+    print("The following dates failed to download: " + str(fails))
 
 
 def month_plot():
@@ -217,25 +217,25 @@ def month_plot():
     -----
     The cloudiness values for every image saved using :func:`~analyze` are loaded. These
     values are plotted, with all images for a given month on a single plot.
-    Plots are saved in 'Images/Plots/' with the filename "scatter-`month`.png".
+    Plots are saved in "Images/Plots/" with the filename "scatter-`month`.png".
     """
     # Gets the downloaded months
-    directory = 'Data/'
+    directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
-    # If the data directory doesn't exist we should exit here.
+    # If the data directory doesn"t exist we should exit here.
     if not os.path.exists(directory):
-        print('No data found.')
+        print("No data found.")
         return
 
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    if '.DS_Store' in months:
-        months.remove('.DS_Store')
+    if ".DS_Store" in months:
+        months.remove(".DS_Store")
 
     for month in months:
         # Gets the days that were analyzed for that month
-        directory = 'Data/' + month + '/'
+        directory  = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
         days = sorted(os.listdir(directory))
 
         data = []
@@ -244,13 +244,13 @@ def month_plot():
         # Reads the data for each day.
         for day in days:
             d1 = directory + day
-            f1 = open(d1, 'r')
+            f1 = open(d1, "r")
 
             # Strips off the .txt so we can make a Time object.
             day = day[:-4]
             for line in f1:
                 line = line.rstrip()
-                line = line.split(',')
+                line = line.split(",")
 
                 # Gets the plot date for the timestring object.
                 d = coordinates.timestring_to_obj(day, line[0]).plot_date
@@ -268,7 +268,7 @@ def month_plot():
         fig.set_size_inches(20, 5)
         ax.plot_date(x, data, xdate=True, markersize=1)
 
-        ax.plot_date(x, illum, xdate=True, markersize=1, color='red')
+        ax.plot_date(x, illum, xdate=True, markersize=1, color="red")
 
         # These are the x divisions which indicate the start of each day.
         xt = []
@@ -277,18 +277,18 @@ def month_plot():
         for i in range(start, end):
             # Finds the plot_date for the start of the day.
             x1 = coordinates.timestring_to_obj(str(i),
-                                               'r_ut000000s00000').plot_date
+                                               "r_ut000000s00000").plot_date
             xt.append(x1)
 
         # Need the right end to be the start of next month.
         # Adding 100 increments the month number.
         # First if statement checks if this is december in which case we need
         # to roll over the year and reset the month.
-        if str(start)[4:6] == '12':
+        if str(start)[4:6] == "12":
             end = str(start + 8900)
         else:
             end = str(start + 100)
-        d2 = coordinates.timestring_to_obj(end, 'r_ut000000s00000').plot_date
+        d2 = coordinates.timestring_to_obj(end, "r_ut000000s00000").plot_date
 
         # Sets the limits and division ticks.
         ax.set_ylim(0, 1.0)
@@ -298,37 +298,37 @@ def month_plot():
         ax.xaxis.set_ticklabels([])
 
         # Sets the axis labels and saves.
-        ax.set_ylabel('Cloudiness Fraction')
+        ax.set_ylabel("Cloudiness Fraction")
 
         # Puts the date in a nice form for the plot axis.
-        date = month[-2:] + '/01/' + month[:-2]
-        ax.set_xlabel('Time After ' + date)
+        date = month[-2:] + "/01/" + month[:-2]
+        ax.set_xlabel("Time After " + date)
 
-        plotloc = 'Images/Plots/'
+        plotloc = os.path.join(os.path.dirname(__file__), *["Images", "Plots"])
         if not os.path.exists(plotloc):
             os.makedirs(plotloc)
 
-        plt.savefig(plotloc + 'scatter-' + month + '.png',
-                    dpi=256, bbox_inches='tight')
+        plt.savefig(plotloc + "scatter-" + month + ".png",
+                    dpi=256, bbox_inches="tight")
         plt.close()
 
 
 # Sets up a pyephem object for the camera.
 camera = ephem.Observer()
-camera.lat = '31.959417'
-camera.lon = '-111.598583'
+camera.lat = "31.959417"
+camera.lon = "-111.598583"
 camera.elevation = 2120
-camera.horizon = '-17'
+camera.horizon = "-17"
 
 
-def plot(years=['2015','2016','2017'], fit_histograms=False):
+def plot(years=["2015","2016","2017"], fit_histograms=False):
     """Generate various cloudiness plots and save them to Images/Plots.
 
     Parameters
     ----------
     years : list, optional
         List of years to include in the plots. Defaults to
-        ['2015','2016','2017'].
+        ["2015","2016","2017"].
     fit_histograms : bool, optional
         To fit the weekly histograms and plot the resulting fit variables
         or not. Defaults to False.
@@ -346,11 +346,11 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
     saved as well.
     """
     # Gets the downloaded months
-    directory = 'Data/'
+    directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
-    # If the data directory doesn't exist we should exit here.
+    # If the data directory doesn"t exist we should exit here.
     if not os.path.exists(directory):
-        print('No data found.')
+        print("No data found.")
         return
 
     # Temporary arrays for moon phase plots
@@ -380,12 +380,12 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    if '.DS_Store' in months:
-        months.remove('.DS_Store')
+    if ".DS_Store" in months:
+        months.remove(".DS_Store")
 
     for month in months:
         # Gets the days that were analyzed for that month
-        directory = 'Data/' + month + '/'
+        directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
         days = sorted(os.listdir(directory))
 
         # Strips out the year from the month
@@ -395,26 +395,26 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
             continue
 
         # Day 1 of the year, for week calculation.
-        yearstart = year + '0101'
-        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        yearstart = year + "0101"
+        day1 = coordinates.timestring_to_obj(yearstart, "r_ut000000s00000")
 
         # Reads the data for each day.
         for day in days:
-            loc = directory + day
-            f1 = open(loc, 'r')
+            loc = os.path.join(directory, day)
+            f1 = open(loc, "r")
 
             # Strips off the .txt so we can make a Time object.
             day = day[:-4]
             for line in f1:
                 # Splits out the value and file.
                 line = line.rstrip()
-                line = line.split(',')
+                line = line.split(",")
                 val = float(line[1])
                 name = line[0]
 
-                # A phantom image for calculation that doesn't actually have
+                # A phantom image for calculation that doesn"t actually have
                 # any data in it.
-                img = image.AllSkyImage(name, day, 'KPNO', None)
+                img = image.AllSkyImage(name, day, "KPNO", None)
                 # Moon phase calculation.
                 phase = moon.moon_phase(img)
 
@@ -461,15 +461,15 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
 
         # Prints the progress if this is the final month of the year and we
         # just finished it.
-        if month[4:] == '12':
-            print('Collated ' + year + ' data')
+        if month[4:] == "12":
+            print("Collated " + year + " data")
 
 
-    percents = ['25', '50', '75']
+    percents = ["25", "50", "75"]
     colors = [(1, 0, 0, 1), (0, 0, 1, 1), (1, 1, 0, 1)]
 
-    # Nan array for if there's no data for that bin.
-    nanarray = np.asarray([[float('nan'), float('nan'), float('nan')]])
+    # Nan array for if there"s no data for that bin.
+    nanarray = np.asarray([[float("nan"), float("nan"), float("nan")]])
 
     # This method sets up the plots. using the given x array and the data set
     # it finds the percentile values for each bin division.
@@ -481,7 +481,7 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
             temp = np.asarray(val)
 
             # Percentile returns an array of each of the three values.
-            # We're creating a data array where each column is all the
+            # We"re creating a data array where each column is all the
             # percentile values for each bin value.
             if temp.size == 0:
                 data = np.append(data, nanarray, axis=0)
@@ -497,7 +497,7 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
         # This sets up the individual plots. You can just pass the data
         # multiararay but I need each line to be individually labeled.
         for i, val in enumerate(percents):
-            plt.plot(x, data[0:data.shape[0], i], label=val + '%',
+            plt.plot(x, data[0:data.shape[0], i], label=val + "%",
                      color=colors[i])
 
         # This fills between the lowest and top percentiles.
@@ -507,33 +507,33 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
 
     # Plotting and averaging code
     # Moon phase
-    plt.ylabel('Cloudiness Relative to Mean')
-    plt.xlabel('Moon Phase')
+    plt.ylabel("Cloudiness Relative to Mean")
+    plt.xlabel("Moon Phase")
 
     x = np.asarray((range(0, phasenum)))
     x = x * phasediv + (phasediv / 2.)
     setup_plot(x, tphase)
-    plt.savefig('Images/Plots/phase.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/Plots/phase.png", dpi=256, bbox_inches="tight")
     plt.close()
 
     # Sunset
-    plt.ylabel('Cloudiness Relative to Mean')
-    plt.xlabel('Hours since sunset')
+    plt.ylabel("Cloudiness Relative to Mean")
+    plt.xlabel("Hours since sunset")
 
     x = np.asarray((range(0, sunsetnum)))
     x = x * sunsetdiv * 24 + (sunsetdiv * 12)
     setup_plot(x, tsunset)
-    plt.savefig('Images/Plots/sunset.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/Plots/sunset.png", dpi=256, bbox_inches="tight")
     plt.close()
 
     # Normalized
-    plt.ylabel('Cloudiness Relative to Mean')
-    plt.xlabel('Normalized time after sunset')
+    plt.ylabel("Cloudiness Relative to Mean")
+    plt.xlabel("Normalized time after sunset")
 
     x = np.asarray((range(0, normalnum)))
     x = x * normaldiv + (normaldiv / 2.)
     setup_plot(x, tnormal)
-    plt.savefig('Images/Plots/normalized-0.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/Plots/normalized-0.png", dpi=256, bbox_inches="tight")
     plt.close()
 
     # Sunrise
@@ -541,18 +541,18 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
     x = x * sunrisediv * 24 + (sunrisediv * 12)
 
     # Sets up the plot before we plot the things
-    plt.ylabel('Cloudiness Relative to Mean')
-    plt.xlabel('Hours before sunrise')
+    plt.ylabel("Cloudiness Relative to Mean")
+    plt.xlabel("Hours before sunrise")
 
     setup_plot(x, tsunrise)
-    plt.savefig('Images/Plots/sunrise.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/Plots/sunrise.png", dpi=256, bbox_inches="tight")
     plt.close()
 
     # Week
     x = np.asarray((range(1, 54)))
-    #plt.ylabel('Cloudiness Relative to Mean')
-    plt.xlabel('Week Number')
-    plt.ylabel('Cloudiness Relative to Mean')
+    #plt.ylabel("Cloudiness Relative to Mean")
+    plt.xlabel("Week Number")
+    plt.ylabel("Cloudiness Relative to Mean")
 
     # Moon phase averages.
     moon_avgs = []
@@ -564,11 +564,11 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
     setup_plot(x, tweek)
 
     #Reads in the csv file using pandas.
-    domedata = pd.read_csv('daily-2007-2017.csv')
+    domedata = pd.read_csv("daily-2007-2017.csv")
 
     closedict = dict.fromkeys(years)
     for y in years:
-        name = 'Y' + y
+        name = "Y" + y
         closedict[y] = domedata.get(name).values
 
     tclose = [[] for i in range(0, 53)]
@@ -579,7 +579,7 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
     # This is because the domedata csv does not include February 29.
     # For example, March 1st is considered day 60, when in 2016 it
     # is actually day 61.
-    for j, val in enumerate(closedict['2016']):
+    for j, val in enumerate(closedict["2016"]):
         if j >= 60:
             i = j + 1
         else:
@@ -589,7 +589,7 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
         week2 = i // 7
 
         for key, val in closedict.items():
-            # We need to append to a different week if it's a leap year, due
+            # We need to append to a different week if it"s a leap year, due
             # to the leap day changing the day number of the year after
             # February.
             week = week2 if int(key) % 4 == 0 else week1
@@ -599,17 +599,17 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
         closeav.append(np.mean(val))
 
     # Alternative additional data.
-    #plt.plot(x, moons, label='Moon Phase', color=(0, 1, 0, 1))
+    #plt.plot(x, moons, label="Moon Phase", color=(0, 1, 0, 1))
 
     #num_imgs = np.asarray(num_imgs)
     #num_imgs = num_imgs * 1 / (np.amax(num_imgs))
-    #plt.plot(x, num_imgs, label='Normalized number of images',
+    #plt.plot(x, num_imgs, label="Normalized number of images",
              #color=(0, 1, 0, 1))
 
-    plt.plot(x, closeav, label='Average Closed Fraction', color=(0,1,0,1))
+    plt.plot(x, closeav, label="Average Closed Fraction", color=(0,1,0,1))
     plt.legend()
 
-    plt.savefig('Images/Plots/week.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/Plots/week.png", dpi=256, bbox_inches="tight")
     plt.close()
 
     if fit_histograms:
@@ -625,7 +625,7 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
             temp = np.asarray(val)
 
             # Percentile returns an array of each of the three values.
-            # We're creating a data array where each column is all the
+            # We"re creating a data array where each column is all the
             # percentile values for each bin value.
             if temp.size == 0:
                 data = np.append(data, nanarray, axis=0)
@@ -650,65 +650,65 @@ def plot(years=['2015','2016','2017'], fit_histograms=False):
         # Code to plot the fits, abstracted because it was getting a little
         # cumbersome to copy paste.
         def fit_plot(x, data, name):
-            loc = 'Images/Plots/week-' + name.lower() + '.png'
+            loc = "Images/Plots/week-" + name.lower() + ".png"
             plt.plot(x, data, label=name)
-            plt.scatter(x, data, label=name, s=2, c='r')
-            plt.xlabel('Week Number')
-            plt.ylabel('Cloudiness Relative to Mean')
+            plt.scatter(x, data, label=name, s=2, c="r")
+            plt.xlabel("Week Number")
+            plt.ylabel("Cloudiness Relative to Mean")
             plt.legend()
-            plt.savefig(loc, dpi=256, bbox_inches='tight')
+            plt.savefig(loc, dpi=256, bbox_inches="tight")
             plt.close()
 
         # This code plots the variables individually
         sigma1 = data[0:data.shape[0], 0]
-        fit_plot(x, sigma1, 'Sigma-1')
+        fit_plot(x, sigma1, "Sigma-1")
 
         mu1 = data[0:data.shape[0], 1]
-        fit_plot(x, mu1, 'Mu-1')
+        fit_plot(x, mu1, "Mu-1")
 
         cv1 = sigma1 / mu1
-        fit_plot(x, cv1, 'CV-1')
+        fit_plot(x, cv1, "CV-1")
 
         sigma2 = data[0:data.shape[0], 2]
-        fit_plot(x, sigma2, 'Sigma-2')
+        fit_plot(x, sigma2, "Sigma-2")
 
         mu2 = data[0:data.shape[0], 3]
         print(np.argmin(mu2))
         mu2 = np.where(mu2 < -100, mu1, mu2)
-        fit_plot(x, mu2, 'Mu-2')
+        fit_plot(x, mu2, "Mu-2")
 
         cv2 = sigma2 / mu2
-        fit_plot(x, cv2, 'CV-2')
+        fit_plot(x, cv2, "CV-2")
 
         frac = data[0:data.shape[0], 4]
         frac = (np.tanh(frac) + 1) / 2
-        fit_plot(x, frac, 'Frac')
+        fit_plot(x, frac, "Frac")
 
-        plt.plot(x, mu1 + mu2, label='Plus')
-        plt.scatter(x, mu1 + mu2, label='Plus', s=2, c='r')
-        plt.plot(x, np.abs(mu1 - mu2), label='Minus')
-        plt.scatter(x, np.abs(mu1 - mu2), label='Minus', s=2, c='g')
-        plt.xlabel('Week Number')
+        plt.plot(x, mu1 + mu2, label="Plus")
+        plt.scatter(x, mu1 + mu2, label="Plus", s=2, c="r")
+        plt.plot(x, np.abs(mu1 - mu2), label="Minus")
+        plt.scatter(x, np.abs(mu1 - mu2), label="Minus", s=2, c="g")
+        plt.xlabel("Week Number")
         plt.legend()
-        plt.savefig('Images/Plots/week-mu-test.png', dpi=256, bbox_inches='tight')
+        plt.savefig("Images/Plots/week-mu-test.png", dpi=256, bbox_inches="tight")
         plt.close()
 
-        plt.plot(x, sigma1 + sigma2, label='Plus')
-        plt.scatter(x, sigma1 + sigma2, label='Plus', s=2, c='r')
-        plt.plot(x, np.abs(sigma1 - sigma2), label='Minus')
-        plt.scatter(x, np.abs(sigma1 - sigma2), label='Minus', s=2, c='g')
-        plt.xlabel('Week Number')
+        plt.plot(x, sigma1 + sigma2, label="Plus")
+        plt.scatter(x, sigma1 + sigma2, label="Plus", s=2, c="r")
+        plt.plot(x, np.abs(sigma1 - sigma2), label="Minus")
+        plt.scatter(x, np.abs(sigma1 - sigma2), label="Minus", s=2, c="g")
+        plt.xlabel("Week Number")
         plt.legend()
-        plt.savefig('Images/Plots/week-sigma-test.png', dpi=256, bbox_inches='tight')
+        plt.savefig("Images/Plots/week-sigma-test.png", dpi=256, bbox_inches="tight")
         plt.close()
 
-        plt.plot(x, cv1 + cv2, label='Plus')
-        plt.scatter(x, cv1 + cv2, label='Plus', s=2, c='r')
-        plt.plot(x, np.abs(cv1 - cv2), label='Minus')
-        plt.scatter(x, np.abs(cv1 - cv2), label='Minus', s=2, c='g')
-        plt.xlabel('Week Number')
+        plt.plot(x, cv1 + cv2, label="Plus")
+        plt.scatter(x, cv1 + cv2, label="Plus", s=2, c="r")
+        plt.plot(x, np.abs(cv1 - cv2), label="Minus")
+        plt.scatter(x, np.abs(cv1 - cv2), label="Minus", s=2, c="g")
+        plt.xlabel("Week Number")
         plt.legend()
-        plt.savefig('Images/Plots/week-cv-test.png', dpi=256, bbox_inches='tight')
+        plt.savefig("Images/Plots/week-cv-test.png", dpi=256, bbox_inches="tight")
         plt.close()
 
 
@@ -722,14 +722,14 @@ def model():
     This model is used to remove the dependence of moon phase on the
     cloudiness data.
     """
-    loc = 'phase.txt'
+    loc = os.path.join(os.path.dirname(__file__), *["data", "phase.txt"])
 
     data = []
 
     # Reads in the phase and cloudiness information.
     # Literal eval makes it so that it reads the list as a list rather than
     # a string.
-    with open(loc, 'r') as f:
+    with open(loc, "r") as f:
         for line in f:
             line = line.rstrip()
             b = ast.literal_eval(line)
@@ -744,8 +744,8 @@ def model():
         data[i] = [float(j) for j in data[i]]
 
     plt.ylim(0, 1.0)
-    plt.ylabel('Average Cloudiness Fraction')
-    plt.xlabel('Moon Phase')
+    plt.ylabel("Average Cloudiness Fraction")
+    plt.xlabel("Moon Phase")
 
     coeffs1 = []
     coeffs2 = []
@@ -764,20 +764,21 @@ def model():
         coeffs1.append(b)
         coeffs2.append(c)
 
-        plt.plot(x, data[i], label='Mean-' + str(year))
-        plt.plot(x, b*x*x + c*x, label='Fit-' + str(year))
+        plt.plot(x, data[i], label="Mean-" + str(year))
+        plt.plot(x, b*x*x + c*x, label="Fit-" + str(year))
 
     # An average of the year wise fits.
     m = np.mean(coeffs1)
     n = np.mean(coeffs2)
-    plt.plot(x, m*x*x + n*x, label='Mean Fit')
+    plt.plot(x, m*x*x + n*x, label="Mean Fit")
 
     # Writes the coefficients to a file for later use.
-    with open('clouds.txt', 'w') as f:
-        f.write(str(m) + ',' + str(n))
+    cloud_loc = os.path.join(os.path.dirname(__file__), *["data", "clouds.txt"])
+    with open(cloud_loc, "w") as f:
+        f.write(str(m) + "," + str(n))
 
     plt.legend()
-    plt.savefig('Images/temp.png', dpi=256, bbox_inches='tight')
+    plt.savefig("Images/temp.png", dpi=256, bbox_inches="tight")
     plt.close()
 
 
@@ -790,47 +791,47 @@ def histo():
     collated into histograms containing one week each. Each week produces
     three histograms: one with only 2016 images, one with only 2017
     images, and one with both on the same histogram. The 159 histograms are
-    saved to 'Images/Plots/Weeks'.
+    saved to "Images/Plots/Weeks".
     """
-    directory = 'Data/'
+    directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    if '.DS_Store' in months:
-        months.remove('.DS_Store')
+    if ".DS_Store" in months:
+        months.remove(".DS_Store")
 
     tweek = {}
-    tweek['all'] = [[] for i in range(0, 53)]
+    tweek["all"] = [[] for i in range(0, 53)]
 
     for month in months:
 
         # Gets the days that were analyzed for that month
-        directory = 'Data/' + month + '/'
+        directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
         days = sorted(os.listdir(directory))
 
         # Strips out the year from the month
         year = month[:4]
 
-        # Initializes a year if it doesn't exist.
+        # Initializes a year if it doesn"t exist.
         if not year in tweek:
             tweek[year] = [[] for i in range(0, 53)]
 
         # Day 1 of the year, for week calculation.
-        yearstart = year + '0101'
-        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        yearstart = year + "0101"
+        day1 = coordinates.timestring_to_obj(yearstart, "r_ut000000s00000")
 
         # Reads the data for each day.
         for day in days:
             loc = directory + day
-            f1 = open(loc, 'r')
+            f1 = open(loc, "r")
 
             # Strips off the .txt so we can make a Time object.
             day = day[:-4]
             for line in f1:
                 # Splits out the value and file.
                 line = line.rstrip()
-                line = line.split(',')
+                line = line.split(",")
                 val = float(line[1])
                 name = line[0]
 
@@ -847,7 +848,7 @@ def histo():
                 # The week number.
                 diff = date - day1
                 week = int(diff.value // 7)
-                tweek['all'][week].append(val)
+                tweek["all"][week].append(val)
                 tweek[year][week].append(val)
 
 
@@ -855,7 +856,7 @@ def histo():
     w = 0.61 / split
 
     # Starts by finding the divs because we want the width to be the same.
-    num = np.amax(tweek['all'][2]) / w
+    num = np.amax(tweek["all"][2]) / w
     divs = np.asarray(range(0, int(num) + 1))
     divs = divs * w
 
@@ -864,24 +865,24 @@ def histo():
     labels = list(divs)
     for j, label in enumerate(divs):
         if j % split != 0:
-            labels[j] = ''
+            labels[j] = ""
         else:
             labels[j] = round(label, 3)
 
     binstop = -16 * split
     histstop = binstop + 1
 
-    saveloc = 'Images/Plots/Weeks'
+    saveloc = "Images/Plots/Weeks"
     if not os.path.exists(saveloc):
         os.makedirs(saveloc)
 
-    # Don't want to recreate this every time.
+    # Don"t want to recreate this every time.
     x = np.arange(0, divs[binstop], 0.05)
 
     chosen = {1:0, 2:0, 3:0, 4:0}
     sames = []
     # Loops over each week (the i value)
-    for i, val in enumerate(tweek['all']):
+    for i, val in enumerate(tweek["all"]):
         for year, value in tweek.items():
 
             temp = np.asarray(tweek[year][i])
@@ -894,66 +895,66 @@ def histo():
             fig = plt.figure()
             fig.set_size_inches(11.4, 8.4)
 
-            print('Week ' + str(i+1))
-            plt.title('Week ' + str(i+1))
+            print("Week " + str(i+1))
+            plt.title("Week " + str(i+1))
             plt.ylim(0, 900 / (split / 2))
-            plt.ylabel('Number of Occurrences')
-            plt.xlabel('Cloudiness Relative to Mean')
+            plt.ylabel("Number of Occurrences")
+            plt.xlabel("Cloudiness Relative to Mean")
 
             # Number of images used to make this histogram.
             num = len(temp)
 
             # Plots everything, histogram, and then the fitted data on top.
-            if year == 'all':
+            if year == "all":
                 # Changes the numbers for each year
-                temp2 = np.asarray(tweek['2016'][i])
+                temp2 = np.asarray(tweek["2016"][i])
                 temp2 = np.delete(temp2, np.where(temp2 < 0.061))
                 num2 = len(temp2)
                 num = num - num2
 
                 # For all, we plot everything, then 2016 on top for separation.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
-                               align='edge', tick_label=labels[:binstop],
-                               label='2017 (' + str(num) + ')')
+                               align="edge", tick_label=labels[:binstop],
+                               label="2017 (" + str(num) + ")")
 
                 hist2, bins2 = np.histogram(temp2, bins=divs)
                 plot = plt.bar(bins2[:binstop], hist2[:histstop], width=w,
-                               align='edge', tick_label=labels[:binstop],
-                               label='2016 (' + str(num2) + ')')
+                               align="edge", tick_label=labels[:binstop],
+                               label="2016 (" + str(num2) + ")")
 
             else:
                 # Plots just the year histogram.
                 plot = plt.bar(bins[:binstop], hist[:histstop], width=w,
-                               align='edge', tick_label=labels[:binstop],
-                               label=year + ' (' + str(num) + ')')
+                               align="edge", tick_label=labels[:binstop],
+                               label=year + " (" + str(num) + ")")
 
             coeffs, best = find_fit(temp, divs)
 
-            print('Fit ' + str(best + 1) + ' Chosen')
+            print("Fit " + str(best + 1) + " Chosen")
 
             # Increments the dictionary counter
             chosen[best+1] = chosen[best+1] + 1
 
-            print(str(year) + ': ' + str(coeffs))
+            print(str(year) + ": " + str(coeffs))
 
             # Finds the y func, then scales so it has the same area as the hist
             if len(coeffs) == 4:
                 y = function_gp(coeffs, x)
             else:
                 y = function_gg(coeffs, x)
-            #print('Area: ' + str(np.trapz(y,x)))
+            #print("Area: " + str(np.trapz(y,x)))
             scale = np.sum(hist) * w / np.trapz(y,x)
             y = y * scale
 
             # Plots the fit.
-            plt.plot(x, y, color=(0, 1, 0, 1), label='Fit-' + str(best + 1))
+            plt.plot(x, y, color=(0, 1, 0, 1), label="Fit-" + str(best + 1))
 
             plt.legend()
-            plt.savefig('Images/Plots/Weeks/hist-' + str(i + 1) + '-' + year + '.png',
-                        dpi=256, bbox_inches='tight')
+            plt.savefig("Images/Plots/Weeks/hist-" + str(i + 1) + "-" + year + ".png",
+                        dpi=256, bbox_inches="tight")
             plt.close()
 
-        print('Saved: Week ' + str(i+1))
+        print("Saved: Week " + str(i+1))
         print()
 
     print(chosen)
@@ -963,8 +964,8 @@ def histo():
         if val:
             nums = nums + 1
 
-    print('Trues: ' + str(nums))
-    print('Falses: ' + str(len(sames) - nums))
+    print("Trues: " + str(nums))
+    print("Falses: " + str(len(sames) - nums))
 
 
 # Divs is the divisions to use, used in finding the guess parameters
@@ -990,7 +991,7 @@ def find_fit(data, divs):
     split = 10
     w = 0.61 / split
 
-    # Assign a new array so we don't edit the original
+    # Assign a new array so we don"t edit the original
     temp = np.copy(data)
     hist, _ = np.histogram(temp, bins=divs)
 
@@ -1004,7 +1005,7 @@ def find_fit(data, divs):
     # This block of code finds the first time the histogram falls below
     # Half the max, which gives us the half width at half maximum.
     # (Aprroximately). Since the curve is not smooth this actually
-    # Isn't great. Typically the histogram will drop below the half
+    # Isn"t great. Typically the histogram will drop below the half
     # Max before jumping up above it again for a few bins.
     less = np.where(hist < (hist[index] / 2), True, False)
     hwhm = (np.argmax(less[index:])) * w
@@ -1030,11 +1031,11 @@ def find_fit(data, divs):
     fitarr.append(fit1.fun)
     coeffsarr.append(fit1.x)
 
-    fit1 = fit_function(temp, func='gp')
+    fit1 = fit_function(temp, func="gp")
     fitarr.append(fit1.fun)
     coeffsarr.append(fit1.x)
 
-    fit1 = fit_function(temp, func='gp', init=[0.1, guess, guess2, guessfrac])
+    fit1 = fit_function(temp, func="gp", init=[0.1, guess, guess2, guessfrac])
     fitarr.append(fit1.fun)
     coeffsarr.append(fit1.x)
 
@@ -1045,7 +1046,7 @@ def find_fit(data, divs):
     coeffs = np.copy(coeffsarr)
 
     while np.abs(coeffsarr[best][0]) < 0.002:
-        print('Delta Found')
+        print("Delta Found")
         fitarr = np.delete(fitarr, best)
         coeffsarr.pop(best)
 
@@ -1060,7 +1061,7 @@ def find_fit(data, divs):
     return (coeffsarr[best], orig)
 
 
-# Inverted the args for this, so they match those used by scipy's minmize.
+# Inverted the args for this, so they match those used by scipy"s minmize.
 # Minimize changes the coefficients making those the variables here.
 def function_gp(params, x):
     """A Gaussian and Poisson hybrid function.
@@ -1190,7 +1191,7 @@ def likelihood_gg(params, data):
     and thus is the negative sum of the natural logarithm of the function
     values.
     """
-    # In chi-squared there's a 2 in front but since we're minimizing I've
+    # In chi-squared there"s a 2 in front but since we"re minimizing I"ve
     # dropped it.
     chi = -np.sum(np.log(function_gg(params, data)))
     return chi
@@ -1222,7 +1223,7 @@ def likelihood_gp(params, data):
     and thus is the negative sum of the natural logarithm of the function
     values.
     """
-    # In chi-squared there's a 2 in front but since we're minimizing I've
+    # In chi-squared there"s a 2 in front but since we"re minimizing I"ve
     # dropped it.
     chi = -np.sum(np.log(function_gp(params, data)))
     return chi
@@ -1230,7 +1231,7 @@ def likelihood_gp(params, data):
 
 # Fits the model to the data
 # I abstracted this in case I need it somewhere else.
-def fit_function(xdata, func='gg', init=None):
+def fit_function(xdata, func="gg", init=None):
     """Fit a function to a histogram.
 
     Parameters
@@ -1238,9 +1239,9 @@ def fit_function(xdata, func='gg', init=None):
     xdata : array_like
         The cloudiness data used to compute a histogram.
     func : str, optional
-        Which function to fit. 'gg' corresponds to a double Gaussian hybrid,
-        and 'gp' corresponds to a Gaussian and Poisson hybrid function.
-        Defaults to 'gg'.
+        Which function to fit. "gg" corresponds to a double Gaussian hybrid,
+        and "gp" corresponds to a Gaussian and Poisson hybrid function.
+        Defaults to "gg".
     init : list, optional
         A list of initial guesses for the function fitting. Defaults to
         None. If None, uses an initial guess of [0.1,0.5,0.5,3,0] for
@@ -1252,7 +1253,7 @@ def fit_function(xdata, func='gg', init=None):
     scipy.optimize.OptimizeResult
         An object corresponding to the fit function.
     """
-    if func == 'gg':
+    if func == "gg":
         likelihood = likelihood_gg
 
         if init is None:
@@ -1263,11 +1264,11 @@ def fit_function(xdata, func='gg', init=None):
         if init is None:
             init = [0.1,0.5,3,0]
 
-    # Default for maxiter is N * 200 but that's not enough in this case so we
+    # Default for maxiter is N * 200 but that"s not enough in this case so we
     # need to specify a higher value
     fit = optimize.minimize(likelihood, x0=init, args=xdata,
-                            method='Nelder-Mead',
-                            options={'disp':False, 'maxiter':1200})
+                            method="Nelder-Mead",
+                            options={"disp":False, "maxiter":1200})
     return fit
 
 
@@ -1282,13 +1283,13 @@ def to_csv():
     The CSV file has 5 headers: Date & Time, Year, Week Number, Normalized Time
     after Sunset and Cloudiness Relative to the Mean.
     """
-    directory = 'Data/'
+    directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed"])
 
     months = sorted(os.listdir(directory))
 
     # Macs are dumb
-    if '.DS_Store' in months:
-        months.remove('.DS_Store')
+    if ".DS_Store" in months:
+        months.remove(".DS_Store")
 
     # Temp other stuff
     normalnum = 50
@@ -1299,20 +1300,20 @@ def to_csv():
     for month in months:
 
         # Gets the days that were analyzed for that month
-        directory = 'Data/' + month + '/'
+        directory = os.path.join(os.path.dirname(__file__), *["data", "analyzed", month])
         days = sorted(os.listdir(directory))
 
         # Strips out the year from the month
         year = month[:4]
 
         # Day 1 of the year, for week calculation.
-        yearstart = year + '0101'
-        day1 = coordinates.timestring_to_obj(yearstart, 'r_ut000000s00000')
+        yearstart = year + "0101"
+        day1 = coordinates.timestring_to_obj(yearstart, "r_ut000000s00000")
 
         # Reads the data for each day.
         for day in days:
-            loc = directory + day
-            f1 = open(loc, 'r')
+            loc = os.path.join(directory, day)
+            f1 = open(loc, "r")
 
             # Strips off the .txt so we can make a Time object.
             day = day[:-4]
@@ -1321,7 +1322,7 @@ def to_csv():
 
                 # Splits out the value and file.
                 line = line.rstrip()
-                line = line.split(',')
+                line = line.split(",")
                 val = float(line[1])
                 name = line[0]
 
@@ -1341,9 +1342,9 @@ def to_csv():
 
                 # Sunset time calculation.
                 # 12 hours after sunset for 50 bins = 0.01 of a day per bin.
-                formatdate = day[:4] + '/' + day[4:6] + '/' + day[6:]
-                time = name[4:6] + ':' + name[6:8] + ':' + name[8:10]
-                formatdate = formatdate + ' ' + time
+                formatdate = day[:4] + "/" + day[4:6] + "/" + day[6:]
+                time = name[4:6] + ":" + name[6:8] + ":" + name[8:10]
+                formatdate = formatdate + " " + time
 
                 linedata.append(formatdate)
                 linedata.append(year)
@@ -1370,13 +1371,13 @@ def to_csv():
 
     data = np.asarray(data)
 
-    d2 = pd.DataFrame(data, columns=['Date & Time', 'Year', 'Week Number',
-                                     'Normalized Time after Sunset',
-                                     'Cloudiness Relative to the Mean'])
+    d2 = pd.DataFrame(data, columns=["Date & Time", "Year", "Week Number",
+                                     "Normalized Time after Sunset",
+                                     "Cloudiness Relative to the Mean"])
 
-    d2.to_csv('data.csv')
+    d2.to_csv("data.csv")
 
 
 if __name__ == "__main__":
     #analyze()
-    plot(['2014', '2015', '2016', '2017'])
+    plot(["2014", "2015", "2016", "2017"])

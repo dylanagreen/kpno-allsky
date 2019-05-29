@@ -121,19 +121,19 @@ def median_all_date(date, color=False):
     io_util.load_all_date : Load images in color to find color medians.
 
     """
-    # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/Original/KPNO/' + date + '/'
+    # I"ve hard coded the files for now, this can be changed later.
+    directory = os.path.join(os.path.dirname(__file__), *["Images", "Original", "KPNO", date])
 
     # Gotta make sure those images exist.
     try:
         files = os.listdir(directory)
     except:
-        print('Images directory not found for that date!')
-        print('Are you sure you downloaded images?')
+        print("Images directory not found for that date!")
+        print("Are you sure you downloaded images?")
         exit()
 
     # These dictionaries hold the images and existence booleans.
-    keys = ['All', 0.02, 0.3, 6]
+    keys = ["All", 0.02, 0.3, 6]
 
     finalimg = {}
     superimg = {}
@@ -159,7 +159,7 @@ def median_all_date(date, color=False):
             # single value is a 1D array rather than just a number.
             # This is so when you concat the arrays it actually turns the
             # lowest value into a multivalue array.
-            img = image.load_image(f, date, 'KPNO')
+            img = image.load_image(f, date, "KPNO")
             temp = img.data.reshape(img.data.shape[0], img.data.shape[1], 1)
 
             exposure = image.get_exposure(img)
@@ -168,14 +168,14 @@ def median_all_date(date, color=False):
             # Make the super image have the correct
             # dimensions and starting values.
             # Concats if it already does.
-            if exists['All']:
+            if exists["All"]:
                 # Concatenates along the color axis
-                superimg['All'] = np.concatenate((superimg['All'], temp), axis=2)
+                superimg["All"] = np.concatenate((superimg["All"], temp), axis=2)
             else:
                 # Since we run this only once this shortcut will save us
                 # fractions of a second!
-                superimg['All'] = temp
-                exists['All'] = True
+                superimg["All"] = temp
+                exists["All"] = True
 
             # Exposure specific medians
             if exists[exposure]:
@@ -184,7 +184,7 @@ def median_all_date(date, color=False):
                 superimg[exposure] = temp
                 exists[exposure] = True
     else:
-        superimg['All'] = io_util.load_all_date(date)
+        superimg["All"] = io_util.load_all_date(date)
 
     print("Loaded images")
 
@@ -198,7 +198,7 @@ def median_all_date(date, color=False):
             finalimg[key] = np.median(superimg[key], axis=2)
         # In color we use the median of median because rgb tuples.
         else:
-            # Let's run this loop as little as possible thanks.
+            # Let"s run this loop as little as possible thanks.
             if not np.array_equal(superimg[key], np.zeros((1, 1, 1, 1))):
                 supe = superimg[key]
 
@@ -216,7 +216,7 @@ def median_all_date(date, color=False):
                     y += 1
                     x = 0
             #finalimg[key] = np.zeros((supe.shape[0], supe.shape[1], 3))
-    print('Median images complete for ' + date)
+    print("Median images complete for " + date)
     return finalimg
 
 
@@ -245,14 +245,14 @@ def save_medians(medians, date, color=False):
 
     """
     if not color:
-        loc = 'Images/Median/' + date + '/'
-        cmap = 'gray'
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "Median", date])
+        cmap = "gray"
     else:
-        loc = 'Images/Median-Color/' + date + '/'
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "Median-Color", date])
         cmap = None
 
     for key, median in medians.items():
-        name = str(key).replace('.', '')
+        name = str(key).replace(".", "")
 
         # If blocks to only save the ones with actual data
         if not color and not np.array_equal(median, np.zeros((1, 1))):
@@ -265,5 +265,5 @@ def save_medians(medians, date, color=False):
 
 
 if __name__ == "__main__":
-    medians = median_all_date('20160101')
-    save_medians(medians, '20160101')
+    medians = median_all_date("20160101")
+    save_medians(medians, "20160101")

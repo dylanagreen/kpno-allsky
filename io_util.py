@@ -3,7 +3,7 @@
 Methods are provided for downloading and saving images taken at two different
 all-sky cameras. These cameras are located at Kitt Peak, designated KPNO, and
 at the Multiple Mirror Telescope Observatory, designated MMTO.
-One class is provided to read the raw HTML provided by each camera's website.
+One class is provided to read the raw HTML provided by each camera"s website.
 """
 
 import os
@@ -45,24 +45,24 @@ def download_url(link):
 
         # Too many redirects is when the link redirects you too much.
         except TooManyRedirects:
-            print('Too many redirects.')
+            print("Too many redirects.")
             return None
         # HTTPError is an error in the http code.
         except HTTPError:
-            print('HTTP error with status code ' + str(data.status_code))
+            print("HTTP error with status code " + str(data.status_code))
             return None
         # This is a failure in the connection unrelated to a timeout.
         except ConnectionError:
-            print('Failed to establish a connection to the link.')
+            print("Failed to establish a connection to the link.")
             return None
         # Timeouts are either server side (too long to respond) or client side
-        # (when requests doesn't get a response before the timeout timer is up)
+        # (when requests doesn"t get a response before the timeout timer is up)
         # I have set the timeout to 5 seconds
         except Timeout:
             tries += 1
 
             if tries >= 3:
-                print('Timed out after three attempts.')
+                print("Timed out after three attempts.")
                 return None
 
             # Tries again after 5 seconds.
@@ -70,11 +70,11 @@ def download_url(link):
 
         # Covers every other possible exceptions.
         except RequestException as err:
-            print('Unable to read link')
+            print("Unable to read link")
             print(err)
             return None
         else:
-            print(link + ' read with no errors.')
+            print(link + " read with no errors.")
             return data
 
 
@@ -102,10 +102,10 @@ class DateHTMLParser(HTMLParser):
 
         """
         # All image names are held in tags of form <A HREF=imagename>
-        if tag == 'a':
+        if tag == "a":
             for attr in attrs:
                 # If the first attribute is href we need to ignore it
-                if attr[0] == 'href':
+                if attr[0] == "href":
                     self.data.append(attr[1])
 
     def clear_data(self):
@@ -145,23 +145,23 @@ def download_all_date(date, camera="kpno"):
     http://skycam.mmto.arizona.edu/skycam/.
 
     """
-    links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
-             'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
+    links = {"kpno": "http://kpasca-archives.tuc.noao.edu/",
+             "mmto": "http://skycam.mmto.arizona.edu/skycam/"}
 
     # Creates the link
     link = links[camera] + date
 
     # Gets the html for a date page,
     # then parses it to find the image names on that page.
-    if camera == 'kpno':
-        htmllink = link + '/index.html'
+    if camera == "kpno":
+        htmllink = link + "/index.html"
     else:
         htmllink = link
 
     rdate = download_url(htmllink)
 
     if rdate is None:
-        print('Failed to download dates.')
+        print("Failed to download dates.")
         return
 
     # Makes sure the date exists.
@@ -175,28 +175,28 @@ def download_all_date(date, camera="kpno"):
     parser.close()
     imagenames = parser.data
 
-    # Strips everything that's not a fits image.
+    # Strips everything that"s not a fits image.
     imagenames2 = []
-    if camera == 'mmto':
+    if camera == "mmto":
         for item in imagenames:
-            if item[-4:] == 'fits':
+            if item[-4:] == "fits":
                 imagenames2.append(item)
         imagenames = imagenames2
 
     # Runs through the array of image names and downloads them
     for image in imagenames:
         # We want to ignore the all image animations
-        if image == 'allblue.gif' or image == 'allred.gif' or image[:1] == 'b':
+        if image == "allblue.gif" or image == "allred.gif" or image[:1] == "b":
             continue
         # Otherwise request the html data of the page for that image
         # and save the image
         else:
             download_image(date, image, camera)
 
-    print('All photos downloaded for ' + date)
+    print("All photos downloaded for " + date)
 
 
-def download_image(date, image, camera='kpno', directory=None):
+def download_image(date, image, camera="kpno", directory=None):
     """Download a single image.
 
     This method is of a similar form to download_all_date, where `date`
@@ -229,30 +229,30 @@ def download_image(date, image, camera='kpno', directory=None):
     The MMT Observatory images are located at
     http://skycam.mmto.arizona.edu/skycam/.
     """
-    links = {'kpno': 'http://kpasca-archives.tuc.noao.edu/',
-             'mmto': 'http://skycam.mmto.arizona.edu/skycam/'}
+    links = {"kpno": "http://kpasca-archives.tuc.noao.edu/",
+             "mmto": "http://skycam.mmto.arizona.edu/skycam/"}
 
     # Creates the link
     link = links[camera] + date
 
     # Collects originals in their own folder within Images
     if not directory:
-        directory = 'Images/Original/' + camera.upper() + '/' + date
+        directory = "Images/Original/" + camera.upper() + "/" + date
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    imageloc = link + '/' + image
-    imagename = directory + '/' + image
+    imageloc = link + "/" + image
+    imagename = directory + "/" + image
 
     rimage = download_url(imageloc)
 
     if rimage is None:
-        print('Failed: ' + imagename)
+        print("Failed: " + imagename)
         return
 
     # Saves the image
-    with open(imagename, 'wb') as f:
+    with open(imagename, "wb") as f:
         f.write(rimage.content)
     print("Downloaded: " + imagename)
 
@@ -278,16 +278,16 @@ def load_all_date(date):
 
     """
 
-    # I've hard coded the files for now, this can be changed later.
-    directory = 'Images/Original/KPNO/' + date + '/'
+    # I"ve hard coded the files for now, this can be changed later.
+    directory = "Images/Original/KPNO/" + date + "/"
 
     # In theory this is only ever called from median_all_date.
     # Just in case though.
     try:
         files = os.listdir(directory)
     except:
-        print('Images directory not found for that date!')
-        print('Are you sure you downloaded images?')
+        print("Images directory not found for that date!")
+        print("Are you sure you downloaded images?")
         exit()
 
     imgs = []
@@ -334,8 +334,8 @@ def gray_and_color_image(file):
 
     """
 
-    img1 = np.asarray(Image.open(file).convert('RGB'))
-    img2 = np.asarray(Image.open(file).convert('L'))
+    img1 = np.asarray(Image.open(file).convert("RGB"))
+    img2 = np.asarray(Image.open(file).convert("L"))
 
     # Reshape to concat
     img2 = img2.reshape(img2.shape[0], img2.shape[1], 1)
@@ -372,8 +372,8 @@ def image_diff(img1, img2):
     """
     # I encountered a problem previously, in that
     # I assumed the type of the array would dynamically change.
-    # This is python, so that's not wrong per se.
-    # Anyway turns out it's wrong so I have to cast these to numpy ints.
+    # This is python, so that"s not wrong per se.
+    # Anyway turns out it"s wrong so I have to cast these to numpy ints.
     # I then have to cast back to uints because imshow
     # works differently on uint8 and int16.
     diffimg = np.uint8(abs(np.int16(img1) - np.int16(img2)))
@@ -382,4 +382,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_all_date('20181105')
+    download_all_date("20181105")

@@ -19,12 +19,12 @@ import image
 
 center = (256, 252)
 
-date = '20170718'
+date = "20170718"
 
 data = []
 x = []
-d1 = coordinates.timestring_to_obj('20171001', 'r_ut013603s08160').plot_date
-d2 = coordinates.timestring_to_obj('20171031', 'r_ut132350s57840').plot_date
+d1 = coordinates.timestring_to_obj("20171001", "r_ut013603s08160").plot_date
+d2 = coordinates.timestring_to_obj("20171031", "r_ut132350s57840").plot_date
 
 
 def plot_histogram(img, hist, masking=None, save=True):
@@ -58,17 +58,17 @@ def plot_histogram(img, hist, masking=None, save=True):
     ax[1, 0].set_axis_off()
 
     # Display the original image underneath for transparency.
-    ax[0, 0].imshow(img.data, cmap='gray')
-    ax[1, 0].imshow(img.data, cmap='gray')
+    ax[0, 0].imshow(img.data, cmap="gray")
+    ax[1, 0].imshow(img.data, cmap="gray")
 
     # Creates the histogram with 256 bins (0-255) and places it on the right.
     # Kept this super general in case we want to change the amount of bins.
     bins = list(range(0, 255))
     width = 1
 
-    ax[0, 1].bar(bins, hist, width=width, align='edge', color='blue', log=True)
-    ax[0, 1].set_ylabel('Number of Occurrences')
-    ax[0, 1].set_xlabel('Pixel Greyscale Value')
+    ax[0, 1].bar(bins, hist, width=width, align="edge", color="blue", log=True)
+    ax[0, 1].set_ylabel("Number of Occurrences")
+    ax[0, 1].set_xlabel("Pixel Greyscale Value")
 
     # Cloudy pixels thresholded first, then the horizon and moon are masked.
     thresh = 160
@@ -79,22 +79,22 @@ def plot_histogram(img, hist, masking=None, save=True):
     img2 = np.ma.masked_array(img2, mask2)
 
     # This new color palette is greyscale for all non masked pixels, and
-    # red for any pixels that are masked and ignored. It's blue for clouds.
-    # Copied the old palette so I don't accidentally bugger it.
+    # red for any pixels that are masked and ignored. It"s blue for clouds.
+    # Copied the old palette so I don"t accidentally bugger it.
     palette = copy(plt.cm.gray)
-    palette.set_bad('r', 0.5)
-    palette.set_over('b', 0.5)
+    palette.set_bad("r", 0.5)
+    palette.set_over("b", 0.5)
 
-    # Need a new normalization so that blue pixels don't get clipped to white.
+    # Need a new normalization so that blue pixels don"t get clipped to white.
     ax[1, 0].imshow(img2, cmap=palette,
                     norm=colors.Normalize(vmin=0, vmax=255), alpha=1)
 
     # Writes the fraction on the image
     frac = cloudiness(hist)
-    ax[0, 1].text(170, 2000, str(frac), fontsize=15, color='red')
+    ax[0, 1].text(170, 2000, str(frac), fontsize=15, color="red")
 
     # Draws the vertical division line, in red
-    ax[0, 1].axvline(x=thresh, color='r')
+    ax[0, 1].axvline(x=thresh, color="r")
 
     # Forces the histogram to always have the same y axis height.
     ax[0, 1].set_ylim(1, 40000)
@@ -110,7 +110,7 @@ def plot_histogram(img, hist, masking=None, save=True):
 
     xt = []
     for i in range(20180101, 20180132):
-        x1 = coordinates.timestring_to_obj(str(i), 'r_ut000000s00000').plot_date
+        x1 = coordinates.timestring_to_obj(str(i), "r_ut000000s00000").plot_date
         xt.append(x1)
 
     ax[1, 1].set_xticks(xt)
@@ -119,19 +119,19 @@ def plot_histogram(img, hist, masking=None, save=True):
     ax[1, 1].xaxis.set_ticklabels([])
 
     # Saving code.
-    path = img.date + '/' + img.name
-    name = 'Images/Histogram/' + path
+    path = img.date + "/" + img.name
+    name = "Images/Histogram/" + path
 
-    # This ensures that the directory you're saving to actually exists.
-    loc = path.rfind('/')
-    dirname = 'Images/Histogram/' + path[0:loc]
+    # This ensures that the directory you"re saving to actually exists.
+    loc = path.rfind("/")
+    dirname = "Images/Histogram/" + path[0:loc]
     if not os.path.exists(dirname):
         os.makedirs(dirname)
 
     if save:
         dpi = 350.3
-        plt.savefig(name, dpi=dpi, bbox_inches='tight')
-        print('Saved: ' + name)
+        plt.savefig(name, dpi=dpi, bbox_inches="tight")
+        print("Saved: " + name)
 
     # Close the plot at the end.
     plt.close()
@@ -212,17 +212,17 @@ def init_categories():
     These images can be downloaded from the GitHub repository.
     """
     # Loads up the category numbers
-    directory = 'Images/Category/'
+    directory = os.path.join(os.path.dirname(__file__), *["Images", "Category"])
     files = sorted(os.listdir(directory))
     categories = {}
 
-    for file in files:
+    for f in files:
 
         # Opens the image, then uses np.histogram to generate the histogram
         # for that image, where the image is masked the same way as in the
         # histogram method.
-        loc = 'Images/Category/' + file
-        img = np.asarray(Image.open(loc).convert('L'))
+        loc = os.path.join(directory, f)
+        img = np.asarray(Image.open(loc).convert("L"))
         masking = mask.generate_full_mask()
         masking = 1 - masking
 
@@ -233,7 +233,7 @@ def init_categories():
         bins = list(range(0, 256))
         hist = np.histogram(img1, bins=bins)
 
-        name = file[:-4]
+        name = f[:-4]
         categories[name] = hist[0]
 
     return categories
@@ -261,7 +261,7 @@ def categorize(histogram, categories):
     entitled Color Indexing [1].
 
     In essence the method decides what category the histogram belongs to by
-    finding the category whose histogram's shape most closely
+    finding the category whose histogram"s shape most closely
     matches that of the input histogram.
 
     References
@@ -291,7 +291,7 @@ def categorize(histogram, categories):
             best = intersection
             category = cat
 
-    # At present I'm currently looking for more categories, so if there isn't
+    # At present I"m currently looking for more categories, so if there isn"t
     # a category with > thresh% intersection I want to know that.
     thresh = 0.35
     if best > thresh:
@@ -299,5 +299,5 @@ def categorize(histogram, categories):
         return category
     return None
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     init_categories()

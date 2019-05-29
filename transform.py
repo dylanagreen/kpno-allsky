@@ -87,7 +87,7 @@ def transform(img):
     # Scatter for the background
     # (i.e. fills in the rest of the globular shape with black)
     x, y = eckertiv(rapoints, decpoints)
-    ax1.scatter(x, y, s=2, color='black')
+    ax1.scatter(x, y, s=2, color="black")
 
     # This is the image conversion
     xpoints = []
@@ -133,7 +133,7 @@ def transform(img):
 
     # Scatter for the image conversion
     x, y = eckertiv(rapoints, decpoints)
-    ax1.scatter(x, y, s=1, c=colors, cmap='gray')
+    ax1.scatter(x, y, s=1, c=colors, cmap="gray")
 
     # Add the contours
     ax1 = contours(ax1, time)
@@ -141,7 +141,7 @@ def transform(img):
     # These coord: -265.300085635, -132.582101423 are the minimum x and y of
     # the projection.
     # I found them by sorting x and y.
-    ax1.text(-290, -143, img.formatdate, style='italic')
+    ax1.text(-290, -143, img.formatdate, style="italic")
 
     patches = desi_patch()
     for patch in patches:
@@ -151,7 +151,7 @@ def transform(img):
     fig.add_axes(ax1)
 
     # Make sure the folder location exists
-    directory = 'Images/Transform/' + img.date + '/'
+    directory = "Images/Transform/" + img.date + "/"
     if not os.path.exists(directory):
         os.makedirs(directory)
 
@@ -162,9 +162,9 @@ def transform(img):
     dpi = 1920 / (fig.get_size_inches()[0])
     plot.savefig(conv, dpi=dpi)
 
-    print('Saved: ' + conv)
+    print("Saved: " + conv)
 
-    # Gotta close the plot so we don't memory overflow lol.
+    # Gotta close the plot so we don"t memory overflow lol.
     plot.close()
 
 
@@ -210,9 +210,9 @@ def contours(axis, time):
             else:
                 ra = ra + rot
 
-        # Don't sort the 60 contour since it's a complete circle.
+        # Don"t sort the 60 contour since it"s a complete circle.
         if not alt == 60:
-            # Sorting by ra so that the left and right edges don't connect.
+            # Sorting by ra so that the left and right edges don"t connect.
             points = []
             for i, ra in enumerate(rapoints):
                 points.append((ra, decpoints[i]))
@@ -226,7 +226,7 @@ def contours(axis, time):
             x, y = eckertiv(rapoints, decpoints)
 
             # 42f44e is super bright green.
-            axis.plot(x, y, c='#42f44e')
+            axis.plot(x, y, c="#42f44e")
 
         # The 60 contour needs to be two plots if it gets seperated by the edge.
         else:
@@ -252,16 +252,16 @@ def contours(axis, time):
                 # Left needs to be sorted from negative x.
                 lowerra, lowerdec = clockwise_sort(lowerra, lowerdec)
                 x, y = eckertiv(lowerra, lowerdec)
-                axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c="#42f44e")
 
                 # Right needs to be sorted from the positive x.
                 upperra, upperdec = clockwise_sort(upperra, upperdec, True)
                 x, y = eckertiv(upperra, upperdec)
-                axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c="#42f44e")
 
             else:
                 x, y = eckertiv(rapoints, decpoints)
-                axis.plot(x, y, c='#42f44e')
+                axis.plot(x, y, c="#42f44e")
 
     return axis
 
@@ -276,7 +276,7 @@ def mollweide_findtheta(dec, n):
         The declination (or latitude) angular coordinates of the data set in
         radians.
     n : int
-        The number of iterations to use in Newton's method.
+        The number of iterations to use in Newton"s method.
 
     Returns
     -------
@@ -286,7 +286,7 @@ def mollweide_findtheta(dec, n):
 
     Notes
     -----
-    This method finds the auxiliary latitude values using Newton's method, and
+    This method finds the auxiliary latitude values using Newton"s method, and
     is thus recursive.
     Wikipedia provides a simple form of the equation that is iterated upon
     in this method. See here for more details:
@@ -310,7 +310,7 @@ def mollweide_findtheta(dec, n):
     cond = np.logical_or(cond1, cond2)
 
     # Choose the original value (pi/2 or neg pi/2) if its true for equality
-    # Otherwise use that value's thetanew.
+    # Otherwise use that value"s thetanew.
     num = (2 * theta + np.sin(2 * theta) - math.pi * np.sin(dec))
     thetanew = theta - num / (2 + 2 * np.cos(2 * theta))
     thetanew = np.where(cond, dec, thetanew)
@@ -337,7 +337,7 @@ def mollweide(ra, dec):
 
     See Also
     --------
-    mollweide_findtheta : Newton's method for finding each point's auxiliary
+    mollweide_findtheta : Newton"s method for finding each point"s auxiliary
                           latitdue (theta) value.
 
     Notes
@@ -345,7 +345,7 @@ def mollweide(ra, dec):
     This method defines the x,y and latitude and longitude using the standard
     Mollweide definition. Wikipedia provides a simple form of the equations
     used in this method, including a defnition of the theta value that is
-    found using Newton's method. See here for more details:
+    found using Newton"s method. See here for more details:
     https://en.wikipedia.org/wiki/Mollweide_projection
     """
 
@@ -375,7 +375,7 @@ def eckertiv_findtheta(dec, n):
         The declination (or latitude) angular coordinates of the data set in
         radians.
     n : int
-        The number of iterations to use in Newton's method.
+        The number of iterations to use in Newton"s method.
 
     Returns
     -------
@@ -385,7 +385,7 @@ def eckertiv_findtheta(dec, n):
 
     Notes
     -----
-    This method finds the auxiliary latitude values using Newton's method, and
+    This method finds the auxiliary latitude values using Newton"s method, and
     is thus recursive.
     Wikipedia provides a simple form of the equation that is iterated upon
     in this method. See here for more details:
@@ -412,9 +412,9 @@ def eckertiv_findtheta(dec, n):
     cond = np.logical_or(cond1, cond2)
 
     # Choose the original value (pi/2 or -pi/2) if its true for equality
-    # Otherwise use that value's thetanew.
-    # This is the eckertiv theta finding Newton's method.
-    # It's been broken up for style.
+    # Otherwise use that value"s thetanew.
+    # This is the eckertiv theta finding Newton"s method.
+    # It"s been broken up for style.
     s_theta = np.sin(theta)
     c_theta = np.cos(theta)
     num = theta + np.multiply(s_theta, c_theta) + 2 * s_theta - (2 + pi/2) * np.sin(dec)
@@ -444,7 +444,7 @@ def eckertiv(ra, dec):
 
     See Also
     --------
-    eckertiv_findtheta : Newton's method for finding each point's
+    eckertiv_findtheta : Newton"s method for finding each point"s
                          auxiliary latitude value.
 
     Notes
@@ -452,7 +452,7 @@ def eckertiv(ra, dec):
     This method defines the x,y and latitude and longitude using the standard
     Eckert-IV definition. Wikipedia provides a simple form of the equations
     used in this method, including a defnition of the theta value that is
-    found using Newton's method. See here for more details:
+    found using Newton"s method. See here for more details:
     https://en.wikipedia.org/wiki/Eckert_IV_projection
 
     """
@@ -460,7 +460,7 @@ def eckertiv(ra, dec):
     center = math.radians(180)
 
     # n = 5 seems to be sufficient for the shape.
-    # This doesn't converge as quickly as Mollweide
+    # This doesn"t converge as quickly as Mollweide
     theta = eckertiv_findtheta(np.radians(dec), 5)
 
     R = 100
@@ -486,11 +486,12 @@ def desi_patch():
 
     Notes
     -----
-    This method requires the file hull.txt to be in the module's directory.
+    This method requires the file hull.txt to be in the module"s directory.
     This file can be downloaded from the kpno-allsky GitHub.
 
     """
-    f = open('hull.txt', 'r')
+    hull_loc = os.path.join(os.path.dirname(__file__), *["data", "hull.txt"])
+    f = open(hull_loc, "r")
 
     # Converts the string representation of the list to a list of points.
     left = f.readline()
@@ -500,9 +501,9 @@ def desi_patch():
 
     # Zorder parameter ensures the patches are on top of everything.
     patch1 = Polygon(left, closed=True, fill=False,
-                     edgecolor='red', lw=2, zorder=4)
+                     edgecolor="red", lw=2, zorder=4)
     patch2 = Polygon(right, closed=True, fill=False,
-                     edgecolor='red', lw=2, zorder=4)
+                     edgecolor="red", lw=2, zorder=4)
 
     f.close()
 
@@ -592,6 +593,6 @@ def clockwise_sort(x, y, clockwise=True):
 
 
 if __name__ == "__main__":
-    date = '20170623'
-    img = image.load_image('r_ut030204s76080', date, 'KPNO')
+    date = "20170623"
+    img = image.load_image("r_ut030204s76080", date, "KPNO")
     transform(img)
