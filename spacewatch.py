@@ -1,10 +1,6 @@
 #!/usr/bin/env python3
-"""A module providing facilities for loading, saving, and downloading
+"""A module providing facilities for manipulating spacewatch images.
 
-Methods are provided for downloading and saving images taken at two different
-all-sky cameras. These cameras are located at Kitt Peak, designated KPNO, and
-at the Multiple Mirror Telescope Observatory, designated MMTO.
-One class is provided to read the raw HTML provided by each camera's website.
 """
 
 import datetime
@@ -12,9 +8,12 @@ import logging
 import os
 import time
 from html.parser import HTMLParser
-import numpy as np
+
 import ephem
+import numpy as np
+import pytesseract
 import requests
+from PIL import Image
 from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
                                  Timeout, RequestException)
 
@@ -125,67 +124,41 @@ class DateHTMLParser(HTMLParser):
         self.data = []
 
 
-def download_image():
+def download_image(date):
     # Creates the link
-    link = 'http://varuna.kpno.noao.edu'
+    link = 'http://varuna.kpno.noao.edu/allsky/AllSkyCurrentImage.JPG'
 
     # Collects originals in their own folder within Images
     time = datetime.datetime.now()
 
-    directory = os.path.join('Images', *['Original', 'SW', time.strftime('%Y%m%d')])
+    directory = os.path.join('Images', *['Original', 'SW', date])
     # This directory is for use on the blackbox server.
-    #directory = os.path.join('/media', *['data1', 'spacewatch', time.strftime('%Y%m%d')])
+    #directory = os.path.join('/media', *['data1', 'spacewatch', date])
 
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
         os.makedirs(directory)
 
-    htmllink = link + '/allsky.htm'
-    rdate = download_url(htmllink)
+    # Label the images in a similar way to the kpno ones.
+    imagename = os.path.join(directory, "temp.png")
 
-    if rdate is None:
-        logging.error('Failed to download dates.')
+    rimage = download_url(link)
+
+    if rimage is None:
+        logging.error('Failed: ' + time.strftime('%Y%m%d %H:%M:%S'))
         return
 
-    # Makes sure the date exists.
-    if rdate.status_code == 404:
-        logging.error("Date not found.")
-        return
+    # Saves the image
+    with open(imagename, 'wb') as f:
+        f.write(rimage.content)
 
-    htmldate = rdate.text
-    parser = DateHTMLParser()
-    parser.feed(htmldate)
-    parser.close()
-    imagenames = parser.data
-
-    for image in imagenames:
-        imageloc = link + '/' + image
-
-        # Find the next lowest even minute, which is the timestamp stamped
-        # on the image.
-        time = datetime.datetime.utcnow()
-        minute = time.minute - 3
-        hour = time.hour
-        minute = minute // 2 * 2
-
-        if minute < 0:
-            hour = hour - 1
-            minute = 58
-
-        time = time.replace(hour = hour, minute=minute, second=5)
-        # Label the images in a similar way to the kpno ones.
-        imagename = os.path.join(directory, 'c_ut' + time.strftime('%H%M%S') + '.png')
-
-        rimage = download_url(imageloc)
-
-        if rimage is None:
-            logging.error('Failed: ' + time.strftime('%Y%m%d %H:%M:%S'))
-            return
-
-        # Saves the image
-        with open(imagename, 'wb') as f:
-            f.write(rimage.content)
-        logging.debug("Downloaded: " + imagename)
+    # This extracts the text relevant portion of the image.
+    temp_im = Image.open(imagename).crop((120, 0, 240, 30)).resize((240, 60))
+    text = pytesseract.image_to_string(temp_im)
+    # Renames the image.
+    new_name = 'c_ut' + text.replace(":", "") + '.png'
+    os.rename(imagename, os.path.join(directory, new_name))
+    logging.debug("Downloaded: " + new_name)
 
 
 def run_and_download():
@@ -196,13 +169,13 @@ def run_and_download():
         now = datetime.datetime.utcnow()
 
         # If the next rising is before the next setting then we're in the night
-        if not rising < setting:
-            print("Current time:", now)
-            print("Setting at:", setting)
-            print("Rising at:", rising)
-            delta = (setting - now).total_seconds()
+        #if not rising < setting:
+         #   print("Current time:", now)
+          #  print("Setting at:", setting)
+           # print("Rising at:", rising)
+            #delta = (setting - now).total_seconds()
             # Sleeps until the sun sets.
-            time.sleep(delta)
+            #time.sleep(delta)
         print("Sunset arrived, starting download.")
         day = datetime.datetime.now().strftime('%Y%m%d')
         directory = os.path.join('Images', *['Original', 'SW', day])
@@ -217,13 +190,17 @@ def run_and_download():
         log_name = os.path.join(directory, "download.log")
         logging.basicConfig(filename=log_name, level=logging.DEBUG)
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.utcnow()
         while now < rising:
             try:
-                download_image()
-                # Slightly less than 120 seconds to account for call time to now()
-                time.sleep(119.9)
-                now = datetime.datetime.now()
+                download_image(day)
+
+                # Sleeps until 6 seconds after two minutes from now.
+                sleep_until = (datetime.datetime.now() + datetime.timedelta(seconds=120)).replace(second=6)
+                sleep_for = (sleep_until - datetime.datetime.now()).total_seconds()
+                time.sleep(sleep_for)
+
+                now = datetime.datetime.utcnow()
             except Exception as e:
                 logging.error(e)
                 raise(e)
