@@ -152,8 +152,9 @@ def download_image(date):
     with open(imagename, 'wb') as f:
         f.write(rimage.content)
 
-    # This extracts the text relevant portion of the image.
-    temp_im = Image.open(imagename).crop((120, 0, 240, 30)).resize((240, 60))
+    # This extracts the text relevant portion of the image and resizes it so
+    # that py tesseract can extract the text better.
+    temp_im = Image.open(imagename).crop((120, 0, 240, 30)).resize((480, 120))
     text = pytesseract.image_to_string(temp_im)
     # Renames the image.
     new_name = 'c_ut' + text.replace(":", "") + '.png'
@@ -164,6 +165,8 @@ def download_image(date):
 def run_and_download():
     while True:
         sun = ephem.Sun()
+        # Sleep for an extra four minutes after sunrise to update rising.
+        time.sleep(240)
         setting = camera.next_setting(sun, use_center=True).datetime()
         rising = camera.next_rising(sun, use_center=True).datetime()
         now = datetime.datetime.utcnow()
