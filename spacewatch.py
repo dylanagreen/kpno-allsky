@@ -21,8 +21,8 @@ from requests.exceptions import (TooManyRedirects, HTTPError, ConnectionError,
 # Sets up a pyephem object for the camera.
 # Using the lat/long of the other KPNO camera for now.
 camera = ephem.Observer()
-camera.lat = '31.959417'
-camera.lon = '-111.598583'
+camera.lat = "31.959417"
+camera.lon = "-111.598583"
 camera.elevation = 2120
 
 
@@ -55,24 +55,24 @@ def download_url(link):
 
         # Too many redirects is when the link redirects you too much.
         except TooManyRedirects:
-            logging.error('Too many redirects.')
+            logging.error("Too many redirects.")
             return None
         # HTTPError is an error in the http code.
         except HTTPError:
-            logging.error('HTTP error with status code ' + str(data.status_code))
+            logging.error("HTTP error with status code " + str(data.status_code))
             return None
         # This is a failure in the connection unrelated to a timeout.
         except ConnectionError:
-            logging.error('Failed to establish a connection to the link.')
+            logging.error("Failed to establish a connection to the link.")
             return None
         # Timeouts are either server side (too long to respond) or client side
-        # (when requests doesn't get a response before the timeout timer is up)
+        # (when requests doesn"t get a response before the timeout timer is up)
         # I have set the timeout to 5 seconds
         except Timeout:
             tries += 1
 
             if tries >= 3:
-                logging.error('Timed out after three attempts.')
+                logging.error("Timed out after three attempts.")
                 return None
 
             # Tries again after 5 seconds.
@@ -80,11 +80,11 @@ def download_url(link):
 
         # Covers every other possible exceptions.
         except RequestException as err:
-            logging.error('Unable to read link')
+            logging.error("Unable to read link")
             print(err)
             return None
         else:
-            logging.info(link + ' read with no errors.')
+            logging.info(link + " read with no errors.")
             return data
 
 
@@ -112,10 +112,10 @@ class DateHTMLParser(HTMLParser):
 
         """
         # All image names are held in tags of form <img=imagename>
-        if tag == 'img':
+        if tag == "img":
             for attr in attrs:
                 # If the first attribute is href we need to ignore it
-                if attr[0] == 'src':
+                if attr[0] == "src":
                     self.data.append(attr[1])
 
     def clear_data(self):
@@ -126,14 +126,14 @@ class DateHTMLParser(HTMLParser):
 
 def download_image(date):
     # Creates the link
-    link = 'http://varuna.kpno.noao.edu/allsky/AllSkyCurrentImage.JPG'
+    link = "http://varuna.kpno.noao.edu/allsky/AllSkyCurrentImage.JPG"
 
     # Collects originals in their own folder within Images
     time = datetime.datetime.now()
 
-    directory = os.path.join('Images', *['Original', 'SW', date])
+    directory = os.path.join("Images", *["Original", "SW", date])
     # This directory is for use on the blackbox server.
-    #directory = os.path.join('/media', *['data1', 'spacewatch', date])
+    #directory = os.path.join("/media", *["data1", "spacewatch", date])
 
     # Verifies that an Images folder exists, creates one if it does not.
     if not os.path.exists(directory):
@@ -145,19 +145,32 @@ def download_image(date):
     rimage = download_url(link)
 
     if rimage is None:
-        logging.error('Failed: ' + time.strftime('%Y%m%d %H:%M:%S'))
+        logging.error("Failed: " + time.strftime("%Y%m%d %H:%M:%S"))
         return
 
     # Saves the image
-    with open(imagename, 'wb') as f:
+    with open(imagename, "wb") as f:
         f.write(rimage.content)
 
     # This extracts the text relevant portion of the image and resizes it so
     # that py tesseract can extract the text better.
     temp_im = Image.open(imagename).crop((120, 0, 240, 30)).resize((480, 120))
     text = pytesseract.image_to_string(temp_im)
-    # Renames the image.
-    new_name = 'c_ut' + text.replace(":", "") + '.png'
+    text = text.replace(":", "")
+    try:
+        test = int(text)
+        # Renames the image.
+        new_name = "c_ut" + text.replace(":", "") + ".png"
+    # This is entered if the number from image extraction is wrong, we assume
+    # the image is two minutes after the previous one.
+    except:
+        # -3 since -2 will be download.log and -1 is temp.png
+        prev = sorted(os.listdir(directory))[-3]
+        num = int(prev[4:-4]) + 200
+        if "58" in prev:
+            num = num + 4000
+        new_name = "c_ut" + str(num) + ".png"
+
     os.rename(imagename, os.path.join(directory, new_name))
     logging.debug("Downloaded: " + new_name)
 
@@ -165,26 +178,27 @@ def download_image(date):
 def run_and_download():
     while True:
         sun = ephem.Sun()
-        # Sleep for an extra four minutes after sunrise to update rising.
+        # Update the camera date to update next rising.
         camera.date = datetime.datetime.utcnow()
         setting = camera.next_setting(sun, use_center=True).datetime()
         rising = camera.next_rising(sun, use_center=True).datetime()
         now = datetime.datetime.utcnow()
 
         # If the next rising is before the next setting then we're in the night
-        #if not rising < setting:
-         #   print("Current time:", now)
-          #  print("Setting at:", setting)
-           # print("Rising at:", rising)
-            #delta = (setting - now).total_seconds()
+        if not rising < setting:
+            print("Current time:", now)
+            print("Setting at:", setting)
+            print("Rising at:", rising)
+            delta = (setting - now).total_seconds()
             # Sleeps until the sun sets.
-            #time.sleep(delta)
+            time.sleep(delta)
+
         print("Sunset arrived, starting download.")
-        day = datetime.datetime.now().strftime('%Y%m%d')
-        directory = os.path.join('Images', *['Original', 'SW', day])
+        day = datetime.datetime.now().strftime("%Y%m%d")
+        directory = os.path.join("Images", *["Original", "SW", day])
 
         # This directory is for use on the blackbox server.
-        #directory = os.path.join('/media', *['data1', 'spacewatch', day])
+        #directory = os.path.join("/media", *["data1", "spacewatch", day])
 
         # Verifies that an Images folder exists, creates one if it does not.
         if not os.path.exists(directory):
