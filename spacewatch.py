@@ -166,7 +166,7 @@ def run_and_download():
     while True:
         sun = ephem.Sun()
         # Sleep for an extra four minutes after sunrise to update rising.
-        time.sleep(240)
+        camera.date = datetime.datetime.utcnow()
         setting = camera.next_setting(sun, use_center=True).datetime()
         rising = camera.next_rising(sun, use_center=True).datetime()
         now = datetime.datetime.utcnow()
