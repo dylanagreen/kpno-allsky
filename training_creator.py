@@ -22,7 +22,7 @@ import io_util
 
 
 class TaggableImage:
-    def __init__(self, name):
+    def __init__(self, name, update=False):
         self.press = False
         self.name = name
 
@@ -30,7 +30,10 @@ class TaggableImage:
         self.artists = []
 
         # Loads the image and reshapes to 512 512 in greyscale.
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", name])
+        if not update:
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", name])
+        else:
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", "0.3", name])
         with open(loc, 'rb') as f:
             img = Image.open(f).convert('L')
             self.img = np.asarray(img).reshape((512, 512))
@@ -38,6 +41,16 @@ class TaggableImage:
         # The grid division
         self.div = 16
         self.good = True
+
+        self.update = update
+
+        # The masking image that we're creating.
+        self.mask = np.zeros((512, 512), dtype="uint8")
+
+        if update:
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3", name])
+            with open(loc, 'rb') as f:
+                self.mask = np.array(Image.open(f).convert('L'))
 
 
     def set_up_plot(self):
@@ -77,9 +90,7 @@ class TaggableImage:
         plt.xticks(grid)
         plt.yticks(grid)
 
-        # The masking image that we're creating.
-        self.mask = np.zeros((512, 512), dtype="uint8")
-        self.artists.append(ax.imshow(self.mask, cmap="gray", alpha=0.25, vmin=0, vmax=255, animated=True))
+        self.artists.append(ax.imshow(self.mask, cmap="viridis", alpha=0.25, vmin=0, vmax=255, animated=True))
 
         self.ax = ax
         self.fig = fig
@@ -96,7 +107,10 @@ class TaggableImage:
 
         # Sets the box to white, and then updates the plot with the new
         # masking data.
-        self.mask[y:y+self.div, x:x+self.div] = 255
+        if not self.update:
+            self.mask[y:y + self.div, x:x + self.div] = 255
+        else:
+            self.mask[y:y + self.div, x:x + self.div] = 128
         self.artists[-1].set_data(self.mask)
 
         # Does the blitting update
@@ -110,8 +124,7 @@ class TaggableImage:
         if not self.press:
             return
 
-        # Don't want to run all this code if the box we're in is already
-        # white.
+        # Don't want to run all this code if the box we're in is already white.
         if self.mask[int(event.ydata), int(event.xdata)] == 255:
             return
 
@@ -124,7 +137,10 @@ class TaggableImage:
 
         # Sets the box to white, and then updates the plot with the new
         # masking data.
-        self.mask[y:y+self.div, x:x+self.div] = 255
+        if not self.update:
+            self.mask[y:y + self.div, x:x + self.div] = 255
+        else:
+            self.mask[y:y + self.div, x:x + self.div] = 128
         self.artists[-1].set_data(self.mask)
 
         # Does the blitting update
@@ -157,11 +173,12 @@ class TaggableImage:
         # Saves the image.
         image.save_image(save_im, loc)
 
-        # Moves the downloaded image into the training folder.
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
-        dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
-        os.rename(loc, dest)
-        print("Moved: " + loc)
+        if not self.update:
+            # Moves the downloaded image into the training folder.
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
+            dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
+            os.rename(loc, dest)
+            print("Moved: " + loc)
 
     def cleanup(self, event):
         # Deletes the downloaded image so that we don't have it clogging
@@ -173,48 +190,57 @@ class TaggableImage:
 
 
 
-def get_image():
-    # The link to the camera.
-    link = "http://kpasca-archives.tuc.noao.edu/"
+def get_image(update, i=0):
+    if not update:
+        # The link to the camera.
+        link = "http://kpasca-archives.tuc.noao.edu/"
 
-    # This extracts the dates listed and then picks one at random.
-    data = io_util.download_url(link)
-    htmldata = data.text
-    parser = DateHTMLParser()
-    parser.feed(htmldata)
-    parser.close()
-    date = random.choice(parser.data)
-    parser.clear_data()
+        # This extracts the dates listed and then picks one at random.
+        data = io_util.download_url(link)
+        htmldata = data.text
+        parser = DateHTMLParser()
+        parser.feed(htmldata)
+        parser.close()
+        date = random.choice(parser.data)
+        parser.clear_data()
 
-    link = link + date
+        link = link + date
 
-    # This extracts the images from the given date and then picks on at random.
-    data = io_util.download_url(link)
-    htmldata = data.text
-    parser.feed(htmldata)
-    parser.close()
-    image = random.choice(parser.data)
-
-    # This loop ensures that we don't accidentally download the all night gifs
-    # or an image in a blue filter.
-    while image == 'allblue.gif' or image == 'allred.gif' or image[:1] == 'b':
+        # This extracts the images from the given date and then picks at random.
+        data = io_util.download_url(link)
+        htmldata = data.text
+        parser.feed(htmldata)
+        parser.close()
         image = random.choice(parser.data)
 
-    # Once we have an image name we download it to Images/data/to_label
-    # First we need to make sure it exists.
-    label_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
-    if not os.path.exists(label_location):
-        os.makedirs(label_location)
+        # This loop ensures that we don't accidentally download the all night
+        # gifs or an image in a blue filter.
+        while image == 'allblue.gif' or image == 'allred.gif' or image[:1] == 'b':
+            image = random.choice(parser.data)
 
-    # Downloads the image
-    io_util.download_image(date[:8], image, directory=label_location)
+        # Once we have an image name we download it to Images/data/to_label
+        # First we need to make sure it exists.
+        label_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
+        if not os.path.exists(label_location):
+            os.makedirs(label_location)
 
-    # Returns the image name.
-    return image
+        # Downloads the image
+        io_util.download_image(date[:8], image, directory=label_location)
+
+        # Returns the image name.
+        return image
+    else:
+        images = os.listdir(os.path.join(os.path.dirname(__file__), *["Images", "data", "train", "0.3"]))
+        images = sorted(images)
+        if images[0] == ".DS_Store":
+            return images[i+1]
+        return images[i]
+
 
 
 if __name__ == "__main__":
     done = {}
+    update = False
     # The list of all the pictures that have already been finished.
     finished_location = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3"])
     if not os.path.exists(finished_location):
@@ -231,18 +257,18 @@ if __name__ == "__main__":
     # We run this loop until the user kills the program.
     while True:
 
-        name = get_image()
+        name = get_image(update, i)
 
         # Loads the image into the frame to label.
-        if (not name in done["0.3"]) or (not name in done["6"]):
+        if not update and ((not name in done["0.3"]) or (not name in done["6"])):
             im = TaggableImage(name)
             im.set_up_plot()
             im.connect()
 
+            # Adds the bad image button
             b_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
             button = Button(b_ax, "Bad Image")
             button.on_clicked(im.cleanup)
-
 
             plt.show()
             print(im.good)
@@ -250,4 +276,21 @@ if __name__ == "__main__":
                 im.save()
                 i += 1
 
-        print("Num images:" + str(i))
+            print("Num images:" + str(i))
+
+        elif update:
+            im = TaggableImage(name, update)
+            im.set_up_plot()
+            im.connect()
+
+            # Adds the bad image button
+            b_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
+            button = Button(b_ax, "Bad Image")
+            button.on_clicked(im.cleanup)
+
+            plt.show()
+
+            if im.good:
+                im.save()
+
+            i += 1
