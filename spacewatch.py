@@ -158,18 +158,28 @@ def download_image(date):
     text = pytesseract.image_to_string(temp_im)
     text = text.replace(":", "")
     try:
+        # This tests to see if the time extraction worked correctly.
         test = int(text)
         # Renames the image.
-        new_name = "c_ut" + text.replace(":", "") + ".png"
+        new_name = "c_ut" + text + ".png"
     # This is entered if the number from image extraction is wrong, we assume
     # the image is two minutes after the previous one.
     except:
-        # -3 since -2 will be download.log and -1 is temp.png
-        prev = sorted(os.listdir(directory))[-3]
-        num = int(prev[4:-4]) + 200
-        if "58" in prev:
-            num = num + 4000
-        new_name = "c_ut" + str(num) + ".png"
+        if len(os.listdir(directory)) > 2:
+            # -3 since -2 will be download.log and -1 is temp.png
+            prev = sorted(os.listdir(directory))[-3]
+            num = int(prev[4:-4]) + 200
+            if "58" in prev:
+                num = num + 4000
+            new_name = "c_ut" + str(num) + ".png"
+        # This is a contingency in case the very first image fails, in which
+        # case we use the last even minute as the time for the image.
+        else:
+            now = datetime.datetime.utcnow()
+            minutes = now.minute // 2 * 2
+            now = now.replace(minute=minutes, second=5)
+            print(now)
+            new_name = "c_ut" + now.strftime('%H%M%S') + ".png"
 
     os.rename(imagename, os.path.join(directory, new_name))
     logging.debug("Downloaded: " + new_name)
@@ -185,13 +195,13 @@ def run_and_download():
         now = datetime.datetime.utcnow()
 
         # If the next rising is before the next setting then we're in the night
-        if not rising < setting:
-            print("Current time:", now)
-            print("Setting at:", setting)
-            print("Rising at:", rising)
-            delta = (setting - now).total_seconds()
+        #if not rising < setting:
+            #print("Current time:", now)
+            #print("Setting at:", setting)
+            #print("Rising at:", rising)
+            #delta = (setting - now).total_seconds()
             # Sleeps until the sun sets.
-            time.sleep(delta)
+            #time.sleep(delta)
 
         print("Sunset arrived, starting download.")
         day = datetime.datetime.now().strftime("%Y%m%d")
@@ -205,10 +215,11 @@ def run_and_download():
             os.makedirs(directory)
 
         log_name = os.path.join(directory, "download.log")
-        logging.basicConfig(filename=log_name, level=logging.DEBUG)
+        logger = logging.basicConfig(filename=log_name, level=logging.DEBUG)
 
         now = datetime.datetime.utcnow()
-        while now < rising:
+        i = 0
+        while i < 2:
             try:
                 download_image(day)
 
@@ -218,9 +229,13 @@ def run_and_download():
                 time.sleep(sleep_for)
 
                 now = datetime.datetime.utcnow()
+                i = i + 1
             except Exception as e:
                 logging.error(e)
                 raise(e)
+
+        logger.handlers[0].stream.close()
+        logger.removeHandler(logger.handlers[0])
 
 
 if __name__ == "__main__":
