@@ -6,6 +6,7 @@
 import datetime
 import logging
 import os
+import subprocess
 import time
 from html.parser import HTMLParser
 
@@ -140,7 +141,7 @@ def download_image(date):
         os.makedirs(directory)
 
     # Label the images in a similar way to the kpno ones.
-    imagename = os.path.join(directory, "temp.png")
+    imagename = os.path.join(directory, "temp.jpg")
 
     rimage = download_url(link)
 
@@ -161,17 +162,17 @@ def download_image(date):
         # This tests to see if the time extraction worked correctly.
         test = int(text)
         # Renames the image.
-        new_name = "c_ut" + text + ".png"
+        new_name = "c_ut" + text + ".jpg"
     # This is entered if the number from image extraction is wrong, we assume
     # the image is two minutes after the previous one.
     except:
         if len(os.listdir(directory)) > 2:
-            # -3 since -2 will be download.log and -1 is temp.png
+            # -3 since -2 will be download.log and -1 is temp.jpg
             prev = sorted(os.listdir(directory))[-3]
             num = int(prev[4:-4]) + 200
             if "58" in prev:
                 num = num + 4000
-            new_name = "c_ut" + str(num) + ".png"
+            new_name = "c_ut" + str(num) + ".jpg"
         # This is a contingency in case the very first image fails, in which
         # case we use the last even minute as the time for the image.
         else:
@@ -179,11 +180,29 @@ def download_image(date):
             minutes = now.minute // 2 * 2
             now = now.replace(minute=minutes, second=5)
             print(now)
-            new_name = "c_ut" + now.strftime('%H%M%S') + ".png"
+            new_name = "c_ut" + now.strftime('%H%M%S') + ".jpg"
 
     os.rename(imagename, os.path.join(directory, new_name))
     logging.debug("Downloaded: " + new_name)
 
+
+def make_video(directory):
+    ff_cmd = ["ffmpeg",
+              "-framerate", "15",
+              "-pattern_type", "glob",
+              "-i", os.path.join(directory, "c_ut*.jpg"),
+              "-c:v", "libx264",
+              "-r", "60",
+              "-pix_fmt", "yuv420p",
+              os.path.join(directory, "vid.mp4")]
+    logging.debug("Making video")
+    logging.debug(" ".join(ff_cmd))
+    proc = subprocess.Popen(ff_cmd)
+
+    # This string of commands should kill the process when it's done.
+    proc.communicate()
+    proc.kill()
+    proc.communicate()
 
 def run_and_download():
     while True:
@@ -232,6 +251,9 @@ def run_and_download():
             except Exception as e:
                 logging.error(e)
                 raise(e)
+
+        # Makes the video at the end of the night
+        make_video(directory)
 
         # This closes the old log.
         logger.handlers[0].stream.close()
