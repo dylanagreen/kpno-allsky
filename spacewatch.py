@@ -195,13 +195,13 @@ def run_and_download():
         now = datetime.datetime.utcnow()
 
         # If the next rising is before the next setting then we're in the night
-        #if not rising < setting:
-            #print("Current time:", now)
-            #print("Setting at:", setting)
-            #print("Rising at:", rising)
-            #delta = (setting - now).total_seconds()
+        if not rising < setting:
+            print("Current time:", now)
+            print("Setting at:", setting)
+            print("Rising at:", rising)
+            delta = (setting - now).total_seconds()
             # Sleeps until the sun sets.
-            #time.sleep(delta)
+            time.sleep(delta)
 
         print("Sunset arrived, starting download.")
         day = datetime.datetime.now().strftime("%Y%m%d")
@@ -215,11 +215,11 @@ def run_and_download():
             os.makedirs(directory)
 
         log_name = os.path.join(directory, "download.log")
-        logger = logging.basicConfig(filename=log_name, level=logging.DEBUG)
+        logging.basicConfig(filename=log_name, level=logging.DEBUG)
+        logger = logging.getLogger()
 
         now = datetime.datetime.utcnow()
-        i = 0
-        while i < 2:
+        while now < rising:
             try:
                 download_image(day)
 
@@ -229,11 +229,11 @@ def run_and_download():
                 time.sleep(sleep_for)
 
                 now = datetime.datetime.utcnow()
-                i = i + 1
             except Exception as e:
                 logging.error(e)
                 raise(e)
 
+        # This closes the old log.
         logger.handlers[0].stream.close()
         logger.removeHandler(logger.handlers[0])
 
