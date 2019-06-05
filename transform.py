@@ -276,7 +276,7 @@ def mollweide_findtheta(dec, n):
         The declination (or latitude) angular coordinates of the data set in
         radians.
     n : int
-        The number of iterations to use in Newton"s method.
+        The number of iterations to use in Newton's method.
 
     Returns
     -------
@@ -286,7 +286,7 @@ def mollweide_findtheta(dec, n):
 
     Notes
     -----
-    This method finds the auxiliary latitude values using Newton"s method, and
+    This method finds the auxiliary latitude values using Newton's method, and
     is thus recursive.
     Wikipedia provides a simple form of the equation that is iterated upon
     in this method. See here for more details:
@@ -337,7 +337,7 @@ def mollweide(ra, dec):
 
     See Also
     --------
-    mollweide_findtheta : Newton"s method for finding each point"s auxiliary
+    mollweide_findtheta : Newton's method for finding each point"s auxiliary
                           latitdue (theta) value.
 
     Notes
@@ -345,7 +345,7 @@ def mollweide(ra, dec):
     This method defines the x,y and latitude and longitude using the standard
     Mollweide definition. Wikipedia provides a simple form of the equations
     used in this method, including a defnition of the theta value that is
-    found using Newton"s method. See here for more details:
+    found using Newton's method. See here for more details:
     https://en.wikipedia.org/wiki/Mollweide_projection
     """
 
@@ -375,7 +375,7 @@ def eckertiv_findtheta(dec, n):
         The declination (or latitude) angular coordinates of the data set in
         radians.
     n : int
-        The number of iterations to use in Newton"s method.
+        The number of iterations to use in Newton's method.
 
     Returns
     -------
@@ -385,7 +385,7 @@ def eckertiv_findtheta(dec, n):
 
     Notes
     -----
-    This method finds the auxiliary latitude values using Newton"s method, and
+    This method finds the auxiliary latitude values using Newton's method, and
     is thus recursive.
     Wikipedia provides a simple form of the equation that is iterated upon
     in this method. See here for more details:
@@ -413,7 +413,7 @@ def eckertiv_findtheta(dec, n):
 
     # Choose the original value (pi/2 or -pi/2) if its true for equality
     # Otherwise use that value"s thetanew.
-    # This is the eckertiv theta finding Newton"s method.
+    # This is the eckertiv theta finding Newton's method.
     # It"s been broken up for style.
     s_theta = np.sin(theta)
     c_theta = np.cos(theta)
@@ -444,7 +444,7 @@ def eckertiv(ra, dec):
 
     See Also
     --------
-    eckertiv_findtheta : Newton"s method for finding each point"s
+    eckertiv_findtheta : Newton's method for finding each point"s
                          auxiliary latitude value.
 
     Notes
@@ -452,7 +452,7 @@ def eckertiv(ra, dec):
     This method defines the x,y and latitude and longitude using the standard
     Eckert-IV definition. Wikipedia provides a simple form of the equations
     used in this method, including a defnition of the theta value that is
-    found using Newton"s method. See here for more details:
+    found using Newton's method. See here for more details:
     https://en.wikipedia.org/wiki/Eckert_IV_projection
 
     """

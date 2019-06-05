@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
-"""A module providing facilities for manipulating spacewatch images.
+"""A script that downloads and manipulates spacewatch images.
 
+This file exists as a standalone script that is run separate from the rest of
+the kpno project. The script downloads images from
+http://varuna.kpno.noao.edu/allsky.htm and archives them. Upon download the
+script extracts the timestamp of the image from the image, and then blacks out
+three of the four corners.
 """
 
 import datetime
@@ -126,6 +131,29 @@ class DateHTMLParser(HTMLParser):
 
 
 def download_image(date):
+    """Download a single image.
+
+    This method is of a similar form to
+    :func:`io_util.download_image <io_util.download_image>`, where `date`
+    provides the date to save the image to.
+
+    Parameters
+    ----------
+    date : str
+        Date to download images for, in the form yyyymmdd.
+
+    Notes
+    -----
+    Over the course of the run time of this method various status updates will
+    be logged to `date`/download.log. The method will exit early and fail to
+    download the image with a failure print out.
+
+    The Spacewatch images are located at http://varuna.kpno.noao.edu/allsky.htm
+
+    Spacewatch does not maintain an archive of the images, and the method
+    downloads the most recent image and saves it with its timestamp into a
+    folder determined by `date`.
+    """
     # Creates the link
     link = "http://varuna.kpno.noao.edu/allsky/AllSkyCurrentImage.JPG"
 
@@ -187,6 +215,24 @@ def download_image(date):
 
 
 def make_video(directory):
+    """Make a time-lapse of images.
+
+    This method joins the images in `directory` into a timelapse image.
+
+    Parameters
+    ----------
+    directory : str
+        Directory where the images are saved in the form yyyymmdd.
+
+    Notes
+    -----
+    The method uses ffmpeg to create the output video. The video will be saved
+    as `directory`/vid.mp4. The framerate of the image will be 15 fps and
+    the video is encoded using x264. The ffmpeg command used to generate
+    the video is ``ffmpeg -framerate 15 -pattern_type glob -i
+    `directory`/c_ut*.jpg -c:v libx264 -r 60 -pix_fmt yuv420p
+    `directory`/vid.mp4``
+    """
     ff_cmd = ["ffmpeg",
               "-framerate", "15",
               "-pattern_type", "glob",
@@ -206,6 +252,21 @@ def make_video(directory):
 
 
 def block_text(directory, name):
+    """Blocks the text in the corners of the images.
+
+    Parameters
+    ----------
+    directory : str
+        Directory where the images are saved in the form yyyymmdd.
+    name: str
+        Name of the image.
+
+    Notes
+    -----
+    The top right, lower right and lower left corner text will be blacked out.
+    The top left corner, containing the date and time at which the image was
+    taken will be left.
+    """
     im = np.array(Image.open(os.path.join(directory, name)))
     # The top right, lower right, and loewr left corners of text.
     im[1000:, 860:] = 0
@@ -215,6 +276,24 @@ def block_text(directory, name):
 
 
 def run_and_download():
+    """Runs the script and downloads the images.
+
+    See Also
+    --------
+    download_image : Download a single image.
+    block_text : Blocks the text in the corners of the images.
+    make_video : Make a time-lapse of images.
+
+    Notes
+    -----
+    This method exectures the code flow of the script. First the next sunset
+    and next sunrise are determined. If it is daytime, the script sleeps until
+    the next sunset. If it is currently nighttime, the script skips straight
+    to start downloading. At that time it creates a folder to contain the
+    images. The script downloads the image, and blacks out the corner text.
+    At the end of the night the downloaded images are joined into a time-lapse
+    video. It then sleeps until the next evening.
+    """
     while True:
         sun = ephem.Sun()
         # Update the camera date to update next rising.

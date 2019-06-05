@@ -13,4 +13,6 @@ kitt-peak
    mask
    median
    moon
+   spacewatch
+   threshold
    transform
