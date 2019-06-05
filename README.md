@@ -10,46 +10,20 @@ Current dependencies:
 - Requests
 - pyephem
 
-# ImageIO.py
-- Finds the difference between two images.
-- Saves images.
-- Gets the exposure of images.
-- Downloads all the images from a given day.
-- Downloads from two cameras: KPNO and MMTO.
+Spacewatch.py requires the additional dependency of pytesseract.
 
-# Median.py
-- Finds a median image for all images from a given day.
 
-# Coordinates.py
-- Converts the x,y pixel coordinates of an image to the ra,dec for that pixel.
-- Converts ra,dec to x,y pixel coordinates.
-- Can find a star near a given pixel
-- Makes corrections to az/r coords to increase conversion accuracy.
+Details on script operation can be found in the [extensive documentation](https://kpno-allsky.readthedocs.io/en/latest/) I've put together.
 
-# Mask.py
-- Takes a few medians and finds the hot/stuck pixels.
-- Outputs as an image or a list of pixels.
-- Additional Masks mask the horizon objects, and all pixels outside the circular image.
 
-# Transform.py
-- Converts a circular all-sky image into an ra-dec image that shows the ra-dec visible portions of the sky for that image.
-- Ra-dec image is projected as an Eckert-IV projection.
-- Methods are provided to transform arrays of ra and dec into x,y for Mollweide and Eckert-IV projections.
-- Ignores masked pixels from Mask.
+### Notebooks
+The Notebooks folder contains various Jupyter Notebooks that were and are used for plotting, models, and rapid prototyping. In general I've outlined their purpose in the header of the notebook.
 
-# Clouds.py
-- Makes (most of) the clouds in 6s exposure images darker.
-- Does some .3s clouds well and others badly.
+# Convolutional Neural Networks
+Recently my effort has been focused on designing a CNN that can recognize and pick out the clouds in the all-sky images automatically. The following lists the versioning scheme I've used for these notbooks, entitled "Image Classifier" in the main repository. 
 
-# Histogram.py
-- Creates histograms of greyscale values in .3s images.
-- Categorizes the histograms based on predefined categories.
-
-# Moon.py
-- Finds a moon in an image
-- Fits a Moffat to the moon to find an approx radius and center
-- Finds the illuminated fraction of the moon for eclipse and non eclipse images.
-- Finds an approximate size of the moon on the image.
-
-# Notebooks
-This repo also features a few jupyter notebooks designed for quick plotting/model corrections. Their functions are defined at the top of the notebooks themselves.
+- **v1** - A variation of ResNet designed to classify the entire image as "cloudy" or "not cloudy"
+- **v2** - Used a smaller 32x32 first layer network based on [Deep learning for cloud detection](https://hal.archives-ouvertes.fr/hal-01783857/document) to try and map out every cloud pixel in the image.
+- **v3** - Uses a Fully Convolutional Version of **v2** to implement the paper [Fully Convolutional Networks for Semantic Segmentation](https://people.eecs.berkeley.edu/~jonlong/long_shelhamer_fcn.pdf) to try and generate a heatmap of cloud pixels.
+- **v4** - A short lived version of **v3** that used 64x64 training patches instead of 32x32 to try and get a better sense of ghost images.
+- **v5** - The most recent version, which adds two additional layers that skip most of the pooling layers in **v3** to keep a global sense of the training patches. This is a simpler implementation of the skip connections mentioned in the FCN paper above. Additionally changed the network from a two class classifier (No Clouds, Clouds) to a three class classifier (No Clouds, Ghosts, Clouds).
