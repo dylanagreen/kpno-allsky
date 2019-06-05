@@ -52,6 +52,9 @@ class TaggableImage:
             with open(loc, 'rb') as f:
                 self.mask = np.array(Image.open(f).convert('L'))
 
+        # This is pure white, but we change it to 128 if we're labeling ghosts.
+        self.val = 255
+
 
     def set_up_plot(self):
         # Sets up the figure and axis.
@@ -108,7 +111,7 @@ class TaggableImage:
         # Sets the box to white, and then updates the plot with the new
         # masking data.
         if not self.update:
-            self.mask[y:y + self.div, x:x + self.div] = 255
+            self.mask[y:y + self.div, x:x + self.div] = self.val
         else:
             self.mask[y:y + self.div, x:x + self.div] = 128
         self.artists[-1].set_data(self.mask)
@@ -125,7 +128,7 @@ class TaggableImage:
             return
 
         # Don't want to run all this code if the box we're in is already white.
-        if self.mask[int(event.ydata), int(event.xdata)] == 255:
+        if self.mask[int(event.ydata), int(event.xdata)] == self.val:
             return
 
         # Finds the box that we're currently in.
@@ -138,7 +141,7 @@ class TaggableImage:
         # Sets the box to white, and then updates the plot with the new
         # masking data.
         if not self.update:
-            self.mask[y:y + self.div, x:x + self.div] = 255
+            self.mask[y:y + self.div, x:x + self.div] = self.val
         else:
             self.mask[y:y + self.div, x:x + self.div] = 128
         self.artists[-1].set_data(self.mask)
@@ -187,6 +190,14 @@ class TaggableImage:
         os.remove(loc)
         self.good = False
         print("Deleted: " + loc)
+
+
+    # Swaps the tag value from cloud to ghost.
+    def swap(self, event):
+        if self.val == 255:
+            self.val = 128
+        else:
+            self.val = 255
 
 
 
@@ -265,10 +276,15 @@ if __name__ == "__main__":
             im.set_up_plot()
             im.connect()
 
+            # Adds the swap button.
+            b_ax = plt.axes([0.5, 0.1, 0.1, 0.05])
+            button1 = Button(b_ax, "Swap Label")
+            button1.on_clicked(im.swap)
+
             # Adds the bad image button
-            b_ax = plt.axes([0.7, 0.05, 0.1, 0.075])
-            button = Button(b_ax, "Bad Image")
-            button.on_clicked(im.cleanup)
+            b_ax = plt.axes([0.6, 0.1, 0.1, 0.05])
+            button2 = Button(b_ax, "Bad Image")
+            button2.on_clicked(im.cleanup)
 
             plt.show()
             print(im.good)
