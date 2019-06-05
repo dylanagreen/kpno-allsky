@@ -179,10 +179,10 @@ def download_image(date):
             now = datetime.datetime.utcnow()
             minutes = now.minute // 2 * 2
             now = now.replace(minute=minutes, second=5)
-            print(now)
             new_name = "c_ut" + now.strftime('%H%M%S') + ".jpg"
 
     os.rename(imagename, os.path.join(directory, new_name))
+    block_text(directory, new_name)
     logging.debug("Downloaded: " + new_name)
 
 
@@ -203,6 +203,16 @@ def make_video(directory):
     proc.communicate()
     proc.kill()
     proc.communicate()
+
+
+def block_text(directory, name):
+    im = np.array(Image.open(os.path.join(directory, name)))
+    # The top right, lower right, and loewr left corners of text.
+    im[1000:, 860:] = 0
+    im[1000:, :120] = 0
+    im[:25, 860:] = 0
+    Image.fromarray(im).save((os.path.join(directory, name)))
+
 
 def run_and_download():
     while True:
