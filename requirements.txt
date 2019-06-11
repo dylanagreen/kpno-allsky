@@ -7,3 +7,4 @@ requests>=2.20.1
 pandas>=0.22.0
 pillow>=4.2.1
 pytesseract>=0.2.6 
+python-daemon>=2.2.3

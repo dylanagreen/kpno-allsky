@@ -15,6 +15,7 @@ import subprocess
 import time
 from html.parser import HTMLParser
 
+import daemon
 import ephem
 import numpy as np
 import pytesseract
@@ -312,7 +313,7 @@ def run_and_download():
             time.sleep(delta)
 
         print("Sunset arrived, starting download.")
-        day = datetime.datetime.now().strftime("%Y%m%d")
+        day = datetime.datetime.utcnow().strftime("%Y%m%d")
         directory = os.path.join("Images", *["Original", "SW", day])
 
         # This directory is for use on the blackbox server.
@@ -350,5 +351,6 @@ def run_and_download():
 
 
 if __name__ == "__main__":
-    run_and_download()
+    with daemon.DaemonContext():
+        run_and_download()
 
