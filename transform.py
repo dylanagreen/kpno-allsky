@@ -14,7 +14,7 @@ import math
 import os
 import ast
 import numpy as np
-import matplotlib.pyplot as plot
+import matplotlib.pyplot as plt
 from matplotlib.patches import Polygon
 
 import coordinates
@@ -62,11 +62,11 @@ def transform(img):
     img = mask.apply_mask(masking, img)
 
     # Sets up the figure and axes objects
-    fig = plot.figure(frameon=False)
+    fig = plt.figure(frameon=False)
     fig.set_size_inches(12, 6)
 
     # We just want the globe to be centered in an image so we turn off the axis
-    ax1 = plot.Axes(fig, [0., 0., 1., 1.])
+    ax1 = plt.Axes(fig, [0., 0., 1., 1.])
     ax1.set_axis_off()
 
     # This is black background stuff
@@ -160,12 +160,12 @@ def transform(img):
 
     # Want it to be 1920 wide.
     dpi = 1920 / (fig.get_size_inches()[0])
-    plot.savefig(conv, dpi=dpi)
+    plt.savefig(conv, dpi=dpi)
 
     print("Saved: " + conv)
 
-    # Gotta close the plot so we don"t memory overflow lol.
-    plot.close()
+    # Gotta close the plot so we don't memory overflow lol.
+    plt.close()
 
 
 def contours(axis, time):
@@ -212,7 +212,7 @@ def contours(axis, time):
 
         # Don"t sort the 60 contour since it"s a complete circle.
         if not alt == 60:
-            # Sorting by ra so that the left and right edges don"t connect.
+            # Sorting by ra so that the left and right edges don't connect.
             points = []
             for i, ra in enumerate(rapoints):
                 points.append((ra, decpoints[i]))
