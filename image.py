@@ -66,10 +66,10 @@ def load_image(name, date, camera, mode="L"):
         The name of the image.
     date : str
         The date on which the image was taken.
-    camera : {"KPNO", "MMTO"}
+    camera : {"KPNO", "MMTO", "SW"}
         The camera used to take the image. "KPNO" represents the all-sky
-        camera at Kitt-Peak and "MMTO" represents the all-sky camera at the MMT
-        Observatory.
+        camera at Kitt-Peak. "MMTO" represents the all-sky camera at the MMT
+        Observatory. "SW" represents the spacewatch all-sky camera.
     mode : {"L", "RGB", "RGBA"}, optional
         The color mode to load the image in. Defaults to "L" for greyscale.
         Use "RGB" for color and "RGBA" for color with an alpha layer.
@@ -82,9 +82,10 @@ def load_image(name, date, camera, mode="L"):
     """
     # If the name was passed without .png at the end append it so we know what
     # format this bad boy is in.
-    if not name[-4:] == ".png":
+    if camera == "KPNO" and not name[-4:] == ".png":
         name = name + ".png"
-    # Actually MMTO takes .fits images so in hindsight this might have been bad
+    elif camera == "SW" and not name[-4:] == ".jpg":
+        name = name + ".jpg"
 
     # Loads the image using Pillow and converts it to greyscale
     loc = os.path.join("Images", *["Original", camera, date, name])

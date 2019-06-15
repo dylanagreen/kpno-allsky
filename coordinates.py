@@ -19,16 +19,20 @@ import numpy as np
 
 # Globals
 # Center of the circle found using super accurate photoshop layering technique
-center = (256, 252)
+center_kpno = (256, 252)
+center_sw = (512, 512)
 
-# r - theta table.
-rpoints = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
+# r - theta tables.
+r_kpno = [0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5,
            5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10,
            10.5, 11, 11.5, 11.6]
-thetapoints = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
+theta_kpno = [0, 3.58, 7.17, 10.76, 14.36, 17.98, 21.62, 25.27,
                28.95, 32.66, 36.40, 40.17, 43.98, 47.83, 51.73,
                55.67, 59.67, 63.72, 67.84, 72.03, 76.31, 80.69,
                85.21, 89.97, 90]
+
+r_sw = [0, 55, 110, 165, 220, 275, 330, 385, 435, 480, 512]
+theta_sw = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 95]
 
 # Radec
 stars = {"Polaris": (37.9461429,  89.2641378),
@@ -40,7 +44,7 @@ stars = {"Polaris": (37.9461429,  89.2641378),
          "Sirius": (101.2875, -16.7161)}
 
 
-def xy_to_altaz(x, y):
+def xy_to_altaz(x, y, camera="KPNO"):
     """Convert a set of (x, y) coordinates to (alt, az) coordinates,
     element-wise.
 
@@ -50,6 +54,10 @@ def xy_to_altaz(x, y):
         The x coordinates.
     y : array_like
         The y coordinates.
+    camera : {"KPNO", "SW"}
+        The camera used to take the image. "KPNO" represents the all-sky
+        camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
+        Defaults to "KPNO".
 
     Returns
     -------
@@ -71,6 +79,7 @@ def xy_to_altaz(x, y):
     # Point adjusted based on the center being at... well... the center.
     # And not the top left. In case you were confused.
     # Y is measured from the top stop messing it up.
+    center  = center_sw if camera == "SW" else center_kpno
     pointadjust = (x - center[0], center[1] - y)
 
     # We use -x here because the E and W portions of the image are flipped
@@ -88,18 +97,77 @@ def xy_to_altaz(x, y):
     # 90- turns the angle from measured from the vertical
     # to measured from the horizontal.
     # This interpolates the value from the two on either side of it.
-    r = r * 11.6 / 240  # Magic pixel to mm conversion rate
-    alt = 90 - np.interp(r, xp=rpoints, fp=thetapoints)
+    if camera == "SW":
+        alt = 90 - np.interp(r, xp=r_sw, fp=theta_sw)
+    else:
+        r = r * 11.6 / 240  # Magic pixel to mm conversion rate
 
-    # For now if r is on the edge of the circle or beyond
-    # we"ll have it just be 0 degrees. (Up from horizontal)
-    cond = np.greater(r, 240)
-    alt = np.where(cond, 0, alt)
+        alt = 90 - np.interp(r, xp=r_kpno, fp=theta_kpno)
+        # For now if r is on the edge of the circle or beyond
+        # we'll have it just be 0 degrees. (Up from horizontal)
+        cond = np.greater(r, 240)
+        alt = np.where(cond, 0, alt)
 
-    # Az correction
-    az = az + .94444
+        # Az correction
+        az = az + .94444
 
     return (alt.tolist(), az.tolist())
+
+
+def altaz_to_xy(alt, az, camera="KPNO"):
+    """Convert a set of (alt, az) coordinates to (x, y) coordinates,
+    element-wise.
+
+    Parameters
+    ----------
+    alt : array_like
+        The altitude coordinates.
+    az : array_like
+        The azimuth coordinates.
+    camera : {"KPNO" "SW"}
+        The camera used to take the image. "KPNO" represents the all-sky
+        camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
+        Defaults to "KPNO".
+
+    Returns
+    -------
+    x : array_like
+        The x coordinates. This is a scalar if alt and az are scalars.
+    y : array_like
+        The y coordinates. This is a scalar if alt and az are scalars.
+
+    Notes
+    -----
+    The altitude and azimuthal angles corresponding to each (x, y) position
+    are determined using the position of the all-sky camera at the Kitt Peak
+    National Observatory.
+    """
+    alt = np.asarray(alt)
+    az = np.asarray(az)
+
+    if camera == "SW":
+        # Reverse of r interpolation
+        r = np.interp(90 - alt, xp=theta_sw, fp=r_sw)
+    else:
+        # Approximate correction (due to distortion of lens?)
+        az = az - .94444
+
+        # Reverse of r interpolation
+        r = np.interp(90 - alt, xp=theta_kpno, fp=r_kpno)
+        r = r * 240 / 11.6  # mm to pixel rate
+
+    # Angle measured from vertical so sin and cos are swapped from usual polar.
+    # These are x,ys with respect to a zero.
+    x = -1 * r * np.sin(np.radians(az))
+    y = r * np.cos(np.radians(az))
+
+    # y is measured from the top!
+    center  = center_sw if camera == "SW" else center_kpno
+    x = x + center[0]
+    y = center[1] - y
+    pointadjust = (x.tolist(), y.tolist())
+
+    return pointadjust
 
 
 def altaz_to_radec(alt, az, time):
@@ -202,55 +270,7 @@ def radec_to_altaz(ra, dec, time):
     return (altazcoord.alt.degree, altazcoord.az.degree)
 
 
-def altaz_to_xy(alt, az):
-    """Convert a set of (alt, az) coordinates to (x, y) coordinates,
-    element-wise.
-
-    Parameters
-    ----------
-    alt : array_like
-        The altitude coordinates.
-    az : array_like
-        The azimuth coordinates.
-
-    Returns
-    -------
-    x : array_like
-        The x coordinates. This is a scalar if alt and az are scalars.
-    y : array_like
-        The y coordinates. This is a scalar if alt and az are scalars.
-
-    Notes
-    -----
-    The altitude and azimuthal angles corresponding to each (x, y) position
-    are determined using the position of the all-sky camera at the Kitt Peak
-    National Observatory.
-    """
-    alt = np.asarray(alt)
-    az = np.asarray(az)
-
-    # Approximate correction (due to distortion of lens?)
-    az = az - .94444
-
-    # Reverse of r interpolation
-    r = np.interp(90 - alt, xp=thetapoints, fp=rpoints)
-
-    r = r * 240 / 11.6  # mm to pixel rate
-
-    # Angle measured from vertical so sin and cos are swapped from usual polar.
-    # These are x,ys with respect to a zero.
-    x = -1 * r * np.sin(np.radians(az))
-    y = r * np.cos(np.radians(az))
-
-    # y is measured from the top!
-    x = x + center[0]
-    y = center[1] - y
-    pointadjust = (x.tolist(), y.tolist())
-
-    return pointadjust
-
-
-def radec_to_xy(ra, dec, time):
+def radec_to_xy(ra, dec, time, camera="KPNO"):
     """Convert a set of (ra, dec) coordinates to (x, y) coordinates,
     element-wise.
 
@@ -260,6 +280,10 @@ def radec_to_xy(ra, dec, time):
         The right ascension coordinates.
     dec : array_like
         The declination coordinates.
+    camera : {"KPNO" "SW"}
+        The camera used to take the image. "KPNO" represents the all-sky
+        camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
+        Defaults to "KPNO".
     time : astropy.time.core.aptime.Time
         The time and date to use in the conversion.
 
@@ -288,11 +312,14 @@ def radec_to_xy(ra, dec, time):
     y coordinates are returned.
     """
     alt, az = radec_to_altaz(ra, dec, time)
-    x, y = altaz_to_xy(alt, az)
-    return galactic_conv(x, y, az)
+    x, y = altaz_to_xy(alt, az, camera)
+    if camera == "KPNO":
+        return galactic_conv(x, y, az)
+    else:
+        return (x, y)
 
 
-def xy_to_radec(x, y, time):
+def xy_to_radec(x, y, time, camera="KPNO"):
     """Convert a set of (x, y) coordinates to (ra, dec) coordinates,
     element-wise.
 
@@ -302,6 +329,10 @@ def xy_to_radec(x, y, time):
         The x coordinates.
     y : array_like
         The y coordinates.
+    camera : {"KPNO" "SW"}
+        The camera used to take the image. "KPNO" represents the all-sky
+        camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
+        Defaults to "KPNO".
     time : astropy.time.core.aptime.Time
         The time and date at which the image was taken.
 
@@ -332,9 +363,11 @@ def xy_to_radec(x, y, time):
     again to altitude and azimuth using xy_to_altaz, which are then converted
     final to right ascension and declination using altaz_to_radec.
     """
-    alt, az = xy_to_altaz(x, y)
-    x, y = camera_conv(x, y, az)
-    alt, az = xy_to_altaz(x, y)
+    alt, az = xy_to_altaz(x, y, camera)
+
+    if camera == "KPNO":
+        x, y = camera_conv(x, y, az)
+        alt, az = xy_to_altaz(x, y)
 
     return altaz_to_radec(alt, az, time)
 
@@ -408,8 +441,8 @@ def galactic_conv(x, y, az):
     az = np.asarray(az)
 
     # Convert to center relative coords.
-    x = x - center[0]
-    y = center[1] - y
+    x = x - center_kpno[0]
+    y = center_kpno[1] - y
 
     r = np.hypot(x, y)
     az = az - .94444
@@ -422,8 +455,8 @@ def galactic_conv(x, y, az):
     y = r * np.cos(np.radians(az))
 
     # Convert to top left relative coords.
-    x = x + center[0]
-    y = center[1] - y
+    x = x + center_kpno[0]
+    y = center_kpno[1] - y
 
     return (x.tolist(), y.tolist())
 
@@ -472,8 +505,8 @@ def camera_conv(x, y, az):
     az = np.asarray(az)
 
     # Convert to center relative coords.
-    x = x - center[0]
-    y = center[1] - y
+    x = x - center_kpno[0]
+    y = center_kpno[1] - y
 
     r = np.hypot(x, y)
 
@@ -488,8 +521,8 @@ def camera_conv(x, y, az):
     y = r * np.cos(np.radians(az))
 
     # Convert to top left relative coords.
-    x = x + center[0]
-    y = center[1] - y
+    x = x + center_kpno[0]
+    y = center_kpno[1] - y
 
     return (x.tolist(), y.tolist())
 
@@ -588,7 +621,7 @@ def find_star(img, centerx, centery, square=6):
     star = (centerx + R[0], centery + R[1])
 
     # For some reason de-incrementing by 2 is more accurate than 1.
-    # Don"t ask me why, I don"t understand it either.
+    # Don't ask me why, I don't understand it either.
     if square > 2:
         return find_star(img, star[0], star[1], square - 2)
     return star
@@ -605,9 +638,9 @@ def delta_r(img, centerx, centery):
     img : numpy.ndarray
         A greyscale image.
     centerx : float
-        The x coordinate of the star"s center.
+        The x coordinate of the star's center.
     centery : float
-        The y coordinate of the star"s center.
+        The y coordinate of the star's center.
 
     Returns
     -------
@@ -634,18 +667,18 @@ def delta_r(img, centerx, centery):
 
     """
 
-    adjust1 = (centerx - center[0], center[1] - centery)
+    adjust1 = (centerx - center_kpno[0], center_kpno[1] - centery)
 
     rexpected = math.sqrt(adjust1[0] ** 2 + adjust1[1] ** 2)
 
-    # If we think it"s outside the circle then bail on all the math.
+    # If we think it's outside the circle then bail on all the math.
     # R of circle is 240, but sometimes the r comes out as 239.9999999
     if rexpected > 239:
         return (-1, -1, -1)
 
     # Put this after the bail out to save some function calls.
     star = find_star(img, centerx, centery)
-    adjust2 = (star[0] - center[0], center[1] - star[1])
+    adjust2 = (star[0] - center_kpno[0], center_kpno[1] - star[1])
 
     ractual = math.sqrt(adjust2[0] ** 2 + adjust2[1] ** 2)
     deltar = ractual - rexpected

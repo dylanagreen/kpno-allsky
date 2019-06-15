@@ -22,7 +22,8 @@ import mask
 import image
 
 
-center = (256, 252)
+center_kpno = (256, 252)
+center_sw = (512, 512)
 
 
 # This takes the file and the given date and then transforms it
@@ -58,8 +59,9 @@ def transform(img):
 
     # Find the mask and black out those pixels.
     # Contrasting the clouds already masks.
-    masking = mask.generate_full_mask()
-    img = mask.apply_mask(masking, img)
+    if img.camera == "KPNO":
+        masking = mask.generate_full_mask()
+        img = mask.apply_mask(masking, img)
 
     # Sets up the figure and axes objects
     fig = plt.figure(frameon=False)
@@ -93,6 +95,8 @@ def transform(img):
     xpoints = []
     ypoints = []
 
+    center = center_kpno if img.camera == "KPNO" else center_sw
+    max_r = 241 if img.camera == "KPNO" else 512
     for row in range(0, img.data.shape[0]):
         for column in range(0, img.data.shape[1]):
 
@@ -101,16 +105,16 @@ def transform(img):
             r = math.hypot(x, y)
 
             # Only want points in the circle to convert
-            if r <= 241:
+            if r <= max_r:
                 xpoints.append(column)
                 ypoints.append(row)
 
-    # We need to add 0.5 to the r,c coords to get the center of the pixel
+    # We need to add 0.5 to the x,y coords to get the center of the pixel
     # rather than the top left corner.
     # Convert the alt az to x,y
     x = np.add(np.asarray(xpoints), 0.5)
     y = np.add(np.asarray(ypoints), 0.5)
-    rapoints, decpoints = coordinates.xy_to_radec(x, y, time)
+    rapoints, decpoints = coordinates.xy_to_radec(x, y, time, img.camera)
 
     # Finds colors for dots.
     colors = []
@@ -129,7 +133,10 @@ def transform(img):
         x = xpoints[i]
         y = ypoints[i]
 
-        colors.append(img.data[y, x])
+        if len(img.data[y, x]) == 3:
+            colors.append(img.data[y, x] / 255)
+        else:
+            colors.append(img.data[y, x])
 
     # Scatter for the image conversion
     x, y = eckertiv(rapoints, decpoints)
@@ -151,12 +158,12 @@ def transform(img):
     fig.add_axes(ax1)
 
     # Make sure the folder location exists
-    directory = "Images/Transform/" + img.date + "/"
+    directory = os.path.join("Images", *["Transform", img.date])
     if not os.path.exists(directory):
         os.makedirs(directory)
 
     # Save name.
-    conv = directory + img.name
+    conv = os.path.join(directory, img.name)
 
     # Want it to be 1920 wide.
     dpi = 1920 / (fig.get_size_inches()[0])
@@ -593,6 +600,6 @@ def clockwise_sort(x, y, clockwise=True):
 
 
 if __name__ == "__main__":
-    date = "20170623"
-    img = image.load_image("r_ut030204s76080", date, "KPNO")
+    date = "20190522"
+    img = image.load_image("c_ut061405", date, "SW", "RGB")
     transform(img)
