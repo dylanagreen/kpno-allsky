@@ -96,7 +96,7 @@ def transform(img):
     ypoints = []
 
     center = center_kpno if img.camera == "KPNO" else center_sw
-    max_r = 241 if img.camera == "KPNO" else 512
+    max_r = 241 if img.camera == "KPNO" else 510
     for row in range(0, img.data.shape[0]):
         for column in range(0, img.data.shape[1]):
 
