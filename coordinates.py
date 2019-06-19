@@ -80,6 +80,15 @@ def xy_to_altaz(x, y, camera="KPNO"):
     # And not the top left. In case you were confused.
     # Y is measured from the top stop messing it up.
     center  = center_sw if camera == "SW" else center_kpno
+    # Spacewatch camera isn't perfectly flat, true zenith is 2 to the right
+    # and 3 down from center. I tried doing the full geometric conversion for
+    # this, rotating the camera plane across the axis that this corresponds to
+    # and basically the real correction is so close to x -= 2 and y -=3 that
+    # there's not really a point to doing expensive mathematics computations
+    # that are going to simplify to this anyway.
+    if camera == "SW":
+        x -= 2
+        y -= 3
     pointadjust = (x - center[0], center[1] - y)
 
     # We use -x here because the E and W portions of the image are flipped
@@ -99,6 +108,7 @@ def xy_to_altaz(x, y, camera="KPNO"):
     # This interpolates the value from the two on either side of it.
     if camera == "SW":
         alt = 90 - np.interp(r, xp=r_sw, fp=theta_sw)
+        az = az - 0.1 # Camera rotated 0.1 degrees.
     else:
         r = r * 11.6 / 240  # Magic pixel to mm conversion rate
 
@@ -148,6 +158,7 @@ def altaz_to_xy(alt, az, camera="KPNO"):
     if camera == "SW":
         # Reverse of r interpolation
         r = np.interp(90 - alt, xp=theta_sw, fp=r_sw)
+        az = az + 0.1 # Camera rotated 0.1 degrees.
     else:
         # Approximate correction (due to distortion of lens?)
         az = az - .94444
@@ -165,6 +176,13 @@ def altaz_to_xy(alt, az, camera="KPNO"):
     center  = center_sw if camera == "SW" else center_kpno
     x = x + center[0]
     y = center[1] - y
+
+    # Spacewatch camera isn't perfectly flat, true zenith is 2 to the right
+    # and 3 down from center.
+    if camera == "SW":
+        x += 2
+        y += 3
+
     pointadjust = (x.tolist(), y.tolist())
 
     return pointadjust
