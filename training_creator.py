@@ -64,12 +64,12 @@ class TaggableImage:
         self.artists.append(ax.imshow(self.img, cmap='gray'))
 
         # Circle at 30 degrees altitude, where the training patches end.
-        circ1 = Circle(coordinates.center, radius=167, fill=False, edgecolor="cyan")
+        circ1 = Circle(coordinates.center_kpno, radius=167, fill=False, edgecolor="cyan")
         self.artists.append(ax.add_patch(circ1))
 
         # Extra ten pixels in the radius so we are sure to get any pixels that
         # would be caught in the training patches.
-        circ2 = Circle(coordinates.center, radius=167+10, fill=False, edgecolor="green")
+        circ2 = Circle(coordinates.center_kpno, radius=167+10, fill=False, edgecolor="green")
         self.artists.append(ax.add_patch(circ2))
 
         # This is a little hacky but it recreates the grid shape with individual
