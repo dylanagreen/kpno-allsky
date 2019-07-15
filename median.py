@@ -7,6 +7,7 @@ Two other methods are used to support the median creation: one implementing
 the median of medains algorithm and one that converts a list of lists to a
 list of tuples.
 """
+import glob
 import os
 import numpy as np
 
@@ -100,13 +101,16 @@ def median_of_medians(arr, i):
     return median_of_medians(high, i - (lownum + identnum))
 
 
-def median_all_date(date, color=False):
+def median_all_date(date, camera="KPNO", color=False):
     """Find the median images for a given date.
 
     Parameters
     ----------
     date : str
         The date to find median images for.
+    camera : {"KPNO", "SW"}
+            The camera used to take the image. "KPNO" represents the all-sky
+            camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
     color : bool, optional
         If true, finds the median images in color, otherwise works in grayscale.
         Defaults to False.
@@ -121,12 +125,16 @@ def median_all_date(date, color=False):
     io_util.load_all_date : Load images in color to find color medians.
 
     """
-    # I"ve hard coded the files for now, this can be changed later.
-    directory = os.path.join(os.path.dirname(__file__), *["Images", "Original", "KPNO", date])
+    directory = os.path.join(os.path.dirname(__file__), *["Images", "Original",
+                                                          camera, date])
 
     # Gotta make sure those images exist.
     try:
-        files = os.listdir(directory)
+        # This only finds images and ignores videos or .DS_Store
+        if camera == "SW":
+            files = sorted(glob.glob(os.path.join(directory, "*.jpg")))
+        else:
+            files = sorted(glob.glob(os.path.join(directory, "*.png")))
     except:
         print("Images directory not found for that date!")
         print("Are you sure you downloaded images?")
@@ -155,14 +163,13 @@ def median_all_date(date, color=False):
     # If color, then just load all of them ignoring exposure, for now.
     if not color:
         for f in files:
+            f = f.split("/")[-1]
             # We have to reshape the images so that the lowest level
             # single value is a 1D array rather than just a number.
             # This is so when you concat the arrays it actually turns the
             # lowest value into a multivalue array.
-            img = image.load_image(f, date, "KPNO")
+            img = image.load_image(f, date, camera)
             temp = img.data.reshape(img.data.shape[0], img.data.shape[1], 1)
-
-            exposure = image.get_exposure(img)
 
             # All Median
             # Make the super image have the correct
@@ -178,15 +185,17 @@ def median_all_date(date, color=False):
                 exists["All"] = True
 
             # Exposure specific medians
-            if exists[exposure]:
-                superimg[exposure] = np.concatenate((superimg[exposure], temp), axis=2)
-            else:
-                superimg[exposure] = temp
-                exists[exposure] = True
+            if camera == "KPNO":
+                exposure = image.get_exposure(img)
+                if exists[exposure]:
+                    superimg[exposure] = np.concatenate((superimg[exposure], temp), axis=2)
+                else:
+                    superimg[exposure] = temp
+                    exists[exposure] = True
     else:
-        superimg["All"] = io_util.load_all_date(date)
+        superimg["All"] = io_util.load_all_date(date, camera)
 
-    print("Loaded images")
+    print("Loaded images for", date)
 
     # Axis 2 is the color axis (In RGB space 3 is the color axis).
     # Axis 0 is y, axis 1 is x iirc.
@@ -198,7 +207,7 @@ def median_all_date(date, color=False):
             finalimg[key] = np.median(superimg[key], axis=2)
         # In color we use the median of median because rgb tuples.
         else:
-            # Let"s run this loop as little as possible thanks.
+            # Let's run this loop as little as possible thanks.
             if not np.array_equal(superimg[key], np.zeros((1, 1, 1, 1))):
                 supe = superimg[key]
 
@@ -215,7 +224,6 @@ def median_all_date(date, color=False):
                         x += 1
                     y += 1
                     x = 0
-            #finalimg[key] = np.zeros((supe.shape[0], supe.shape[1], 3))
     print("Median images complete for " + date)
     return finalimg
 
@@ -265,5 +273,11 @@ def save_medians(medians, date, color=False):
 
 
 if __name__ == "__main__":
-    medians = median_all_date("20160101")
-    save_medians(medians, "20160101")
+    dates = sorted(os.listdir(os.path.join("Images", "Original", "SW")))
+    if ".DS_Store" in dates:
+        print("Removing DS_Store")
+        dates.remove(".DS_Store")
+    for date in dates:
+        print(date)
+        medians = median_all_date(date, camera="SW")
+        save_medians(medians, date)

@@ -5,7 +5,7 @@ all-sky cameras. These cameras are located at Kitt Peak, designated KPNO, and
 at the Multiple Mirror Telescope Observatory, designated MMTO.
 One class is provided to read the raw HTML provided by each camera"s website.
 """
-
+import glob
 import os
 import time
 from html.parser import HTMLParser
@@ -257,13 +257,16 @@ def download_image(date, image, camera="kpno", directory=None):
     print("Downloaded: " + imagename)
 
 
-def load_all_date(date):
+def load_all_date(date, camera="KPNO"):
     """Load all images for a given date.
 
     Parameters
     ----------
     date : str
         The date in yyyymmdd format.
+    camera : {"KPNO", "SW"}
+            The camera used to take the image. "KPNO" represents the all-sky
+            camera at Kitt-Peak. "SW" represents the spacewatch all-sky camera.
 
     Returns
     -------
@@ -277,14 +280,15 @@ def load_all_date(date):
     gray_and_color_image : Method used to load images.
 
     """
-
-    # I"ve hard coded the files for now, this can be changed later.
-    directory = "Images/Original/KPNO/" + date + "/"
+    directory = os.path.join("Images", *["Original", camera, date])
 
     # In theory this is only ever called from median_all_date.
     # Just in case though.
     try:
-        files = os.listdir(directory)
+        if camera == "SW":
+            files = sorted(glob.glob(os.path.join(directory, "*.jpg")))
+        else:
+            files = sorted(glob.glob(os.path.join(directory, "*.png")))
     except:
         print("Images directory not found for that date!")
         print("Are you sure you downloaded images?")
@@ -295,7 +299,6 @@ def load_all_date(date):
     # Up to 7 seconds quicker than the old method!
     # Has a bonus of being way way easier to read.
     for i, f in enumerate(files):
-        f = directory + f
         temp = gray_and_color_image(f)
         imgs.append(temp)
 
@@ -382,4 +385,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_all_date("20181105")
+    download_all_date("20170923")
