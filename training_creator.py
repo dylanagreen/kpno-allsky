@@ -53,8 +53,8 @@ class TaggableImage:
             with open(loc, 'rb') as f:
                 self.mask = np.array(Image.open(f).convert('L'))
 
-        # This is pure white, but we change it to 128 if we're labeling ghosts.
-        self.val = 255
+        # This is gray, but we change it to 255 if we're labeling ghosts.
+        self.val = 128
 
 
     def set_up_plot(self):

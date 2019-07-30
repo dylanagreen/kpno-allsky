@@ -139,7 +139,7 @@ def generate_mask(forcenew=False):
             if r < 242 and np.array_equal(ignore[y, x], [244, 66, 235]):
                 mask[y, x] = 1
 
-    # If we"ve made a new mask, save it so we can skip the above steps later.
+    # If we've made a new mask, save it so we can skip the above steps later.
     save_mask(mask)
 
     return mask

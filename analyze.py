@@ -589,7 +589,7 @@ def plot(years=["2015","2016","2017"], fit_histograms=False):
         week2 = i // 7
 
         for key, val in closedict.items():
-            # We need to append to a different week if it"s a leap year, due
+            # We need to append to a different week if it's a leap year, due
             # to the leap day changing the day number of the year after
             # February.
             week = week2 if int(key) % 4 == 0 else week1
