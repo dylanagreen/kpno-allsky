@@ -291,7 +291,7 @@ def categorize(histogram, categories):
             best = intersection
             category = cat
 
-    # At present I"m currently looking for more categories, so if there isn"t
+    # At present I'm currently looking for more categories, so if there isn't
     # a category with > thresh% intersection I want to know that.
     thresh = 0.35
     if best > thresh:
