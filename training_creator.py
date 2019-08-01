@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import random
+from shutil import copyfile
 import time
 
 from PIL import Image
@@ -23,9 +24,13 @@ import io_util
 
 
 class TaggableImage:
-    def __init__(self, name, update=False):
+    def __init__(self, name, update=False, camera="kpno"):
+        if update and camera != "kpno":
+            raise ValueError("Cannot run update and Spacewatch mode simultaneously")
+
         self.press = False
         self.name = name
+        self.camera = camera
 
         # Artists for blitting.
         self.artists = []
@@ -36,8 +41,12 @@ class TaggableImage:
         else:
             loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", "0.3", name])
         with open(loc, 'rb') as f:
-            img = Image.open(f).convert('L')
-            self.img = np.asarray(img).reshape((512, 512))
+            if camera == "kpno":
+                img = Image.open(f).convert('L')
+                self.img = np.asarray(img).reshape((512, 512))
+            else:
+                img = Image.open(f).convert("RGB")
+                self.img = np.asarray(img).reshape((1024, 1024, 3))
 
         # The grid division
         self.div = 16
@@ -46,7 +55,7 @@ class TaggableImage:
         self.update = update
 
         # The masking image that we're creating.
-        self.mask = np.zeros((512, 512), dtype="uint8")
+        self.mask = np.zeros((self.img.shape[0], self.img.shape[1]), dtype="uint8")
 
         if update:
             loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3", name])
@@ -63,34 +72,44 @@ class TaggableImage:
         fig.set_size_inches(15,15)
         self.artists.append(ax.imshow(self.img, cmap='gray'))
 
+        # Center and radii for the circles of 30 degrees altitude and the
+        # circle of minimum safe distance (green)
+        center = coordinates.center_kpno if self.camera == "kpno" else coordinates.center_sw
+        r = 167 if self.camera == "kpno" else 330
         # Circle at 30 degrees altitude, where the training patches end.
-        circ1 = Circle(coordinates.center_kpno, radius=167, fill=False, edgecolor="cyan")
+        circ1 = Circle(center, radius=r, fill=False, edgecolor="cyan")
         self.artists.append(ax.add_patch(circ1))
 
         # Extra ten pixels in the radius so we are sure to get any pixels that
         # would be caught in the training patches.
-        circ2 = Circle(coordinates.center_kpno, radius=167+10, fill=False, edgecolor="green")
+        circ2 = Circle(center, radius=r + 10, fill=False, edgecolor="green")
         self.artists.append(ax.add_patch(circ2))
 
         # This is a little hacky but it recreates the grid shape with individual
         # rectangular patches. This way the grid can be updated with the rest
         # of the image upon clicking.
-        for i in range(1, 24):
+        upper = 64 if self.camera == "kpno" else 160
+        lower = 448 if self.camera == "kpno" else 864
+        range_top = 24 if self.camera == "kpno" else 45
+        for i in range(1, range_top):
             height = i * self.div
-            r = Rectangle((64, 64), height, height, edgecolor="m", fill=False)
+            r = Rectangle((upper, upper), height, height, edgecolor="m", fill=False)
             self.artists.append(ax.add_patch(r))
 
-            r = Rectangle((64, 448-height), height, height, edgecolor="m", fill=False)
+            r = Rectangle((upper, lower-height), height, height, edgecolor="m", fill=False)
             self.artists.append(ax.add_patch(r))
 
-            r = Rectangle((448-height, 64), height, height, edgecolor="m", fill=False)
+            r = Rectangle((lower-height, upper), height, height, edgecolor="m", fill=False)
             self.artists.append(ax.add_patch(r))
 
-            r = Rectangle((448-height, 448-height), height, height, edgecolor="m", fill=False)
+            r = Rectangle((lower-height, lower-height), height, height, edgecolor="m", fill=False)
             self.artists.append(ax.add_patch(r))
 
         # Shows the divisions on the x and y axis.
-        grid = np.arange(0, 513, self.div)
+        if self.camera == "kpno":
+            grid = np.arange(0, 513, self.div)
+        else:
+            grid = np.arange(0, 513 * 2, self.div * 2)
         plt.xticks(grid)
         plt.yticks(grid)
 
@@ -166,13 +185,18 @@ class TaggableImage:
     def save(self):
         # When the plot is closed we save the newly created label mask.
         save_im = image.AllSkyImage(self.name, None, None, self.mask)
-        exp_im = image.AllSkyImage(self.name, None, None, self.img)
-        exp = image.get_exposure(exp_im)
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", str(exp)])
 
-        # Maks the antenna
-        m = mask.generate_mask()
-        save_im = mask.apply_mask(m, save_im)
+        if self.camera == "kpno":
+            # Gets the exposure for the saving location.
+            exp_im = image.AllSkyImage(self.name, None, None, self.img)
+            exp = image.get_exposure(exp_im)
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", str(exp)])
+
+            # Maks the antenna
+            m = mask.generate_mask()
+            save_im = mask.apply_mask(m, save_im)
+        else:
+            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels-sw"])
 
         # Saves the image.
         image.save_image(save_im, loc)
@@ -180,7 +204,10 @@ class TaggableImage:
         if not self.update:
             # Moves the downloaded image into the training folder.
             loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
-            dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
+            if self.camera == "kpno":
+                dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
+            else:
+                dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train-sw", self.name])
             os.rename(loc, dest)
             print("Moved: " + loc)
 
@@ -202,7 +229,7 @@ class TaggableImage:
 
 
 
-def get_image(update, i=0):
+def get_image_kpno(update, i=0):
     if not update:
         # The link to the camera.
         link = "http://kpasca-archives.tuc.noao.edu/"
@@ -249,31 +276,64 @@ def get_image(update, i=0):
         return images[i]
 
 
+def get_image_sw(i=0):
+    base_loc = os.path.join(os.path.dirname(__file__), *["Images", "Original", "SW"])
+    all_dates = os.listdir(base_loc)
+    date = random.choice(all_dates)
+
+    all_images = os.listdir(os.path.join(base_loc, date))
+    image = random.choice(all_images)
+
+    # Once we have an image name we copy it to Images/data/to_label
+    # First we need to make sure it exists.
+    label_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
+    if not os.path.exists(label_loc):
+        os.makedirs(label_loc)
+
+    # Downloads the image
+    copyfile(os.path.join(base_loc, *[date, image]), os.path.join(label_loc, image))
+
+    # Returns the image name.
+    return image
+
+
 
 if __name__ == "__main__":
-    done = {}
     update = False
-    # The list of all the pictures that have already been finished.
-    finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3"])
-    if not os.path.exists(finished_loc):
-        os.makedirs(finished_loc)
-    done["0.3"] = os.listdir(finished_loc)
+    camera = "sw"
 
-    # Separate out the 0.3s and 6s images.
-    finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "6"])
-    if not os.path.exists(finished_loc):
-        os.makedirs(finished_loc)
-    done["6"] = os.listdir(finished_loc)
+    if camera == "kpno":
+        done = {}
+        # The list of all the pictures that have already been finished.
+        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3"])
+        if not os.path.exists(finished_loc):
+            os.makedirs(finished_loc)
+        done["0.3"] = os.listdir(finished_loc)
+
+        # Separate out the 0.3s and 6s images.
+        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "6"])
+        if not os.path.exists(finished_loc):
+            os.makedirs(finished_loc)
+        done["6"] = os.listdir(finished_loc)
+    else:
+        # The list of all the pictures that have already been finished.
+        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels-sw"])
+        if not os.path.exists(finished_loc):
+            os.makedirs(finished_loc)
+        done = os.listdir(finished_loc)
 
     i = 0
     # We run this loop until the user kills the program.
     while True:
-
-        name = get_image(update, i)
-
         # Loads the image into the frame to label.
-        if not update and ((not name in done["0.3"]) or (not name in done["6"])):
-            im = TaggableImage(name)
+        if camera == "kpno":
+            name = get_image_kpno(update, i)
+            good = not update and ((not name in done["0.3"]) or (not name in done["6"]))
+        else:
+            name = get_image_sw(i)
+            good = not update and not name in done
+        if good:
+            im = TaggableImage(name, camera=camera)
             im.set_up_plot()
             im.connect()
 
