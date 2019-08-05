@@ -13,6 +13,7 @@ import numpy as np
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from matplotlib.patches import Circle, Rectangle
 from matplotlib.widgets import Button
 
@@ -37,9 +38,11 @@ class TaggableImage:
 
         # Loads the image and reshapes to 512 512 in greyscale.
         if not update:
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", name])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "to_label", name])
         else:
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", "0.3", name])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "train", "0.3", name])
         with open(loc, 'rb') as f:
             if camera == "kpno":
                 img = Image.open(f).convert('L')
@@ -58,7 +61,8 @@ class TaggableImage:
         self.mask = np.zeros((self.img.shape[0], self.img.shape[1]), dtype="uint8")
 
         if update:
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3", name])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "labels", "0.3", name])
             with open(loc, 'rb') as f:
                 self.mask = np.array(Image.open(f).convert('L'))
 
@@ -113,7 +117,11 @@ class TaggableImage:
         plt.xticks(grid)
         plt.yticks(grid)
 
-        self.artists.append(ax.imshow(self.mask, cmap="viridis", alpha=0.25, vmin=0, vmax=255, animated=True))
+        viridis_mod = cm.viridis
+        viridis_mod.set_under("k", alpha=0)
+        self.artists.append(ax.imshow(self.mask, cmap=viridis_mod, alpha=0.25,
+                                      vmin=0, vmax=255, animated=True,
+                                      clim=[1, 255]))
 
         self.ax = ax
         self.fig = fig
@@ -177,9 +185,12 @@ class TaggableImage:
 
 
     def connect(self):
-        cidpress = self.fig.canvas.mpl_connect('button_press_event', self.on_click)
-        cidmove = self.fig.canvas.mpl_connect('motion_notify_event', self.on_motion)
-        cidrelease = self.fig.canvas.mpl_connect('button_release_event', self.on_release)
+        cidpress = self.fig.canvas.mpl_connect('button_press_event',
+                                               self.on_click)
+        cidmove = self.fig.canvas.mpl_connect('motion_notify_event',
+                                               self.on_motion)
+        cidrelease = self.fig.canvas.mpl_connect('button_release_event',
+                                                 self.on_release)
 
 
     def save(self):
@@ -190,31 +201,37 @@ class TaggableImage:
             # Gets the exposure for the saving location.
             exp_im = image.AllSkyImage(self.name, None, None, self.img)
             exp = image.get_exposure(exp_im)
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", str(exp)])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "labels", str(exp)])
 
             # Maks the antenna
             m = mask.generate_mask()
             save_im = mask.apply_mask(m, save_im)
         else:
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels-sw"])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "labels-sw"])
 
         # Saves the image.
         image.save_image(save_im, loc)
 
         if not self.update:
             # Moves the downloaded image into the training folder.
-            loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
+            loc = os.path.join(os.path.dirname(__file__),
+                               *["Images", "data", "to_label", self.name])
             if self.camera == "kpno":
-                dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train", str(exp), self.name])
+                dest = os.path.join(os.path.dirname(__file__),
+                                    *["Images", "data", "train", str(exp), self.name])
             else:
-                dest = os.path.join(os.path.dirname(__file__), *["Images", "data", "train-sw", self.name])
+                dest = os.path.join(os.path.dirname(__file__),
+                                    *["Images", "data", "train-sw", self.name])
             os.rename(loc, dest)
             print("Moved: " + loc)
 
     def cleanup(self, event):
         # Deletes the downloaded image so that we don't have it clogging
         # everything up.
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label", self.name])
+        loc = os.path.join(os.path.dirname(__file__),
+                           *["Images", "data", "to_label", self.name])
         os.remove(loc)
         self.good = False
         print("Deleted: " + loc)
@@ -259,7 +276,8 @@ def get_image_kpno(update, i=0):
 
         # Once we have an image name we download it to Images/data/to_label
         # First we need to make sure it exists.
-        label_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
+        label_loc = os.path.join(os.path.dirname(__file__),
+                                 *["Images", "data", "to_label"])
         if not os.path.exists(label_loc):
             os.makedirs(label_loc)
 
@@ -269,7 +287,8 @@ def get_image_kpno(update, i=0):
         # Returns the image name.
         return image
     else:
-        images = os.listdir(os.path.join(os.path.dirname(__file__), *["Images", "data", "train", "0.3"]))
+        images = os.listdir(os.path.join(os.path.dirname(__file__),
+                                         *["Images", "data", "train", "0.3"]))
         images = sorted(images)
         if images[0] == ".DS_Store":
             return images[i+1]
@@ -277,16 +296,22 @@ def get_image_kpno(update, i=0):
 
 
 def get_image_sw(i=0):
-    base_loc = os.path.join(os.path.dirname(__file__), *["Images", "Original", "SW"])
+    base_loc = os.path.join(os.path.dirname(__file__),
+                            *["Images", "Original", "SW"])
     all_dates = os.listdir(base_loc)
+    if ".DS_Store" in all_dates:
+        all_dates.remove(".DS_Store")
     date = random.choice(all_dates)
 
     all_images = os.listdir(os.path.join(base_loc, date))
+    if ".DS_Store" in all_images:
+        all_images.remove(".DS_Store")
     image = random.choice(all_images)
 
     # Once we have an image name we copy it to Images/data/to_label
     # First we need to make sure it exists.
-    label_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "to_label"])
+    label_loc = os.path.join(os.path.dirname(__file__),
+                             *["Images", "data", "to_label"])
     if not os.path.exists(label_loc):
         os.makedirs(label_loc)
 
@@ -300,24 +325,27 @@ def get_image_sw(i=0):
 
 if __name__ == "__main__":
     update = False
-    camera = "sw"
+    camera = "kpno"
 
     if camera == "kpno":
         done = {}
         # The list of all the pictures that have already been finished.
-        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "0.3"])
+        finished_loc = os.path.join(os.path.dirname(__file__),
+                                    *["Images", "data", "labels", "0.3"])
         if not os.path.exists(finished_loc):
             os.makedirs(finished_loc)
         done["0.3"] = os.listdir(finished_loc)
 
         # Separate out the 0.3s and 6s images.
-        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels", "6"])
+        finished_loc = os.path.join(os.path.dirname(__file__),
+                                    *["Images", "data", "labels", "6"])
         if not os.path.exists(finished_loc):
             os.makedirs(finished_loc)
         done["6"] = os.listdir(finished_loc)
     else:
         # The list of all the pictures that have already been finished.
-        finished_loc = os.path.join(os.path.dirname(__file__), *["Images", "data", "labels-sw"])
+        finished_loc = os.path.join(os.path.dirname(__file__),
+                                    *["Images", "data", "labels-sw"])
         if not os.path.exists(finished_loc):
             os.makedirs(finished_loc)
         done = os.listdir(finished_loc)
