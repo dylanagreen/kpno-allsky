@@ -275,12 +275,21 @@ def draw_contours(img):
     image will be also. If the input image is greyscale, then the returned
     image will be also.
     """
+    if img.camera.lower() == "kpno":
+        theta = coordinates.theta_kpno
+        rp = coordinates.r_kpno
+        center = coordinates.center_kpno
+    else:
+        theta = coordinates.theta_sw
+        rp = coordinates.r_sw
+        center = coordinates.center_sw
 
     for alt in range(0, 100, 30):
-        r = np.interp(90 - alt, xp=coordinates.thetapoints, fp=coordinates.rpoints)
-        r = r * 240 / 11.6  # mm to pixel rate
+        r = np.interp(90 - alt, xp=theta, fp=rp)
+        if img.camera.lower() == "kpno":
+            r = r * 240 / 11.6  # mm to pixel rate
 
-        circ = Circle(coordinates.center, radius=r, fill=False, edgecolor="green")
+        circ = Circle(center, radius=r, fill=False, edgecolor="green")
         img = draw_patch(img, circ)
 
     return img

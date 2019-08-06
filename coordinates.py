@@ -188,7 +188,7 @@ def altaz_to_xy(alt, az, camera="KPNO"):
     return pointadjust
 
 
-def altaz_to_radec(alt, az, time):
+def altaz_to_radec(alt, az, time, camera="KPNO"):
     """Convert a set of (alt, az) coordinates to (ra, dec) coordinates,
     element-wise.
 
@@ -223,10 +223,13 @@ def altaz_to_radec(alt, az, time):
     assert isinstance(time, aptime.Time), "Time should be an astropy Time Object."
 
     # This is the latitude/longitude of the camera
-    camera = (31.959417 * u.deg, -111.598583 * u.deg)
+    if camera =="KPNO":
+        camera_loc = (31.959417 * u.deg, -111.598583 * u.deg)
+    else:
+        camera_loc = (31.96164 * u.deg, -111.60022 * u.deg)
 
-    cameraearth = EarthLocation(lat=camera[0], lon=camera[1],
-                                height=2120 * u.meter)
+    cameraearth = EarthLocation(lat=camera_loc[0], lon=camera_loc[1],
+                                height=2070 * u.meter)
 
     alt = np.asarray(alt)
     az = np.asarray(az)
@@ -387,7 +390,7 @@ def xy_to_radec(x, y, time, camera="KPNO"):
         x, y = camera_conv(x, y, az)
         alt, az = xy_to_altaz(x, y)
 
-    return altaz_to_radec(alt, az, time)
+    return altaz_to_radec(alt, az, time, camera)
 
 
 # Converts a file name to a time object.
@@ -703,3 +706,8 @@ def delta_r(img, centerx, centery):
 
     return (rexpected, ractual, deltar)
 
+if __name__ == "__main__":
+    t = timestring_to_obj("20190606", "c_ut041405.jpg")
+    print(xy_to_radec(436, 592, t, "SW"))
+
+    print(xy_to_radec(702, 324, t, "SW"))

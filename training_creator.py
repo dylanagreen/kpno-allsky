@@ -42,9 +42,9 @@ class TaggableImage:
                                *["Images", "data", "to_label", name])
         else:
             loc = os.path.join(os.path.dirname(__file__),
-                               *["Images", "data", "train", "0.3", name])
+                               *["Images", "data", "train", "6", name])
         with open(loc, 'rb') as f:
-            if camera == "kpno":
+            if camera.lower() == "kpno":
                 img = Image.open(f).convert('L')
                 self.img = np.asarray(img).reshape((512, 512))
             else:
@@ -62,7 +62,7 @@ class TaggableImage:
 
         if update:
             loc = os.path.join(os.path.dirname(__file__),
-                               *["Images", "data", "labels", "0.3", name])
+                               *["Images", "data", "labels", "6", name])
             with open(loc, 'rb') as f:
                 self.mask = np.array(Image.open(f).convert('L'))
 
@@ -78,8 +78,8 @@ class TaggableImage:
 
         # Center and radii for the circles of 30 degrees altitude and the
         # circle of minimum safe distance (green)
-        center = coordinates.center_kpno if self.camera == "kpno" else coordinates.center_sw
-        r = 167 if self.camera == "kpno" else 330
+        center = coordinates.center_kpno if self.camera.lower() == "kpno" else coordinates.center_sw
+        r = 167 if self.camera.lower() == "kpno" else 330
         # Circle at 30 degrees altitude, where the training patches end.
         circ1 = Circle(center, radius=r, fill=False, edgecolor="cyan")
         self.artists.append(ax.add_patch(circ1))
@@ -92,9 +92,9 @@ class TaggableImage:
         # This is a little hacky but it recreates the grid shape with individual
         # rectangular patches. This way the grid can be updated with the rest
         # of the image upon clicking.
-        upper = 64 if self.camera == "kpno" else 160
-        lower = 448 if self.camera == "kpno" else 864
-        range_top = 24 if self.camera == "kpno" else 45
+        upper = 64 if self.camera.lower() == "kpno" else 160
+        lower = 448 if self.camera.lower() == "kpno" else 864
+        range_top = 24 if self.camera.lower() == "kpno" else 45
         for i in range(1, range_top):
             height = i * self.div
             r = Rectangle((upper, upper), height, height, edgecolor="m", fill=False)
@@ -110,7 +110,7 @@ class TaggableImage:
             self.artists.append(ax.add_patch(r))
 
         # Shows the divisions on the x and y axis.
-        if self.camera == "kpno":
+        if self.camera.lower() == "kpno":
             grid = np.arange(0, 513, self.div)
         else:
             grid = np.arange(0, 513 * 2, self.div * 2)
@@ -141,7 +141,7 @@ class TaggableImage:
         if not self.update:
             self.mask[y:y + self.div, x:x + self.div] = self.val
         else:
-            self.mask[y:y + self.div, x:x + self.div] = 128
+            self.mask[y:y + self.div, x:x + self.div] = 255
         self.artists[-1].set_data(self.mask)
 
         # Does the blitting update
@@ -171,7 +171,7 @@ class TaggableImage:
         if not self.update:
             self.mask[y:y + self.div, x:x + self.div] = self.val
         else:
-            self.mask[y:y + self.div, x:x + self.div] = 128
+            self.mask[y:y + self.div, x:x + self.div] = 255
         self.artists[-1].set_data(self.mask)
 
         # Does the blitting update
@@ -197,7 +197,7 @@ class TaggableImage:
         # When the plot is closed we save the newly created label mask.
         save_im = image.AllSkyImage(self.name, None, None, self.mask)
 
-        if self.camera == "kpno":
+        if self.camera.lower() == "kpno":
             # Gets the exposure for the saving location.
             exp_im = image.AllSkyImage(self.name, None, None, self.img)
             exp = image.get_exposure(exp_im)
@@ -218,7 +218,7 @@ class TaggableImage:
             # Moves the downloaded image into the training folder.
             loc = os.path.join(os.path.dirname(__file__),
                                *["Images", "data", "to_label", self.name])
-            if self.camera == "kpno":
+            if self.camera.lower() == "kpno":
                 dest = os.path.join(os.path.dirname(__file__),
                                     *["Images", "data", "train", str(exp), self.name])
             else:
@@ -288,7 +288,7 @@ def get_image_kpno(update, i=0):
         return image
     else:
         images = os.listdir(os.path.join(os.path.dirname(__file__),
-                                         *["Images", "data", "train", "0.3"]))
+                                         *["Images", "data", "train", "6"]))
         images = sorted(images)
         if images[0] == ".DS_Store":
             return images[i+1]
@@ -324,10 +324,10 @@ def get_image_sw(i=0):
 
 
 if __name__ == "__main__":
-    update = False
+    update = True
     camera = "kpno"
 
-    if camera == "kpno":
+    if camera.lower() == "kpno":
         done = {}
         # The list of all the pictures that have already been finished.
         finished_loc = os.path.join(os.path.dirname(__file__),
@@ -354,7 +354,7 @@ if __name__ == "__main__":
     # We run this loop until the user kills the program.
     while True:
         # Loads the image into the frame to label.
-        if camera == "kpno":
+        if camera.lower() == "kpno":
             name = get_image_kpno(update, i)
             good = not update and ((not name in done["0.3"]) or (not name in done["6"]))
         else:

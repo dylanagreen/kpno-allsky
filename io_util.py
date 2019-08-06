@@ -153,7 +153,7 @@ def download_all_date(date, camera="kpno"):
 
     # Gets the html for a date page,
     # then parses it to find the image names on that page.
-    if camera == "kpno":
+    if camera.lower() == "kpno":
         htmllink = link + "/index.html"
     else:
         htmllink = link
@@ -177,7 +177,7 @@ def download_all_date(date, camera="kpno"):
 
     # Strips everything that"s not a fits image.
     imagenames2 = []
-    if camera == "mmto":
+    if camera.lower() == "mmto":
         for item in imagenames:
             if item[-4:] == "fits":
                 imagenames2.append(item)
@@ -285,7 +285,7 @@ def load_all_date(date, camera="KPNO"):
     # In theory this is only ever called from median_all_date.
     # Just in case though.
     try:
-        if camera == "SW":
+        if camera.lower() == "sw":
             files = sorted(glob.glob(os.path.join(directory, "*.jpg")))
         else:
             files = sorted(glob.glob(os.path.join(directory, "*.png")))
@@ -385,4 +385,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_all_date("20170923")
+    download_all_date("20161223")
