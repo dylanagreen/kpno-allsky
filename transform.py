@@ -116,24 +116,21 @@ def transform(img):
     y = np.add(np.asarray(ypoints), 0.5)
     rapoints, decpoints = coordinates.xy_to_radec(x, y, time, img.camera)
 
+
+    # This block changes the ra so that the projection is centered at
+    # ra = 360-rot.
+    # The reason for this is so the outline survey area is 2 rather than 3
+    # polygons.
+    rot = 60
+    rapoints = np.where(rapoints > (360 - rot), rapoints + rot - 360, rapoints + rot)
+
     # Finds colors for dots.
     colors = []
-    for i, ra in enumerate(rapoints):
-
-        # This block changes the ra so that the projection is centered at
-        # ra = 360-rot.
-        # The reason for this is so the outline survey area is 2 rather than 3
-        # polygons.
-        rot = 60
-        if ra > (360 - rot):
-            ra = ra + rot - 360
-        else:
-            ra = ra + rot
-
+    for i, _ in enumerate(rapoints):
         x = xpoints[i]
         y = ypoints[i]
 
-        if len(img.data[y, x]) == 3:
+        if img.data.shape[-1] == 3:
             colors.append(img.data[y, x] / 255)
         else:
             colors.append(img.data[y, x])
@@ -147,7 +144,6 @@ def transform(img):
 
     # These coord: -265.300085635, -132.582101423 are the minimum x and y of
     # the projection.
-    # I found them by sorting x and y.
     ax1.text(-290, -143, img.formatdate, style="italic")
 
     patches = desi_patch()
@@ -600,6 +596,6 @@ def clockwise_sort(x, y, clockwise=True):
 
 
 if __name__ == "__main__":
-    date = "20190522"
-    img = image.load_image("c_ut061405", date, "SW", "RGB")
+    date = "20160220"
+    img = image.load_image("r_ut020509s43380.png", date, "KPNO")
     transform(img)
