@@ -324,8 +324,8 @@ def get_image_sw(i=0):
 
 
 if __name__ == "__main__":
-    update = True
-    camera = "kpno"
+    update = False
+    camera = "sw"
 
     if camera.lower() == "kpno":
         done = {}
@@ -384,7 +384,7 @@ if __name__ == "__main__":
             print("Num images:" + str(i))
 
         elif update:
-            im = TaggableImage(name, update)
+            im = TaggableImage(name, update, camera=camera)
             im.set_up_plot()
             im.connect()
 
