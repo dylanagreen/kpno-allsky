@@ -18,8 +18,10 @@ from matplotlib.patches import Circle, Rectangle
 from matplotlib.widgets import Button
 
 import coordinates
+from image import AllSkyImage
 import image
 import mask
+import moon
 from io_util import DateHTMLParser
 import io_util
 
@@ -248,6 +250,12 @@ class TaggableImage:
 
 def get_image_kpno(update, i=0):
     if not update:
+        # Verifying that the label location exists
+        label_loc = os.path.join(os.path.dirname(__file__),
+                                 *["Images", "data", "to_label"])
+        if not os.path.exists(label_loc):
+            os.makedirs(label_loc)
+
         # The link to the camera.
         link = "http://kpasca-archives.tuc.noao.edu/"
 
@@ -269,17 +277,20 @@ def get_image_kpno(update, i=0):
         parser.close()
         image = random.choice(parser.data)
 
+        # Need to verify that we're actually in twilight
+        all_sky = AllSkyImage(image, date, "KPNO", None)
+        sunalt = moon.find_sun(all_sky)[0]
+        bad_name = image == "allblue.gif" or image == "allred.gif" or image[:1] == 'b'
+
         # This loop ensures that we don't accidentally download the all night
-        # gifs or an image in a blue filter.
-        while image == 'allblue.gif' or image == 'allred.gif' or image[:1] == 'b':
+        # gifs or an image in a blue filter or an image that isn't twilight
+        while bad_name or sunalt > -17:
             image = random.choice(parser.data)
 
-        # Once we have an image name we download it to Images/data/to_label
-        # First we need to make sure it exists.
-        label_loc = os.path.join(os.path.dirname(__file__),
-                                 *["Images", "data", "to_label"])
-        if not os.path.exists(label_loc):
-            os.makedirs(label_loc)
+            # Regenerates the conditions
+            bad_name = image == "allblue.gif" or image == "allred.gif" or image[:1] == 'b'
+            all_sky = AllSkyImage(image, date, "KPNO", None)
+            sunalt = moon.find_sun(all_sky)[0]
 
         # Downloads the image
         io_util.download_image(date[:8], image, directory=label_loc)
