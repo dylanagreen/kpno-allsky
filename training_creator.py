@@ -223,7 +223,7 @@ class TaggableImage:
                                     *["Images", "data", "train", str(exp), self.name])
             else:
                 dest = os.path.join(os.path.dirname(__file__),
-                                    *["Images", "data", "train-sw", self.name])
+                                    *["Images", "data", "train", "sw", self.name])
             os.rename(loc, dest)
             print("Moved: " + loc)
 
@@ -325,7 +325,7 @@ def get_image_sw(i=0):
 
 if __name__ == "__main__":
     update = False
-    camera = "sw"
+    camera = "kpno"
 
     if camera.lower() == "kpno":
         done = {}
