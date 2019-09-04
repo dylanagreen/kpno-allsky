@@ -248,15 +248,15 @@ def save_medians(medians, date, color=False):
 
     Notes
     -----
-    Saves median images to Images/Median/`date`/ if the medians are grayscale,
-    and Images/Median-Color/`date`/ if the medians are in color.
+    Saves median images to Images/median/`date`/ if the medians are grayscale,
+    and Images/median-color/`date`/ if the medians are in color.
 
     """
     if not color:
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "Median", date])
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "median", date])
         cmap = "gray"
     else:
-        loc = os.path.join(os.path.dirname(__file__), *["Images", "Median-Color", date])
+        loc = os.path.join(os.path.dirname(__file__), *["Images", "median-color", date])
         cmap = None
 
     for key, median in medians.items():
@@ -273,11 +273,11 @@ def save_medians(medians, date, color=False):
 
 
 if __name__ == "__main__":
-    dates = sorted(os.listdir(os.path.join("Images", "Original", "SW")))
+    dates = sorted(os.listdir(os.path.join("Images", "Original", "KPNO")))
     if ".DS_Store" in dates:
         print("Removing DS_Store")
         dates.remove(".DS_Store")
     for date in dates:
         print(date)
-        medians = median_all_date(date, camera="SW")
+        medians = median_all_date(date, camera="KPNO")
         save_medians(medians, date)
