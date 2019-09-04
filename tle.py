@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
 """A script that downloads TLE files.
+
+This file exists as a standalone script that is run separate from the rest of
+the kpno project. The script downloads every TLE from
+http://www.celestrak.com/NORAD/elements/. Upon download the TLE files are joined
+into one large TLE that is then compressed using gzip.
 """
 
 import datetime
@@ -78,12 +83,12 @@ def download_url(link):
 
 
 class TLEHTMLParser(HTMLParser):
-    """Parser for finding TLE.
+    """Parser for finding TLE files.
 
     Attributes
     ----------
     data : list
-        Extracted data from the image website HTML.
+        Extracted data from the TLE website HTML.
     """
     def __init__(self):
         HTMLParser.__init__(self)
@@ -112,6 +117,17 @@ class TLEHTMLParser(HTMLParser):
 
 
 def download():
+    """Download a day's TLE files.
+
+    Notes
+    -----
+    On the website TLE files are separated by category. When downloaded, this
+    method will combine them into one TLE file that is named with the date
+    on which the TLE was downloaded. The TLE txt file is then compressed
+    with gzip. The final file will be named `date`.txt.gz
+
+    The TLE files are located at http://www.celestrak.com/NORAD/elements/.
+    """
     # The parent directory. We run through this to find the TLEs to download.
     parent = "http://www.celestrak.com/NORAD/elements/"
     d = download_url(parent)
