@@ -18,3 +18,6 @@ data/analyzed/
 
 * Documentation Ignores
 doc/_*
+
+* Ignores TLE output
+TLE/
