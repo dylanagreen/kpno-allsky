@@ -43,7 +43,7 @@ def plot_histogram(img, hist, masking=None, save=True):
 
     Notes
     -----
-    This method will save the histogram into Images/Histogram/`img.date`/
+    This method will save the histogram into Images/histogram/`img.date`/
     `img.name`.
 
     """
@@ -69,6 +69,7 @@ def plot_histogram(img, hist, masking=None, save=True):
     ax[0, 1].bar(bins, hist, width=width, align="edge", color="blue", log=True)
     ax[0, 1].set_ylabel("Number of Occurrences")
     ax[0, 1].set_xlabel("Pixel Greyscale Value")
+
 
     # Cloudy pixels thresholded first, then the horizon and moon are masked.
     thresh = 160
@@ -119,19 +120,16 @@ def plot_histogram(img, hist, masking=None, save=True):
     ax[1, 1].xaxis.set_ticklabels([])
 
     # Saving code.
-    path = img.date + "/" + img.name
-    name = "Images/Histogram/" + path
+    # This ensures that the directory you're saving to actually exists.
+    dir_name = os.path.join(os.path.dirname(__file__), *["Images", "histogram", img.date])
+    if not os.path.exists(dir_name):
+        os.makedirs(dir_name)
 
-    # This ensures that the directory you"re saving to actually exists.
-    loc = path.rfind("/")
-    dirname = "Images/Histogram/" + path[0:loc]
-    if not os.path.exists(dirname):
-        os.makedirs(dirname)
-
+    file_name = os.path.join(dir_name, img.name)
     if save:
         dpi = 350.3
-        plt.savefig(name, dpi=dpi, bbox_inches="tight")
-        print("Saved: " + name)
+        plt.savefig(file_name, dpi=dpi, bbox_inches="tight")
+        print("Saved: " + img.date + "/" + img.name)
 
     # Close the plot at the end.
     plt.close()
@@ -208,11 +206,11 @@ def init_categories():
 
     Notes
     -----
-    Images used for initializing each category are stored in Images/Category/.
+    Images used for initializing each category are stored in Images/category/.
     These images can be downloaded from the GitHub repository.
     """
     # Loads up the category numbers
-    directory = os.path.join(os.path.dirname(__file__), *["Images", "Category"])
+    directory = os.path.join(os.path.dirname(__file__), *["Images", "category"])
     files = sorted(os.listdir(directory))
     categories = {}
 
@@ -300,4 +298,7 @@ def categorize(histogram, categories):
     return None
 
 if __name__ == "__main__":
-    init_categories()
+    blah = image.load_image("r_ut070904s69120.png", "20180323", "KPNO")
+    h = generate_histogram(blah)
+    plot_histogram(blah, h)
+    #init_categories()
