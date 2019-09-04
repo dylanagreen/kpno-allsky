@@ -52,7 +52,7 @@ def transform(img):
     where the color of each dot is taken from the pixel originally used.
     Each point is the same size, which is a valid assumption since the
     Eckert-IV projection is an equal area projection.
-    The plot is then saved to Images/Transform/`img.date`/`img.name`.
+    The plot is then saved to Images/transform/`img.date`/`img.name`.
 
     """
     time = img.time
@@ -154,7 +154,7 @@ def transform(img):
     fig.add_axes(ax1)
 
     # Make sure the folder location exists
-    directory = os.path.join("Images", *["Transform", img.date])
+    directory = os.path.join("Images", *["transform", img.date])
     if not os.path.exists(directory):
         os.makedirs(directory)
 
