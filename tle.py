@@ -13,6 +13,7 @@ import logging
 import os
 import shutil
 import subprocess
+import time
 from html.parser import HTMLParser
 
 #import daemon
@@ -150,7 +151,7 @@ def download():
 
     # Loop through all the files
     for l in locs:
-        print("\"" + l + "\", ", end = "")
+        #print("\"" + l + "\", ", end = "")
         # Link is the parent plus the name of the file at the end.
         link = parent + l
         data = download_url(link)
@@ -169,6 +170,33 @@ def download():
     os.remove(store_file)
 
 
+def run_and_download():
+    """Runs the script and downloads the images.
+
+    See Also
+    --------
+    download : Download the day's TLE file.
+
+    Notes
+    -----
+    This method exectures the code flow of the script. Once a TLE file is downloaded
+    the method will sleep until 12:30 the next day and repeat the process.
+    """
+    while True:
+        try:
+            download()
+
+            print("Downloaded: ", datetime.datetime.now().strftime("%Y-%m-%d"))
+            # Sleeps until 6 seconds after two minutes from now.
+            sleep_until = (datetime.datetime.now() + datetime.timedelta(hours=24)).replace(hour=12, minute=30)
+            sleep_for = (sleep_until - datetime.datetime.now()).total_seconds()
+            time.sleep(sleep_for)
+
+        except Exception as e:
+            logging.error(e)
+            raise(e)
+
+
 if __name__ == "__main__":
-    download()
+    run_and_download()
 
