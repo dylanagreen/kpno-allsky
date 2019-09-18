@@ -145,6 +145,10 @@ def download():
 
     # Make the file location if we need it
     store_loc = os.path.join("TLE", *[year, month])
+
+    # Blackbox loc
+    #store_loc = os.path.join("/media", *["data2", "tle", year, month])
+
     store_file = os.path.join(store_loc, day + ".txt")
     if not os.path.exists(store_loc):
         os.makedirs(store_loc)
