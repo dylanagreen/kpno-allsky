@@ -15,4 +15,5 @@ kitt-peak
    moon
    spacewatch
    threshold
+   tle
    transform
