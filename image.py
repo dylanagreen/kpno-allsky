@@ -87,7 +87,7 @@ def load_image(name, date, camera, mode="L"):
     elif camera == "SW" and not name[-4:] == ".jpg":
         name = name + ".jpg"
 
-    # Loads the image using Pillow and converts it to greyscale
+    # Loads the image using Pillow and converts it to given mode.
     loc = os.path.join("Images", *["Original", camera, date, name])
     img = np.asarray(pil_image.open(loc).convert(mode))
     return AllSkyImage(name, date, camera, img)
@@ -154,7 +154,7 @@ def save_image(img, location, cmap="gray"):
 
 
 def draw_patch(img, patch):
-    """Draw a given patch on an image..
+    """Draw a given patch on an image.
 
     Patches will be drawn in lime green.
 
@@ -349,8 +349,7 @@ def draw_square(x, y, img):
 
     ax.set_aspect("equal")
     for i, val in enumerate(x):
-        rect = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False)
-        rect.set_edgecolor("c")
+        rect = Rectangle((x[i]-5, y[i]-5), 11, 11, fill=False, ec="c")
         ax.add_patch(rect)
 
     width = int(scale * dpi)
