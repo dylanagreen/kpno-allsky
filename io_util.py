@@ -125,7 +125,8 @@ def download_all_date(date, camera="kpno"):
     camera : str, optional
         Camera to download images from. Defaults to `kpno` (the all-sky camera
         at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
-        camera at the MMT Observatory).
+        camera at the MMT Observatory) or `sw` (the all-sky camera at the
+        Spacewatch collaboration).
 
     See Also
     --------
@@ -144,17 +145,26 @@ def download_all_date(date, camera="kpno"):
     The MMT Observatory images are located at
     http://skycam.mmto.arizona.edu/skycam/.
 
+    The Spacewatch images are located at
+    http://varuna.kpno.noao.edu/allsky-all/images/cropped/.
     """
     links = {"kpno": "http://kpasca-archives.tuc.noao.edu/",
-             "mmto": "http://skycam.mmto.arizona.edu/skycam/"}
+             "mmto": "http://skycam.mmto.arizona.edu/skycam/",
+             "sw": "http://varuna.kpno.noao.edu/allsky-all/images/cropped/"}
 
     # Creates the link
-    link = links[camera] + date
+    if camera.lower() != "sw":
+        link = links[camera] + date
+    else:
+        link = links[camera]
 
     # Gets the html for a date page,
     # then parses it to find the image names on that page.
     if camera.lower() == "kpno":
         htmllink = link + "/index.html"
+    elif camera.lower() == "sw":
+        htmllink = link + date[0:4] + "/" + date[4:6] + "/" + date[6:] + "/"
+        print(htmllink)
     else:
         htmllink = link
 
@@ -175,13 +185,16 @@ def download_all_date(date, camera="kpno"):
     parser.close()
     imagenames = parser.data
 
-    # Strips everything that"s not a fits image.
+    # Strips everything that's not an image.
+    ext = ".png"
+    if camera.lower() == "mmto": ext = "fits"
+    elif camera.lower() == "sw": ext = ".jpg"
+
     imagenames2 = []
-    if camera.lower() == "mmto":
-        for item in imagenames:
-            if item[-4:] == "fits":
-                imagenames2.append(item)
-        imagenames = imagenames2
+    for item in imagenames:
+        if item[-4:] == ext:
+            imagenames2.append(item)
+    imagenames = imagenames2
 
     # Runs through the array of image names and downloads them
     for image in imagenames:
@@ -212,7 +225,8 @@ def download_image(date, image, camera="kpno", directory=None):
     camera : str, optional
         Camera to download images from. Defaults to `kpno` (the all-sky camera
         at Kitt-Peak) but may be specified instead as `mmto` (the all-sky
-        camera at the MMT Observatory).
+        camera at the MMT Observatory) or `sw` (the all-sky camera at the
+        Spacewatch collaboration).
     directory : str, optional
         The directory to save the downloaded image to. Defaults to
         Images/Original/`camera`.upper()/`date`.
@@ -228,12 +242,19 @@ def download_image(date, image, camera="kpno", directory=None):
 
     The MMT Observatory images are located at
     http://skycam.mmto.arizona.edu/skycam/.
+
+    The Spacewatch images are located at
+    http://varuna.kpno.noao.edu/allsky-all/images/cropped/.
     """
     links = {"kpno": "http://kpasca-archives.tuc.noao.edu/",
-             "mmto": "http://skycam.mmto.arizona.edu/skycam/"}
+             "mmto": "http://skycam.mmto.arizona.edu/skycam/",
+             "sw": "http://varuna.kpno.noao.edu/allsky-all/images/cropped/"}
 
     # Creates the link
-    link = links[camera] + date
+    if camera.lower() != "sw":
+        link = links[camera] + date
+    else:
+        link = links[camera] + date[0:4] + "/" + date[4:6] + "/" + date[6:]
 
     # Collects originals in their own folder within Images
     if not directory:
@@ -243,7 +264,11 @@ def download_image(date, image, camera="kpno", directory=None):
         os.makedirs(directory)
 
     imageloc = link + "/" + image
-    imagename = directory + "/" + image
+
+    if camera.lower() != "sw":
+        imagename = directory + "/" + image
+    else:
+        imagename = directory + "/c_ut" + image[-10:]
 
     rimage = download_url(imageloc)
 
@@ -385,4 +410,4 @@ def image_diff(img1, img2):
 
 
 if __name__ == "__main__":
-    download_all_date("20161223")
+    download_all_date("20200316", "sw")
